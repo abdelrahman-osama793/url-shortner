@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { InvalidDestinationError, validateDestination } from '../../../src/modules/links/destination.js';
+import { InvalidDestinationError, validateDestination } from '../../../src/modules/links/rules/destination.js';
 
 const ownHosts = new Set(['shortlist.example']);
 

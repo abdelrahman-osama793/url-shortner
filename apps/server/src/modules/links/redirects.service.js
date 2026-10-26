@@ -1,6 +1,7 @@
 import { ALIAS_PATTERN } from '@shortlist/contracts';
 
-import { effectiveStatus } from './status.js';
+import * as linksRepository from './links.repository.js';
+import { effectiveStatus } from './rules/status.js';
 
 // Resolves a short code to a redirect decision (technical-design §4, "Resolve a short link").
 //
@@ -21,21 +22,7 @@ export class RedirectUnavailableError extends Error {
   }
 }
 
-// One statement: link, owner status and the database clock, so expiry is judged by the same
-// clock that set guest expiry. COLLATE "C" on links.code makes the match exact and case-sensitive.
-const LOOKUP_SQL = `
-  SELECT l.destination_url,
-         l.admin_blocked_at,
-         l.owner_disabled_at,
-         l.expires_at,
-         u.status AS owner_status,
-         now() AS checked_at
-  FROM links l
-  LEFT JOIN users u ON u.id = l.owner_id
-  WHERE l.code = $1
-`;
-
-export function createRedirectResolver({ pool, maxWaiting = 50 }) {
+export function createRedirectService({ pool, maxWaiting = 50 }) {
   // Returns { outcome: 'redirect', destination } | { outcome: 'missing' } | { outcome: 'inactive' }.
   // Throws RedirectUnavailableError when overloaded or when PostgreSQL fails.
   async function resolve(code) {
@@ -48,15 +35,13 @@ export function createRedirectResolver({ pool, maxWaiting = 50 }) {
       throw new RedirectUnavailableError('overloaded');
     }
 
-    let rows;
+    let link;
 
     try {
-      ({ rows } = await pool.query(LOOKUP_SQL, [code]));
+      link = await linksRepository.findRedirectTarget(pool, code);
     } catch (error) {
       throw new RedirectUnavailableError('database', error);
     }
-
-    const link = rows[0];
 
     if (!link) return { outcome: 'missing' };
 

@@ -1,4 +1,4 @@
-import { effectiveStatus } from './status.js';
+import { effectiveStatus } from './rules/status.js';
 
 // Converts database rows into the API shapes defined in @shortlist/contracts.
 // Admin block reasons and owner IDs are never included.

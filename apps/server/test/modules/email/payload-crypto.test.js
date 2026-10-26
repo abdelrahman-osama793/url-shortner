@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { describe, test } from 'node:test';
 
-import { decryptPayload, encryptPayload, parseOutboxKey } from '../../../src/modules/email/payload-crypto.js';
+import { decryptPayload, encryptPayload, parseOutboxKey } from '../../../src/modules/email/rules/payload-crypto.js';
 
 const key = randomBytes(32);
 const payload = { to: 'person@example.com', token: 'secret-token-value' };

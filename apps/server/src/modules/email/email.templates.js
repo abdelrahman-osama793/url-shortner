@@ -1,4 +1,4 @@
-import { OUTBOX_KINDS } from './outbox.js';
+import { OUTBOX_KINDS } from './outbox.repository.js';
 
 // Email content per outbox kind. Links carry the token in the URL fragment (#token=…):
 // fragments are not sent to servers or logged by proxies, and the page POSTs the token

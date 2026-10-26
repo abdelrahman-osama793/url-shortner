@@ -3,7 +3,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { after, before, describe, test } from 'node:test';
 
 import { withTransaction } from '../../../src/infra/postgres.js';
-import { consumeToken, issueToken, issueTokenWithEmail } from '../../../src/modules/accounts/tokens.js';
+import { consumeToken, issueToken, issueTokenWithEmail } from '../../../src/modules/accounts/tokens.service.js';
 import { createMigratedDatabase } from '../../support/database.js';
 
 const HOUR = 60 * 60 * 1000;

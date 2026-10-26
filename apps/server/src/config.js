@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { resolvePolicies } from './modules/abuse/policies.js';
-import { parseOutboxKey } from './modules/email/payload-crypto.js';
+import { resolvePolicies } from './modules/abuse/rate-limit.policies.js';
+import { parseOutboxKey } from './modules/email/rules/payload-crypto.js';
 
 // Reads and validates environment variables once at startup.
 // Every other module receives configuration as an argument instead of reading process.env.

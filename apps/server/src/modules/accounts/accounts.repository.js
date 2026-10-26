@@ -1,4 +1,5 @@
 // SQL for user accounts. Takes a `db` that is either the pool or a transaction client.
+// Only SQL lives here; rules are in accounts.service.js and API shapes in accounts.presenter.js.
 
 export async function findUserById(db, id) {
   const { rows } = await db.query(
@@ -82,15 +83,4 @@ export async function resetPasswordAndRevokeSessions(db, userId, passwordHash) {
   );
 
   return true;
-}
-
-// The public account shape (contracts UserSchema). Never includes the session version.
-export function toUserResource(row) {
-  return {
-    id: row.id,
-    email: row.email,
-    emailVerified: row.email_verified_at !== null,
-    role: row.role,
-    status: row.status,
-  };
 }

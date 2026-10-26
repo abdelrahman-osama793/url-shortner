@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { networkKey } from '../../../src/modules/abuse/client-address.js';
+import { networkKey } from '../../../src/modules/abuse/rules/client-address.js';
 
 describe('networkKey', () => {
   test('uses the full IPv4 address', () => {

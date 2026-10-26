@@ -35,23 +35,28 @@ guest + registered creation, public redirects (D01); creation/redirect/managemen
 
 ## 4. Module boundaries
 
-Follows technical-design §9:
+Owner request (26 Oct 2026): the backend reads as **routes → controller → service → repository**, with the layer visible in every file name.
 
 ```text
-apps/web/                 Angular public, auth, member and admin UI
-apps/server/src/http/     Express routes, middleware (CSRF, sessions, errors)
-apps/server/src/modules/  accounts, links, analytics, moderation (domain + SQL)
-apps/server/src/infra/    pg pool, redis clients, google, mail adapters
-apps/server/src/worker/   analytics consumer, outbox sender, maintenance
-apps/server/src/api.js    API process entry
-apps/server/src/worker.js Worker process entry
-apps/server/src/config.js Environment read once; passed to modules as arguments
-apps/server/src/lifecycle.js  Shared graceful shutdown
-packages/contracts/       zod schemas + inferred types shared by server and web
-database/migrations/      versioned SQL
-deploy/                   Dockerfile(s) and compose.yaml
-apps/server/test/         integration tests (kept beside the code they test); tests/load/ later
+apps/server/src/api.js                          composition root (wires everything)
+apps/server/src/worker.js                       worker process entry
+apps/server/src/http/app.js                     global middleware
+apps/server/src/http/routes/<x>.routes.js       path + middleware chain + controller method only
+apps/server/src/http/controllers/<x>.controller.js   request → one service call → response; no SQL, no business rules
+apps/server/src/http/middleware/                reusable request checks (session, CSRF, rate limit, validation, errors)
+apps/server/src/modules/<feature>/<x>.service.js     business rules, transaction boundaries
+apps/server/src/modules/<feature>/<x>.repository.js  SQL only (PostgreSQL)
+apps/server/src/modules/<feature>/<x>.presenter.js   row → API shape
+apps/server/src/modules/<feature>/rules/        pure helpers (no I/O)
+apps/server/src/infra/                          pg pool, Redis client, logger, mailer
+packages/contracts/                             zod schemas + generated .d.ts and openapi.json
+database/migrations/                            versioned SQL
+apps/server/test/                               integration tests (mirror the source layout)
 ```
+
+- Controllers and routers are factories that receive their dependencies (`createLinksController({ linkService })`, `createLinksRouter({ controller, guards, limiter, challengeGuard })`), so tests can wire the real stack with different stores or limits.
+- Redis-backed services (`sessions.service.js`, `rate-limit.service.js`, `challenge.service.js`) access Redis directly. Repositories are reserved for SQL.
+- The refactor (commit after T14) moved files and split layers only; no behaviour changed. Proof: all 235 tests passed before and after, and the Docker stack served ready/redirect/csrf requests.
 
 One server package with two entry points (modular monolith), not separate services.
 

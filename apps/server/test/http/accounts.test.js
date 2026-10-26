@@ -5,7 +5,7 @@ import { LoginResponseSchema } from '@shortlist/contracts';
 import argon2 from 'argon2';
 
 import { createSmtpMailer } from '../../src/infra/mailer.js';
-import { createOutboxSender } from '../../src/modules/email/sender.js';
+import { createOutboxSender } from '../../src/modules/email/email-delivery.service.js';
 import { startTestApi } from '../support/api.js';
 import { newBrowser } from '../support/browser.js';
 import { createMigratedDatabase } from '../support/database.js';
@@ -150,7 +150,7 @@ describe('sign-up, verification and sign-in', () => {
 
     assert.notEqual(browser.cookie, anonymousCookie);
     assert.notEqual(csrfToken, anonymousCsrf);
-    assert.equal(await api.store.get(anonymousCookie.split('=')[1]), null, 'the pre-login session is deleted');
+    assert.equal(await api.sessionService.get(anonymousCookie.split('=')[1]), null, 'the pre-login session is deleted');
   });
 
   test('passwords are stored as Argon2id hashes with the configured cost', async () => {

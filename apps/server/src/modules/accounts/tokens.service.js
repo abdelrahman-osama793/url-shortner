@@ -1,6 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import { enqueueEmail } from '../email/outbox.js';
+import { enqueueEmail } from '../email/outbox.repository.js';
+
+import * as tokensRepository from './tokens.repository.js';
 
 // One-time tokens for email verification and password reset (database-schema.md, auth_tokens).
 //   * 256 random bits; only the SHA-256 hash is stored, so a database leak reveals no token.
@@ -20,21 +22,11 @@ function hashToken(token) {
 export async function issueToken(client, { userId, purpose, lifetimeMs }) {
   const token = randomBytes(32).toString('base64url');
 
-  await client.query(
-    `UPDATE auth_tokens
-     SET used_at = now()
-     WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL`,
-    [userId, purpose],
-  );
+  await tokensRepository.revokeUnusedTokens(client, { userId, purpose });
 
-  const { rows } = await client.query(
-    `INSERT INTO auth_tokens (user_id, purpose, token_hash, expires_at)
-     VALUES ($1, $2, $3, now() + make_interval(secs => $4))
-     RETURNING expires_at`,
-    [userId, purpose, hashToken(token), lifetimeMs / 1000],
-  );
+  const expiresAt = await tokensRepository.insertToken(client, { userId, purpose, tokenHash: hashToken(token), lifetimeMs });
 
-  return { token, expiresAt: rows[0].expires_at };
+  return { token, expiresAt };
 }
 
 // Consumes a token atomically: the row lock makes concurrent attempts wait, so exactly one
@@ -45,21 +37,13 @@ export async function consumeToken(client, { token, purpose }) {
     return { ok: false, reason: 'invalid' };
   }
 
-  const { rows } = await client.query(
-    `SELECT id, user_id, used_at, expires_at <= now() AS expired
-     FROM auth_tokens
-     WHERE token_hash = $1 AND purpose = $2
-     FOR UPDATE`,
-    [hashToken(token), purpose],
-  );
-
-  const row = rows[0];
+  const row = await tokensRepository.findTokenForUpdate(client, { tokenHash: hashToken(token), purpose });
 
   if (!row) return { ok: false, reason: 'invalid' };
   if (row.used_at) return { ok: false, reason: 'used' };
   if (row.expired) return { ok: false, reason: 'expired' };
 
-  await client.query('UPDATE auth_tokens SET used_at = now() WHERE id = $1', [row.id]);
+  await tokensRepository.markTokenUsed(client, row.id);
 
   return { ok: true, userId: row.user_id };
 }

@@ -1,7 +1,7 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 
 import { AppError, serviceUnavailableError } from '../../errors.js';
-import { RateLimitUnavailableError } from '../../modules/abuse/rate-limiter.js';
+import { RateLimitUnavailableError } from '../../modules/abuse/rate-limit.service.js';
 
 // Quota exceeded and quota service down are different answers (api-contracts.md):
 //   429 RATE_LIMITED + Retry-After        the caller must slow down

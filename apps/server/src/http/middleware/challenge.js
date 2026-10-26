@@ -1,8 +1,8 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 
 import { AppError, serviceUnavailableError } from '../../errors.js';
-import { ChallengeUnavailableError } from '../../modules/abuse/challenge.js';
-import { RateLimitUnavailableError } from '../../modules/abuse/rate-limiter.js';
+import { ChallengeUnavailableError } from '../../modules/abuse/challenge.service.js';
+import { RateLimitUnavailableError } from '../../modules/abuse/rate-limit.service.js';
 
 function challengeRequired(message) {
   return new AppError(403, ERROR_CODES.CHALLENGE_REQUIRED, message);

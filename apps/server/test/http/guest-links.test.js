@@ -145,13 +145,13 @@ describe('session and CSRF', () => {
   });
 
   test('signed-in users do not get a guest link (registered creation is T17)', async () => {
-    const { server, store } = await startApi();
+    const { server, sessionService } = await startApi();
     const { rows } = await database.pool.query(
       'INSERT INTO users (email, email_normalized, email_verified_at) VALUES ($1, $1, now()) RETURNING id, role, session_version',
       [`${randomUUID()}@example.com`],
     );
 
-    const { token, session } = await store.rotate(null, { id: rows[0].id, role: rows[0].role, sessionVersion: rows[0].session_version });
+    const { token, session } = await sessionService.rotate(null, { id: rows[0].id, role: rows[0].role, sessionVersion: rows[0].session_version });
     const browser = await newBrowser(server);
 
     browser.cookie = `${SESSION_COOKIE}=${token}`;

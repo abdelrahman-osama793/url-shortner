@@ -6,7 +6,7 @@ import { createLogger } from './infra/logger.js';
 import { createSmtpMailer } from './infra/mailer.js';
 import { createPool } from './infra/postgres.js';
 import { onShutdown, runMain } from './lifecycle.js';
-import { createOutboxSender } from './modules/email/sender.js';
+import { createOutboxSender } from './modules/email/email-delivery.service.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();

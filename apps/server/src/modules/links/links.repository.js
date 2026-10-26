@@ -92,3 +92,23 @@ export async function findLinkById(db, id) {
 
   return rows[0] ?? null;
 }
+
+// Everything a redirect needs, in one statement on the primary: the link, its owner's status and
+// the database clock (expiry is judged by the same clock that set guest expiry). COLLATE "C" on
+// links.code makes the match exact and case-sensitive.
+export async function findRedirectTarget(db, code) {
+  const { rows } = await db.query(
+    `SELECT l.destination_url,
+            l.admin_blocked_at,
+            l.owner_disabled_at,
+            l.expires_at,
+            u.status AS owner_status,
+            now() AS checked_at
+     FROM links l
+     LEFT JOIN users u ON u.id = l.owner_id
+     WHERE l.code = $1`,
+    [code],
+  );
+
+  return rows[0] ?? null;
+}

@@ -7,8 +7,9 @@ import { Router } from 'express';
 
 import { createApp } from '../../src/http/app.js';
 import { createAuthGuards, SESSION_COOKIE } from '../../src/http/middleware/session.js';
-import { createAuthRouter } from '../../src/http/routes/auth.js';
-import { createSessionStore } from '../../src/modules/sessions/store.js';
+import { createAuthRouter } from '../../src/http/routes/auth.routes.js';
+import { createAuthController } from '../../src/http/controllers/auth.controller.js';
+import { createSessionService } from '../../src/modules/sessions/sessions.service.js';
 import { createMigratedDatabase } from '../support/database.js';
 import { ALLOWED_ORIGIN, createCapturingLogger, startServer, testConfig } from '../support/http.js';
 import { createTestRedis, createUnreachableRedis } from '../support/redis.js';
@@ -35,12 +36,13 @@ function guardTestRouter(guards) {
 }
 
 async function startAuthServer(sessionStore) {
-  const guards = createAuthGuards({ store: sessionStore, pool: database.pool });
+  const guards = createAuthGuards({ sessionService: sessionStore, pool: database.pool });
+  const controller = createAuthController({ sessionService: sessionStore, accountService: {} });
   const { logger } = createCapturingLogger();
   const app = createApp({
     config: testConfig(),
     logger,
-    routers: [createAuthRouter({ store: sessionStore, guards }), guardTestRouter(guards)],
+    routers: [createAuthRouter({ controller, guards, limiter: {} }), guardTestRouter(guards)],
   });
 
   return startServer(app);
@@ -83,7 +85,7 @@ async function errorCode(response) {
 before(async () => {
   database = await createMigratedDatabase();
   redis = await createTestRedis();
-  store = createSessionStore({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix });
+  store = createSessionService({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix });
   server = await startAuthServer(store);
 });
 
@@ -216,7 +218,7 @@ describe('GET /api/v1/auth/me', () => {
 
   test('an expired session is rejected', async () => {
     let now = Date.now();
-    const timedStore = createSessionStore({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: () => now });
+    const timedStore = createSessionService({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: () => now });
     const timedServer = await startAuthServer(timedStore);
 
     extraServers.push(timedServer);
@@ -286,7 +288,7 @@ describe('authorization guards', () => {
 
     // A store whose clock runs 11 minutes behind: its sessions authenticated 11 minutes ago.
     const elevenMinutesAgo = () => Date.now() - 11 * 60 * 1000;
-    const laggingStore = createSessionStore({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: elevenMinutesAgo });
+    const laggingStore = createSessionService({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: elevenMinutesAgo });
     const laggingServer = await startAuthServer(laggingStore);
 
     extraServers.push(laggingServer);
@@ -310,7 +312,7 @@ describe('Redis outage', () => {
     const down = createUnreachableRedis();
 
     try {
-      const offlineStore = createSessionStore({ redis: down, lifetimes: LIFETIMES });
+      const offlineStore = createSessionService({ redis: down, lifetimes: LIFETIMES });
       const offline = await startAuthServer(offlineStore);
 
       extraServers.push(offline);

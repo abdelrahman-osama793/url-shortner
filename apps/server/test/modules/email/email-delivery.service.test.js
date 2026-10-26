@@ -5,9 +5,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { createSmtpMailer, MailDeliveryError } from '../../../src/infra/mailer.js';
 import { withTransaction } from '../../../src/infra/postgres.js';
-import { consumeToken, issueTokenWithEmail } from '../../../src/modules/accounts/tokens.js';
-import { claimDueMessages } from '../../../src/modules/email/outbox.js';
-import { createOutboxSender } from '../../../src/modules/email/sender.js';
+import { consumeToken, issueTokenWithEmail } from '../../../src/modules/accounts/tokens.service.js';
+import { claimDueMessages } from '../../../src/modules/email/outbox.repository.js';
+import { createOutboxSender } from '../../../src/modules/email/email-delivery.service.js';
 import { createMigratedDatabase } from '../../support/database.js';
 import { createCapturingLogger } from '../../support/http.js';
 import { messagesTo, testSmtpUrl, tokenFromEmail, uniqueAddress } from '../../support/mail.js';

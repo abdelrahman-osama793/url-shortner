@@ -2,9 +2,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { MailDeliveryError } from '../../infra/mailer.js';
 
-import { claimDueMessages, markFailed, markSent, purgeUndeliverable } from './outbox.js';
-import { decryptPayload } from './payload-crypto.js';
-import { renderEmail } from './templates.js';
+import { claimDueMessages, markFailed, markSent, purgeUndeliverable } from './outbox.repository.js';
+import { decryptPayload } from './rules/payload-crypto.js';
+import { renderEmail } from './email.templates.js';
 
 // Delivers outbox messages (worker process). Per batch:
 //   1. claim due messages with a lease, in one short transaction;

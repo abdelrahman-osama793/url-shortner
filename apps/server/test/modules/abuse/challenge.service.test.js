@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import { ChallengeUnavailableError, createChallengeGuard, createDevChallengeVerifier } from '../../../src/modules/abuse/challenge.js';
+import { ChallengeUnavailableError, createChallengeGuard, createDevChallengeVerifier } from '../../../src/modules/abuse/challenge.service.js';
 import { createTestRedis, createUnreachableRedis } from '../../support/redis.js';
 
 const SECRET = 'challenge-test-secret-32-characters!!';

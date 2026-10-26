@@ -1,4 +1,4 @@
-import { networkKey } from '../../modules/abuse/client-address.js';
+import { networkKey } from '../../modules/abuse/rules/client-address.js';
 
 // Sets req.clientNetwork, the per-network rate-limit key. req.ip already honours the
 // configured number of trusted proxies ('trust proxy' in app.js), so a client cannot

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
 import { createSmtpMailer } from '../../src/infra/mailer.js';
-import { createOutboxSender } from '../../src/modules/email/sender.js';
+import { createOutboxSender } from '../../src/modules/email/email-delivery.service.js';
 import { startTestApi } from '../support/api.js';
 import { newBrowser } from '../support/browser.js';
 import { createMigratedDatabase } from '../support/database.js';

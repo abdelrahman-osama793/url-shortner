@@ -3,10 +3,10 @@ import { ALIAS_PATTERN, ERROR_CODES, GUEST_LINK_LIFETIME_DAYS } from '@shortlist
 import { AppError, validationError } from '../../errors.js';
 import { withTransaction } from '../../infra/postgres.js';
 
-import { generateCode as generateRandomCode } from './codes.js';
-import { InvalidDestinationError, validateDestination } from './destination.js';
-import { toGuestLinkResource, toLinkResource } from './presenter.js';
-import * as repository from './repository.js';
+import { generateCode as generateRandomCode } from './rules/codes.js';
+import { InvalidDestinationError, validateDestination } from './rules/destination.js';
+import { toGuestLinkResource, toLinkResource } from './links.presenter.js';
+import * as repository from './links.repository.js';
 
 // A random 8-character Base62 code collides with an existing one only rarely, so a few
 // retries make failure practically impossible while still bounding the work per request.

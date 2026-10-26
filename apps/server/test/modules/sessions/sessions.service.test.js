@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import { createSessionStore, SessionUnavailableError } from '../../../src/modules/sessions/store.js';
+import { createSessionService, SessionUnavailableError } from '../../../src/modules/sessions/sessions.service.js';
 import { createTestRedis, createUnreachableRedis } from '../../support/redis.js';
 
 const MINUTE = 60 * 1000;
@@ -16,7 +16,7 @@ const LIFETIMES = {
 const member = { id: '11111111-1111-4111-8111-111111111111', role: 'user', sessionVersion: 1 };
 const administrator = { id: '22222222-2222-4222-8222-222222222222', role: 'admin', sessionVersion: 1 };
 
-describe('session store', () => {
+describe('session service', () => {
   let redis;
   let now;
 
@@ -31,7 +31,7 @@ describe('session store', () => {
   function store() {
     now = Date.now();
 
-    return createSessionStore({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: () => now });
+    return createSessionService({ redis: redis.client, lifetimes: LIFETIMES, keyPrefix: redis.keyPrefix, clock: () => now });
   }
 
   async function keysInRedis() {
@@ -150,7 +150,7 @@ describe('session store', () => {
     const down = createUnreachableRedis();
 
     try {
-      const sessions = createSessionStore({ redis: down, lifetimes: LIFETIMES });
+      const sessions = createSessionService({ redis: down, lifetimes: LIFETIMES });
 
       await assert.rejects(sessions.get('some-token'), SessionUnavailableError);
       await assert.rejects(sessions.create(), SessionUnavailableError);

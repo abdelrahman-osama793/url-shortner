@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import { createRateLimiter, RateLimitUnavailableError } from '../../../src/modules/abuse/rate-limiter.js';
+import { createRateLimiter, RateLimitUnavailableError } from '../../../src/modules/abuse/rate-limit.service.js';
 import { createTestRedis, createUnreachableRedis } from '../../support/redis.js';
 
 const SECRET = 'rate-limit-test-secret-32-characters!';

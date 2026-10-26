@@ -4,10 +4,11 @@ import { after, before, describe, test } from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { createApp } from '../../src/http/app.js';
-import { createRedirectRouter } from '../../src/http/routes/redirects.js';
+import { createRedirectsController } from '../../src/http/controllers/redirects.controller.js';
+import { createRedirectRouter } from '../../src/http/routes/redirects.routes.js';
 import { createPool, withTransaction } from '../../src/infra/postgres.js';
-import { createRedirectResolver } from '../../src/modules/links/redirects.js';
-import { createLinkService } from '../../src/modules/links/service.js';
+import { createRedirectService } from '../../src/modules/links/redirects.service.js';
+import { createLinkService } from '../../src/modules/links/links.service.js';
 import { createMigratedDatabase } from '../support/database.js';
 import { ALLOWED_ORIGIN, createCapturingLogger, startServer, testConfig } from '../support/http.js';
 
@@ -17,9 +18,9 @@ let ownerId;
 const servers = [];
 const extraPools = [];
 
-async function startRedirectServer(resolver) {
+async function startRedirectServer(redirectService) {
   const { logger } = createCapturingLogger();
-  const app = createApp({ config: testConfig(), logger, routers: [createRedirectRouter({ resolver })] });
+  const app = createApp({ config: testConfig(), logger, routers: [createRedirectRouter({ controller: createRedirectsController({ redirectService }) })] });
   const server = await startServer(app);
 
   servers.push(server);
@@ -33,7 +34,7 @@ async function startSeparateInstance() {
 
   extraPools.push(pool);
 
-  return startRedirectServer(createRedirectResolver({ pool }));
+  return startRedirectServer(createRedirectService({ pool }));
 }
 
 function get(server, path, options = {}) {
@@ -80,7 +81,7 @@ describe('active links', () => {
   let server;
 
   before(async () => {
-    server = await startRedirectServer(createRedirectResolver({ pool: database.pool }));
+    server = await startRedirectServer(createRedirectService({ pool: database.pool }));
   });
 
   test('redirect with 302 to the stored destination, uncached', async () => {
@@ -121,7 +122,7 @@ describe('missing and malformed codes', () => {
   let server;
 
   before(async () => {
-    server = await startRedirectServer(createRedirectResolver({ pool: database.pool }));
+    server = await startRedirectServer(createRedirectService({ pool: database.pool }));
   });
 
   test('unknown codes return 404, uncached', async () => {
@@ -142,7 +143,7 @@ describe('missing and malformed codes', () => {
 
   test('malformed and overlong codes are rejected without a database query', async () => {
     const pool = spyPool();
-    const isolated = await startRedirectServer(createRedirectResolver({ pool }));
+    const isolated = await startRedirectServer(createRedirectService({ pool }));
 
     for (const path of ['/r/abc', `/r/${'a'.repeat(33)}`, '/r/a%2Fb', '/r/has%20space', '/r/%C3%A9t%C3%A9']) {
       assert.equal((await get(isolated, path)).status, 404, path);
@@ -174,7 +175,7 @@ describe('inactive links', () => {
   let server;
 
   before(async () => {
-    server = await startRedirectServer(createRedirectResolver({ pool: database.pool }));
+    server = await startRedirectServer(createRedirectService({ pool: database.pool }));
   });
 
   async function setState(linkId, sql) {
@@ -267,7 +268,7 @@ describe('dependency failure and overload', () => {
 
     extraPools.push(pool);
 
-    const server = await startRedirectServer(createRedirectResolver({ pool }));
+    const server = await startRedirectServer(createRedirectService({ pool }));
     const startedAt = Date.now();
     const response = await get(server, '/r/SomeCode1');
 
@@ -279,7 +280,7 @@ describe('dependency failure and overload', () => {
 
   test('requests are shed with 503 when too many already wait for a connection', async () => {
     const pool = spyPool(50);
-    const server = await startRedirectServer(createRedirectResolver({ pool, maxWaiting: 50 }));
+    const server = await startRedirectServer(createRedirectService({ pool, maxWaiting: 50 }));
 
     assert.equal((await get(server, '/r/SomeCode1')).status, 503);
     assert.equal(pool.queries, 0, 'an overloaded resolver must not queue another query');
@@ -290,7 +291,7 @@ describe('dependency failure and overload', () => {
 
     extraPools.push(pool);
 
-    const server = await startRedirectServer(createRedirectResolver({ pool, maxWaiting: 100 }));
+    const server = await startRedirectServer(createRedirectService({ pool, maxWaiting: 100 }));
     const link = await createOwnedLink();
 
     const statuses = await Promise.all(Array.from({ length: 40 }, async () => (await get(server, `/r/${link.code}`)).status));

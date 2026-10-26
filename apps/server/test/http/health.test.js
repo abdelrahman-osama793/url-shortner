@@ -4,14 +4,15 @@ import { after, before, describe, test } from 'node:test';
 import { LivenessResponseSchema, ReadinessResponseSchema } from '@shortlist/contracts';
 
 import { createApp } from '../../src/http/app.js';
-import { createHealthRouter } from '../../src/http/routes/health.js';
+import { createHealthController } from '../../src/http/controllers/health.controller.js';
+import { createHealthRouter } from '../../src/http/routes/health.routes.js';
 import { createPool, isDatabaseReachable } from '../../src/infra/postgres.js';
 import { createTestDatabase } from '../support/database.js';
 import { createCapturingLogger, startServer, testConfig } from '../support/http.js';
 
 async function startHealthServer(checkDatabase) {
   const { logger } = createCapturingLogger();
-  const app = createApp({ config: testConfig(), logger, routers: [createHealthRouter({ checkDatabase })] });
+  const app = createApp({ config: testConfig(), logger, routers: [createHealthRouter({ controller: createHealthController({ checkDatabase }) })] });
 
   return startServer(app);
 }

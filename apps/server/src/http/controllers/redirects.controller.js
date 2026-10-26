@@ -1,21 +1,15 @@
 import { ERROR_CODES } from '@shortlist/contracts';
-import { Router } from 'express';
 
 import { AppError, notFoundError, serviceUnavailableError } from '../../errors.js';
-import { RedirectUnavailableError } from '../../modules/links/redirects.js';
+import { RedirectUnavailableError } from '../../modules/links/redirects.service.js';
 
-// Public redirect endpoint (api-contracts.md, "Redirect contract"). Served by the API, never
-// by Angular. Responses are non-cacheable (no-store is set globally), including failures,
-// so a later activation or edit is never hidden by a cached answer.
-//
+// Maps a redirect decision to HTTP (api-contracts.md, "Redirect contract"):
 //   302 + Location   active link; the stored destination exactly, incoming query not appended
 //   404              unknown or malformed code
 //   410              inactive: expired, disabled, blocked or owner suspended (one generic answer)
 //   503              database unavailable or overloaded
 //   405              any method other than GET/HEAD
-//
-// Per-client 429 limits for redirects belong at the edge proxy (technical-design §6); an
-// application limit would make every redirect depend on Redis.
+// Responses are non-cacheable (no-store is set globally), including failures.
 
 const linkInactiveError = () => new AppError(410, ERROR_CODES.LINK_INACTIVE, 'This link is no longer active.');
 
@@ -23,15 +17,12 @@ const methodNotAllowedError = () => new AppError(405, ERROR_CODES.METHOD_NOT_ALL
   headers: { Allow: 'GET, HEAD' },
 });
 
-export function createRedirectRouter({ resolver }) {
-  // Case-sensitive: /R/abc must not reach the /r/:code handler.
-  const router = Router({ caseSensitive: true });
-
-  // Express answers HEAD with this GET handler and sends no body. Analytics capture (T19)
+export function createRedirectsController({ redirectService }) {
+  // Express also answers HEAD with this handler and sends no body. Analytics capture (T19)
   // must only count GET requests.
-  router.get('/r/:code', async (req, res, next) => {
+  async function redirect(req, res, next) {
     try {
-      const result = await resolver.resolve(req.params.code);
+      const result = await redirectService.resolve(req.params.code);
 
       if (result.outcome === 'missing') return next(notFoundError());
       if (result.outcome === 'inactive') return next(linkInactiveError());
@@ -40,9 +31,11 @@ export function createRedirectRouter({ resolver }) {
     } catch (error) {
       next(error instanceof RedirectUnavailableError ? serviceUnavailableError({ retryAfterSeconds: 2, cause: error }) : error);
     }
-  });
+  }
 
-  router.all('/r/:code', (_req, _res, next) => next(methodNotAllowedError()));
+  function methodNotAllowed(_req, _res, next) {
+    next(methodNotAllowedError());
+  }
 
-  return router;
+  return { redirect, methodNotAllowed };
 }

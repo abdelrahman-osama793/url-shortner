@@ -1,6 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-// Server-side sessions in Redis (technical-design §4, "Sign in"; database-schema.md, Redis).
+// Server-side sessions in Redis. A Redis-backed service owns its own keys; there is no
+// separate repository because there is no SQL.
+//
+// Sessions (technical-design §4, "Sign in"; database-schema.md, Redis).
 //
 //   * The browser holds an opaque 256-bit token. Redis stores the session under a SHA-256
 //     hash of it, so a Redis dump cannot be replayed as a cookie.
@@ -27,7 +30,7 @@ function hashToken(token) {
   return createHash('sha256').update(token).digest('base64url');
 }
 
-export function createSessionStore({ redis, lifetimes, keyPrefix = '', clock = () => Date.now() }) {
+export function createSessionService({ redis, lifetimes, keyPrefix = '', clock = () => Date.now() }) {
   const keyFor = (token) => `${keyPrefix}session:${hashToken(token)}`;
 
   function lifetimeFor(session) {

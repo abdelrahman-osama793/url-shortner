@@ -3,8 +3,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { ERROR_CODES } from '@shortlist/contracts';
 
 import { AppError, serviceUnavailableError } from '../../errors.js';
-import { findUserById } from '../../modules/accounts/repository.js';
-import { SessionUnavailableError } from '../../modules/sessions/store.js';
+import { findUserById } from '../../modules/accounts/accounts.repository.js';
+import { SessionUnavailableError } from '../../modules/sessions/sessions.service.js';
 
 // Session, CSRF and authorization guards for /api/v1 routes. Routes compose the guards they
 // need, e.g. [guards.session, guards.csrf, guards.user, guards.verified].
@@ -54,7 +54,7 @@ function tokensMatch(expected, actual) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function createAuthGuards({ store, pool }) {
+export function createAuthGuards({ sessionService, pool }) {
   // Loads the session named by the cookie. Sets:
   //   req.sessionToken, req.session (or null) and
   //   req.sessionState: 'none' (no cookie) | 'valid' | 'invalid' (unknown or expired) | 'unavailable'
@@ -69,7 +69,7 @@ export function createAuthGuards({ store, pool }) {
     }
 
     try {
-      req.session = await store.get(req.sessionToken);
+      req.session = await sessionService.get(req.sessionToken);
       req.sessionState = req.session ? 'valid' : 'invalid';
       next();
     } catch (error) {
@@ -101,7 +101,7 @@ export function createAuthGuards({ store, pool }) {
     clearSessionCookie(res);
 
     try {
-      await store.destroy(req.sessionToken);
+      await sessionService.destroy(req.sessionToken);
     } catch {
       // Intentionally ignored: see above.
     }

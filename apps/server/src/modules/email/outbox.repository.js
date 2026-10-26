@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { encryptPayload } from './payload-crypto.js';
+import { encryptPayload } from './rules/payload-crypto.js';
 
 // The email outbox (database-schema.md, email_outbox). The API writes a message in the same
 // transaction as the token it carries; the worker delivers it later. Message secrets are

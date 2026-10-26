@@ -8,9 +8,10 @@ import { createApp } from '../../src/http/app.js';
 import { requireChallengeWhenSuspicious } from '../../src/http/middleware/challenge.js';
 import { rateLimit } from '../../src/http/middleware/rate-limit.js';
 import { validateBody } from '../../src/http/middleware/validate.js';
-import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.js';
-import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modules/abuse/challenge.js';
-import { createRateLimiter } from '../../src/modules/abuse/rate-limiter.js';
+import { createDevChallengeController } from '../../src/http/controllers/dev-challenge.controller.js';
+import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.routes.js';
+import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modules/abuse/challenge.service.js';
+import { createRateLimiter } from '../../src/modules/abuse/rate-limit.service.js';
 import { ALLOWED_ORIGIN, createCapturingLogger, startServer, testConfig } from '../support/http.js';
 import { createTestRedis, createUnreachableRedis } from '../support/redis.js';
 
@@ -43,7 +44,7 @@ async function startInstance({ redisClient, keyPrefix, trustProxyHops = 0 }) {
 
   const { logger } = createCapturingLogger();
   const config = testConfig({ TRUST_PROXY_HOPS: String(trustProxyHops) });
-  const app = createApp({ config, logger, routers: [router, createDevChallengeRouter({ verifier })] });
+  const app = createApp({ config, logger, routers: [router, createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) })] });
 
   return startServer(app);
 }

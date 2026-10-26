@@ -231,29 +231,53 @@ Connection settings come from `TEST_DATABASE_URL` / `TEST_REDIS_URL` if set; oth
 ## Project layout
 
 ```text
-apps/web/                 Angular app (TypeScript)
+apps/web/                         Angular app (TypeScript)
 apps/server/src/
-  api.js, worker.js       process entry points
-  infra/postgres.js       connection pool and transaction helper
-  config.js               reads environment once; passed to modules as arguments
-  lifecycle.js            startup, graceful shutdown, process-level error handlers
-  errors.js               AppError: the only errors whose details reach API clients
-  infra/logger.js         structured JSON logs with secret redaction
-  http/                   Express app, routes and middleware (request IDs, no-store, origin check, validation, errors)
-  modules/links/          destination rules, code generation and allocation, effective status
-  modules/abuse/          shared rate limits, client network keys, challenge verification
-  modules/sessions/       Redis session store (hashed tokens, idle and absolute expiry, rotation)
-  modules/accounts/       sign-up, verification, password sign-in (Argon2id), email normalisation, one-time tokens
-  modules/email/          encrypted email outbox, delivery with retries, email templates
-  infra/mailer.js         SMTP adapter (Mailpit in development)
-  infra/redis.js          Redis client that fails fast instead of queueing while disconnected
-packages/contracts/       zod schemas shared by server and web, plus generated openapi.json
-database/migrations/      versioned SQL migrations
-apps/server/test/         integration tests (node:test against real PostgreSQL)
-deploy/                   Dockerfiles
-compose.yaml              local development stack
-docs/DECISIONS.md         implementation decisions and their reasons
+  api.js                          API composition root: creates every service, controller and router
+  worker.js                       worker process (email delivery; analytics later)
+  config.js                       reads and validates environment variables once
+  errors.js                       AppError: the only errors whose details reach API clients
+  lifecycle.js                    startup, graceful shutdown, process-level error handlers
+  http/
+    app.js                        middleware every request passes through
+    routes/<feature>.routes.js    paths + middleware chain + controller method, nothing else
+    controllers/<feature>.controller.js   request → service call → response
+    middleware/                   reusable checks: session, CSRF, rate limit, validation, errors
+  modules/<feature>/
+    <name>.service.js             business rules and transactions
+    <name>.repository.js          SQL only
+    <name>.presenter.js           database row → API response shape
+    rules/                        small pure helpers (validation rules, generators, crypto)
+  infra/                          PostgreSQL pool, Redis client, logger, mailer
+packages/contracts/               zod schemas shared by server and web, plus generated openapi.json
+database/migrations/              versioned SQL migrations
+apps/server/test/                 integration tests (real PostgreSQL, Redis and Mailpit)
+deploy/                           Dockerfiles
+compose.yaml                      local development stack
+docs/DECISIONS.md                 implementation decisions and their reasons
 ```
+
+### How to read the backend
+
+Every endpoint follows the same path: **routes → controller → service → repository**.
+
+1. Start at **`src/api.js`**. It is the table of contents: it shows which services, controllers and routers exist and how they are connected.
+2. Open the feature's **`http/routes/<feature>.routes.js`**. Each line is a path, the middleware it passes through, in order, and the controller method that handles it.
+3. Follow the controller method in **`http/controllers/<feature>.controller.js`**. It only reads the (already validated) request, calls one service, and writes the response.
+4. The **service** (`modules/<feature>/*.service.js`) holds the business rules and transaction boundaries.
+5. The **repository** (`*.repository.js`) holds the SQL. Nothing else talks to PostgreSQL. Redis-backed services (sessions, rate limits, challenges) own their Redis keys directly, because there is no SQL to separate.
+
+Example, creating a guest link (`POST /api/v1/links`):
+
+```text
+http/routes/links.routes.js            session → CSRF → signed-in check → rate limit → validation → challenge
+http/controllers/links.controller.js   createGuestLink(req, res)
+modules/links/links.service.js         createGuestLink(): destination rules, code allocation, transaction
+modules/links/links.repository.js      lockCode(), insertGuestLink(), findLinkById()
+modules/links/links.presenter.js       toGuestLinkResource()
+```
+
+The file suffix always tells you the layer: `.routes`, `.controller`, `.service`, `.repository`, `.presenter`; helpers live in `rules/`.
 
 ## API conventions
 

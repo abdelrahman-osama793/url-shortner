@@ -4,7 +4,7 @@ import { after, before, describe, test } from 'node:test';
 
 import { LinkSchema, GuestCreateLinkResponseSchema } from '@shortlist/contracts';
 
-import { createLinkService, MAX_GENERATED_CODE_ATTEMPTS } from '../../../src/modules/links/service.js';
+import { createLinkService, MAX_GENERATED_CODE_ATTEMPTS } from '../../../src/modules/links/links.service.js';
 import { createMigratedDatabase } from '../../support/database.js';
 
 const PUBLIC_BASE_URL = 'https://shortlist.example';

@@ -3,10 +3,10 @@ import { ERROR_CODES } from '@shortlist/contracts';
 import { AppError } from '../../errors.js';
 import { withTransaction } from '../../infra/postgres.js';
 
-import { normalizeEmail } from './email.js';
-import { hashPassword, verifyPassword } from './passwords.js';
-import * as repository from './repository.js';
-import { consumeToken, issueTokenWithEmail, TOKEN_PURPOSES } from './tokens.js';
+import { normalizeEmail } from './rules/email.js';
+import { hashPassword, verifyPassword } from './rules/passwords.js';
+import * as repository from './accounts.repository.js';
+import { consumeToken, issueTokenWithEmail, TOKEN_PURPOSES } from './tokens.service.js';
 
 // Email/password accounts (decisions D05, D06; api-contracts.md, "Authentication").
 // Responses that could reveal whether an account exists (register, resend) look identical

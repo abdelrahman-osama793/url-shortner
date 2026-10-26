@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { normalizeEmail } from '../../../src/modules/accounts/email.js';
+import { normalizeEmail } from '../../../src/modules/accounts/rules/email.js';
 
 describe('normalizeEmail', () => {
   test('trims and lower-cases', () => {

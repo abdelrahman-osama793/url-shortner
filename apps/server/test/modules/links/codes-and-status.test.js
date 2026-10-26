@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { generateCode } from '../../../src/modules/links/codes.js';
-import { effectiveStatus } from '../../../src/modules/links/status.js';
+import { generateCode } from '../../../src/modules/links/rules/codes.js';
+import { effectiveStatus } from '../../../src/modules/links/rules/status.js';
 
 describe('generateCode', () => {
   test('produces 8 Base62 characters', () => {
