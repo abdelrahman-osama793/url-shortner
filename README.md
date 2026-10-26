@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) and the link domain at the service level (no HTTP routes yet) (tasks T01–T07, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, and Redis-backed rate limits with a development-only challenge (no link routes yet) (tasks T01–T08, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -74,13 +74,13 @@ npm install
 
 ### 2. Create your local environment file
 
-`.env` holds local secrets and is git-ignored. Copy the example, then fill in `POSTGRES_PASSWORD` and `REDIS_PASSWORD`:
+`.env` holds local secrets and is git-ignored. Copy the example, then fill in `POSTGRES_PASSWORD`, `REDIS_PASSWORD` and `RATE_LIMIT_SECRET`:
 
 ```bash
 cp .env.example .env
 ```
 
-Generate each value with `openssl rand -hex 24`. Compose refuses to start while a required value is missing.
+Also set `RATE_LIMIT_SECRET` (at least 32 characters). Generate each value with `openssl rand -hex 24` (use `-hex 32` for the rate-limit secret). Compose refuses to start while a required value is missing.
 
 ### 3. Start the backend stack
 
@@ -154,9 +154,9 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 
 ### How the tests reach the database
 
-Server tests use real PostgreSQL, not mocks. Each test file creates its own throwaway database (`shortlist_test_<random>`), applies the migrations and drops it afterwards, so test runs never touch your development data and can run in parallel.
+Server tests use real PostgreSQL and Redis, not mocks. Each test file creates its own throwaway database (`shortlist_test_<random>`) and Redis key prefix (`test:<random>:`), and removes them afterwards, so test runs never touch your development data and can run in parallel.
 
-Connection settings come from `TEST_DATABASE_URL` if set; otherwise from `POSTGRES_*` in `.env` (via the host port). If neither is available, or PostgreSQL is down, the tests **fail**. They are never skipped and never reported as passing.
+Connection settings come from `TEST_DATABASE_URL` / `TEST_REDIS_URL` if set; otherwise from `POSTGRES_*` / `REDIS_*` in `.env` (via the host ports). If neither is available, or a service is down, the tests **fail**. They are never skipped and never reported as passing.
 
 ### Lint rules that enforce the conventions
 
@@ -172,7 +172,7 @@ Connection settings come from `TEST_DATABASE_URL` if set; otherwise from `POSTGR
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
 
 - **Lint, type check, build:** `npm ci`, build, lint, check and the Angular tests.
-- **Server integration tests:** the server suite against a PostgreSQL 17 service container, using throwaway credentials that exist only inside the job.
+- **Server integration tests:** the server suite against PostgreSQL 17 and Redis 7.4 service containers, using throwaway credentials that exist only inside the job.
 
 ## Project layout
 
@@ -187,6 +187,8 @@ apps/server/src/
   infra/logger.js         structured JSON logs with secret redaction
   http/                   Express app, routes and middleware (request IDs, no-store, origin check, validation, errors)
   modules/links/          destination rules, code generation and allocation, effective status
+  modules/abuse/          shared rate limits, client network keys, challenge verification
+  infra/redis.js          Redis client that fails fast instead of queueing while disconnected
 packages/contracts/       zod schemas shared by server and web, plus generated openapi.json
 database/migrations/      versioned SQL migrations
 apps/server/test/         integration tests (node:test against real PostgreSQL)
@@ -201,6 +203,8 @@ docs/DECISIONS.md         implementation decisions and their reasons
 - **Errors:** every failure returns `{ "error": { "code", "message", "requestId", "fields"? } }`. The codes are listed in `packages/contracts/src/errors.js` and in [`openapi.json`](packages/contracts/openapi.json). Responses never include stack traces or internal details.
 - **Requests:** JSON bodies are limited to 16 KiB, and unknown fields are rejected. State-changing requests must send an `Origin` listed in `ALLOWED_ORIGINS`.
 - **Responses:** every response has `Cache-Control: no-store` and a server-generated `X-Request-Id`. Quote that ID when reporting an error; it matches the log line.
+- **Rate limits:** shared across API instances through Redis. Over the limit returns `429 RATE_LIMITED` with `Retry-After`; if Redis is unavailable, protected operations return `503` instead of running unlimited. Suspicious guests must pass a challenge (`403 CHALLENGE_REQUIRED`), and a passed challenge never resets a quota.
+- **Challenges in development are mock:** `POST /api/v1/dev/challenge-token` issues test tokens and exists only when `CHALLENGE_PROVIDER=dev`. Production refuses to start until a real provider is integrated (T37).
 - **Logs:** JSON on stdout. Passwords, tokens, cookies and credentials inside connection strings are redacted. Query strings and client IPs are never logged.
 
 ## Database migrations
@@ -234,7 +238,7 @@ Planning follows a 39-task backlog across eight milestones:
 | Milestone | Scope | Status |
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
-| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07 done (link domain, service layer only); next T08 |
+| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07–T08 done (link domain and rate limits at service/middleware level); next T10, then T09 after T11 |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |

@@ -11,6 +11,8 @@ export function testConfig(env = {}) {
     NODE_ENV: 'test',
     DATABASE_URL: 'postgres://user:secret@localhost:5432/unused',
     PUBLIC_BASE_URL: ALLOWED_ORIGIN,
+    REDIS_URL: 'redis://localhost:6379',
+    RATE_LIMIT_SECRET: 'test-secret-that-is-at-least-32-characters',
     ...env,
   });
 }

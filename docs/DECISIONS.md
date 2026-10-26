@@ -132,6 +132,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **Effective status** is a pure function: blocked → ownerSuspended → disabled → expired (`expiresAt <= now`) → active.
 - Owner verification and active-status checks for creation belong to T17 (authenticated routes). The service trusts `ownerId` from its caller; only tests create synthetic owners.
 
+### Rate limits and challenges (T08)
+
+- **Redis client** (`infra/redis.js`, node-redis 5): `disableOfflineQueue` (commands fail instantly while disconnected, measured 0 ms), 500 ms command timeout, reconnect forever with backoff capped at 2 s. `connect()` stays pending while Redis is down, so the API connects **in the background**: it starts and serves health checks and, later, redirects without Redis.
+- **Fixed-window counters** (`modules/abuse/rate-limiter.js`): one MULTI per request with `INCR`, `PEXPIRE … NX` and `PTTL` for every bucket. The window starts at a subject's first request; up to 2× the limit is possible around a boundary (documented trade-off). Over the limit → 429 `RATE_LIMITED` with `Retry-After` set to the longest remaining window. Rejected requests still count.
+- **Subjects** are HMAC-SHA256(`RATE_LIMIT_SECRET`) hashes, so raw IPs and emails never reach Redis; rotating the secret resets all counters. IPv4 is keyed per address; IPv6 per /64; IPv4-mapped IPv6 as IPv4; unparseable addresses share one `unknown` key (limited together, not exempt). Client IP comes from `req.ip` with `TRUST_PROXY_HOPS`, so a spoofed `X-Forwarded-For` is ignored unless a trusted proxy is configured.
+- **Policies** (`modules/abuse/policies.js`): the defaults from technical-design §6 (guestCreate, guestCreateRisk, registeredCreate, login, accountEmail, memberRead, report). All are provisional. `RATE_LIMIT_POLICIES` (JSON, validated) replaces any policy's buckets.
+- **Failure semantics**: if Redis cannot count, the request gets 503 `SERVICE_UNAVAILABLE` with `Retry-After: 5` (fail closed). It is never a 429, and never allowed through unlimited.
+- **Challenges**: `requireChallengeWhenSuspicious` runs **after** the quota check. When the risk policy is exceeded (provisionally a third guest creation within 10 minutes per network), the request needs `challengeToken` → otherwise 403 `CHALLENGE_REQUIRED`. The guard enforces, for every provider, an exact action match and single use (`SET NX` of the token hash, 15-minute replay window); the token is removed from the body before handlers run.
+- **Development provider only**: HMAC-signed `{action, expiresAt, nonce}` tokens from `POST /api/v1/dev/challenge-token`, mounted only when `CHALLENGE_PROVIDER=dev`. This is mock behaviour, not human verification. `config.js` refuses to start with `NODE_ENV=production` because no real provider exists yet (T36 selects one, T37 integrates and checks hostname binding).
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

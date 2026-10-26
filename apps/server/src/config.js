@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { resolvePolicies } from './modules/abuse/policies.js';
+
 // Reads and validates environment variables once at startup.
 // Every other module receives configuration as an argument instead of reading process.env.
 
@@ -24,7 +26,29 @@ const EnvSchema = z.object({
 
   // Number of reverse proxies in front of the API whose X-Forwarded-For can be trusted.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+
+  REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+
+  // Keys the HMAC that hashes rate-limit subjects (IPs, emails) before they reach Redis.
+  RATE_LIMIT_SECRET: z.string().min(32, 'must be at least 32 characters'),
+
+  // Optional JSON replacing default policies, e.g. {"guestCreate":[{"subject":"network","limit":10,"windowSeconds":3600}]}
+  RATE_LIMIT_POLICIES: z.string().optional(),
+
+  // Human-verification provider. Only the development stand-in exists until T37.
+  CHALLENGE_PROVIDER: z.enum(['dev']).optional(),
 });
+
+// The development challenge verifier accepts tokens anyone can mint from a dev-only
+// endpoint, so it must never run in production. No real provider exists yet (T36/T37),
+// so production configuration is refused rather than silently running unprotected.
+function resolveChallengeProvider(environment, requested) {
+  if (environment === 'production') {
+    throw new Error('Invalid configuration: CHALLENGE_PROVIDER: no production challenge provider is configured yet (T37)');
+  }
+
+  return requested ?? 'dev';
+}
 
 function describeIssues(error) {
   return error.issues
@@ -54,5 +78,13 @@ export function loadConfig(env = process.env) {
     publicBaseUrl: vars.PUBLIC_BASE_URL.replace(/\/+$/, ''),
     allowedOrigins: Object.freeze(allowedOrigins),
     trustProxyHops: vars.TRUST_PROXY_HOPS,
+    redisUrl: vars.REDIS_URL,
+    rateLimit: Object.freeze({
+      secret: vars.RATE_LIMIT_SECRET,
+      policies: resolvePolicies(vars.RATE_LIMIT_POLICIES),
+    }),
+    challenge: Object.freeze({
+      provider: resolveChallengeProvider(vars.NODE_ENV, vars.CHALLENGE_PROVIDER),
+    }),
   });
 }

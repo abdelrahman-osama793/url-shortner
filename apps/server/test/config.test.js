@@ -6,6 +6,8 @@ import { loadConfig } from '../src/config.js';
 const VALID_ENV = {
   DATABASE_URL: 'postgres://user:secret@localhost:5432/db',
   PUBLIC_BASE_URL: 'https://shortlist.example/',
+  REDIS_URL: 'redis://localhost:6379',
+  RATE_LIMIT_SECRET: 'x'.repeat(32),
 };
 
 describe('loadConfig', () => {
@@ -23,6 +25,38 @@ describe('loadConfig', () => {
     const config = loadConfig({ ...VALID_ENV, ALLOWED_ORIGINS: 'http://localhost:4200/, https://a.example' });
 
     assert.deepEqual(config.allowedOrigins, ['http://localhost:4200', 'https://a.example']);
+  });
+
+  test('enables the development challenge provider outside production only', () => {
+    assert.equal(loadConfig(VALID_ENV).challenge.provider, 'dev');
+
+    assert.throws(
+      () => loadConfig({ ...VALID_ENV, NODE_ENV: 'production' }),
+      /no production challenge provider is configured/,
+    );
+
+    assert.throws(
+      () => loadConfig({ ...VALID_ENV, NODE_ENV: 'production', CHALLENGE_PROVIDER: 'dev' }),
+      /no production challenge provider is configured/,
+    );
+  });
+
+  test('accepts rate-limit policy overrides and rejects malformed ones', () => {
+    const config = loadConfig({
+      ...VALID_ENV,
+      RATE_LIMIT_POLICIES: '{"report":[{"subject":"network","limit":50,"windowSeconds":60}]}',
+    });
+
+    assert.deepEqual(config.rateLimit.policies.report, [{ subject: 'network', limit: 50, windowSeconds: 60 }]);
+    assert.equal(config.rateLimit.policies.guestCreate.length, 2, 'other policies keep their defaults');
+
+    assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{' }), /not valid JSON/);
+    assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{"unknownPolicy":[]}' }), /RATE_LIMIT_POLICIES is invalid/);
+    assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{"report":[{"subject":"network","limit":0,"windowSeconds":60}]}' }), /RATE_LIMIT_POLICIES is invalid/);
+  });
+
+  test('requires a rate-limit secret of at least 32 characters', () => {
+    assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_SECRET: 'short' }), /RATE_LIMIT_SECRET/);
   });
 
   test('fails with every problem listed and without echoing secret values', () => {

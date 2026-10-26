@@ -5,10 +5,13 @@ import { promisify } from 'node:util';
 
 import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
+import { createDevChallengeRouter } from './http/routes/dev-challenge.js';
 import { createHealthRouter } from './http/routes/health.js';
 import { createLogger } from './infra/logger.js';
 import { createPool, isDatabaseReachable } from './infra/postgres.js';
+import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
+import { createDevChallengeVerifier } from './modules/abuse/challenge.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();
@@ -39,9 +42,22 @@ async function main() {
     logger,
   });
 
+  // Redis connects in the background: redirects keep working while it is down, and
+  // Redis-backed operations answer 503 until it is back.
+  const redis = createRedisClient({ url: config.redisUrl, logger });
+
+  connectInBackground(redis, logger);
+
   const routers = [
     createHealthRouter({ checkDatabase: () => isDatabaseReachable(pool) }),
   ];
+
+  if (config.challenge.provider === 'dev') {
+    const verifier = createDevChallengeVerifier({ secret: config.rateLimit.secret });
+
+    routers.push(createDevChallengeRouter({ verifier }));
+    logger.warn('development challenge provider enabled: challenges are mock, not real human verification');
+  }
 
   const app = createApp({ config, logger, routers });
   const server = await listen(app, config.port);
@@ -51,6 +67,7 @@ async function main() {
   onShutdown(async () => {
     await close(server);
     await pool.end();
+    redis.destroy();
   }, logger);
 }
 

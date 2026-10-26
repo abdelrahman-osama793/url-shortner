@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { clientNetwork } from './middleware/client-network.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { noStore } from './middleware/no-store.js';
 import { requireAllowedOrigin } from './middleware/origin.js';
@@ -8,7 +9,7 @@ import { requestLogger } from './middleware/request-logger.js';
 
 export const JSON_BODY_LIMIT = '16kb';
 
-// Applies the API conventions (request IDs, logging, no-store, origin check, JSON limits,
+// Applies the API conventions (request IDs, client network key, logging, no-store, origin check, JSON limits,
 // error envelopes) around the given routers. The caller decides which routers to mount,
 // so new features plug in without editing this file, and tests can mount their own.
 export function createApp({ config, logger, routers }) {
@@ -18,6 +19,7 @@ export function createApp({ config, logger, routers }) {
   app.set('trust proxy', config.trustProxyHops);
 
   app.use(requestId());
+  app.use(clientNetwork());
   app.use(requestLogger(logger));
   app.use(noStore());
   app.use(requireAllowedOrigin(config.allowedOrigins));
