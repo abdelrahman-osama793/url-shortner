@@ -2,7 +2,7 @@
 
 A URL shortener built as a deliberate **system-design and implementation exercise**: guest and registered short links, public redirects, custom aliases, click analytics, Google and email/password sign-in, and an abuse-moderation workspace.
 
-> **Status: early development.** The repository currently contains the project scaffold and the local Docker environment (tasks T01–T03). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold and the local Docker environment (tasks T01–T03, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -61,6 +61,8 @@ The full reasoning is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 - **Node.js 22.23+** and npm 10. With nvm, run `nvm use` in the repository (it reads `.nvmrc`).
 - **Docker** with the Compose plugin. Your user must be able to run `docker` without sudo.
 - `openssl`, used once to generate local secrets.
+
+> **Docker installed as a snap (Ubuntu):** the snap is sandboxed. It can only read folders in your home directory that are not hidden, so keep the project under a path like `~/projects/…`, not in `/tmp` or a dot-folder. The snap also ships without a `docker` group: create it with `sudo addgroup --system docker`, add yourself with `sudo usermod -aG docker $USER`, restart the snap (`sudo snap disable docker && sudo snap enable docker`), then log out and back in.
 
 ### 1. Install dependencies
 
@@ -163,7 +165,7 @@ Planning follows a 39-task backlog across eight milestones:
 
 | Milestone | Scope | Status |
 |---|---|---|
-| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T02 done, T03 under verification |
+| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T03 done; next T04 (migrations) |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Not started |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |

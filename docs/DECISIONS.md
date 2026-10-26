@@ -73,6 +73,15 @@ One server package with two entry points (modular monolith), not separate servic
 - Bundle cost: importing full zod into Angular adds ~76 kB gzipped (measured: 51.65 → 128.12 kB initial transfer). Acceptable for now; if it matters, the web app can import types only and validate with `zod/mini`.
 - Audit: `@angular/build` 22.2 pulls a Vite version with a high-severity advisory affecting the dev server only. Not force-downgraded; recheck on the next Angular patch.
 
+### Local Docker stack (T03)
+
+- `compose.yaml` sits at the repository root instead of `deploy/`, so a plain `docker compose up` works. The Dockerfile stays in `deploy/`.
+- One server image; compose runs it as `api` or `worker`. The image has production dependencies only and runs as the non-root `node` user. In development, compose bind-mounts the source read-only and runs `node --watch`.
+- Secrets exist only in the git-ignored `.env`. Compose fails fast (`${VAR:?}`) when they are missing, so it never starts with blank passwords.
+- Redis: append-only persistence, `noeviction`, `requirepass`. Host port defaults to 6380 because this machine already runs a host Redis on 6379. Every host port is configurable and bound to 127.0.0.1.
+- The worker has no health check until its heartbeat exists (T22).
+- Snap-packaged Docker cannot read `/tmp` or hidden home folders; documented in the README.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |
