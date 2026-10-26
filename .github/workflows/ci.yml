@@ -1,5 +1,6 @@
 # Runs on every push and pull request. A job fails if any step fails; nothing is skipped
 # when a dependency is missing (database tests error out instead of passing).
+# Independent checks run even after an earlier one fails, so one run reports every problem.
 
 name: CI
 
@@ -34,12 +35,15 @@ jobs:
         run: npm run build
 
       - name: Lint (backend and Angular)
+        if: ${{ !cancelled() }}
         run: npm run lint
 
       - name: Check (contract types, OpenAPI up to date)
+        if: ${{ !cancelled() }}
         run: npm run check
 
       - name: Angular unit tests
+        if: ${{ !cancelled() }}
         run: npm test -w @shortlist/web
 
   server-tests:
