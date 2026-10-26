@@ -118,6 +118,20 @@ One server package with two entry points (modular monolith), not separate servic
 - **GitHub Actions** (`.github/workflows/ci.yml`): a static job (build, lint, check, Angular tests) and a server job (integration tests against a `postgres:17-alpine` service with job-local throwaway credentials). Independent steps use `if: !cancelled()` so one run reports every failure. Redis joins CI with T08, when the first Redis-backed code lands.
 - Prettier formatting is not enforced yet; it can be added once the UI work starts.
 
+### Link domain (T07)
+
+- `modules/links/` is split by responsibility: `destination.js` (URL rules), `codes.js` (generator), `status.js` (effective status), `repository.js` (SQL), `presenter.js` (API shapes) and `service.js` (orchestration, transactions). The service receives `pool`, `publicBaseUrl`, `logger`, `generateCode` and `clock`, so tests can force collisions and fix "now".
+- **Destination rules**: trimmed, then must parse as absolute `http`/`https`, no credentials, no C0/DEL/C1 control characters (the URL parser silently strips tabs and newlines), no `localhost`/`*.localhost`, no non-public IPv4/IPv6 (private, loopback, link-local incl. cloud metadata, CGNAT, multicast, documentation, IPv4-mapped, NAT64), no single-label hosts, not our own host, at most 4,096 characters **after** normalisation. The stored value is the parser's normalised `href`. Nothing is fetched or resolved.
+  - Single-label host rejection is an engineering addition beyond the design (such names only resolve on private networks).
+  - Bug caught by tests: Node's `BlockList` tests IPv4 addresses against IPv6 rules in mapped form, so one `::ffff:0:0/96` rule blocked all IPv4. Fixed with separate IPv4 and IPv6 lists.
+- **Codes**: 8 characters via `crypto.randomInt(62)` (unbiased).
+- **Allocator**: `pg_advisory_xact_lock(1001, hashtext(code))` → reservation check → `INSERT … ON CONFLICT (code) DO NOTHING`. Generated codes retry up to 5 times inside the same transaction, then return 503 `SERVICE_UNAVAILABLE` with `Retry-After: 1`. A taken custom alias returns 409 `ALIAS_UNAVAILABLE`; reserved aliases get the identical response, so the reserved list cannot be probed. `reserveCode` takes the same lock and refuses allocated codes.
+- **Guest expiry** is computed by PostgreSQL as `now() + make_interval(hours => 168)`. Adding `'7 days'` to a timestamptz follows calendar days in the session time zone and could differ from the 168-hour CHECK.
+- **Registered expiry** must be after the server clock (`clock()`); custom aliases are re-validated in the service, not just by the HTTP schema.
+- **Immutability** (`0005_link_immutability`): triggers reject changes to `code`, `owner_id`, `is_custom_alias` and `created_at`, and reject DELETE/TRUNCATE on `links`, so allocated codes can never be freed or reused.
+- **Effective status** is a pure function: blocked → ownerSuspended → disabled → expired (`expiresAt <= now`) → active.
+- Owner verification and active-status checks for creation belong to T17 (authenticated routes). The service trusts `ownerId` from its caller; only tests create synthetic owners.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

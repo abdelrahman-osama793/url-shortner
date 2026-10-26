@@ -110,6 +110,7 @@
           "PAYLOAD_TOO_LARGE",
           "ORIGIN_NOT_ALLOWED",
           "NOT_FOUND",
+          "ALIAS_UNAVAILABLE",
           "SERVICE_UNAVAILABLE",
           "INTERNAL_ERROR"
         ]

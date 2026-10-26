@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) (tasks T01–T06, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) and the link domain at the service level (no HTTP routes yet) (tasks T01–T07, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -186,6 +186,7 @@ apps/server/src/
   errors.js               AppError: the only errors whose details reach API clients
   infra/logger.js         structured JSON logs with secret redaction
   http/                   Express app, routes and middleware (request IDs, no-store, origin check, validation, errors)
+  modules/links/          destination rules, code generation and allocation, effective status
 packages/contracts/       zod schemas shared by server and web, plus generated openapi.json
 database/migrations/      versioned SQL migrations
 apps/server/test/         integration tests (node:test against real PostgreSQL)
@@ -233,7 +234,7 @@ Planning follows a 39-task backlog across eight milestones:
 | Milestone | Scope | Status |
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
-| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Next: T07 (link domain) |
+| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07 done (link domain, service layer only); next T08 |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |

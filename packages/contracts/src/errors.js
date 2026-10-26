@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Error codes the API can return today. Each later task adds its own codes here
-// (for example ALIAS_UNAVAILABLE in T07), so the UI and the OpenAPI document stay in sync.
+// Error codes the API can return. Each task adds the codes it introduces here,
+// so the UI and the OpenAPI document stay in sync with the server.
 export const ERROR_CODES = Object.freeze({
   VALIDATION_FAILED: 'VALIDATION_FAILED',
   INVALID_JSON: 'INVALID_JSON',
@@ -9,6 +9,7 @@ export const ERROR_CODES = Object.freeze({
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   ORIGIN_NOT_ALLOWED: 'ORIGIN_NOT_ALLOWED',
   NOT_FOUND: 'NOT_FOUND',
+  ALIAS_UNAVAILABLE: 'ALIAS_UNAVAILABLE',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 });
