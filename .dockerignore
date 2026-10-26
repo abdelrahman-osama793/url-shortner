@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+.angular
+.git
+.env
+url-shortener-handoff
+apps/web/src
+apps/web/public
