@@ -4,23 +4,13 @@ import { after, before, describe, test } from 'node:test';
 
 import { GuestCreateLinkResponseSchema } from '@shortlist/contracts';
 
-import { createApp } from '../../src/http/app.js';
-import { createAuthGuards, SESSION_COOKIE } from '../../src/http/middleware/session.js';
-import { createAuthRouter } from '../../src/http/routes/auth.js';
-import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.js';
-import { createLinksRouter } from '../../src/http/routes/links.js';
-import { createRedirectRouter } from '../../src/http/routes/redirects.js';
+import { SESSION_COOKIE } from '../../src/http/middleware/session.js';
 import { createPool } from '../../src/infra/postgres.js';
-import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modules/abuse/challenge.js';
-import { createRateLimiter } from '../../src/modules/abuse/rate-limiter.js';
-import { createRedirectResolver } from '../../src/modules/links/redirects.js';
-import { createLinkService } from '../../src/modules/links/service.js';
-import { createSessionStore } from '../../src/modules/sessions/store.js';
+import { startTestApi } from '../support/api.js';
+import { newBrowser } from '../support/browser.js';
 import { createMigratedDatabase } from '../support/database.js';
-import { ALLOWED_ORIGIN, createCapturingLogger, startServer, testConfig } from '../support/http.js';
+import { ALLOWED_ORIGIN } from '../support/http.js';
 import { createTestRedis, createUnreachableRedis } from '../support/redis.js';
-
-const SECRET = 'guest-links-test-secret-32-characters';
 
 // Small limits so quota and challenge behaviour show up within a few requests.
 const POLICIES = {
@@ -33,82 +23,20 @@ let redis;
 const servers = [];
 const extraPools = [];
 
-// The real routers and middleware, wired like api.js, with injectable dependencies.
-async function startApi({ redisClient = redis.client, pool = database.pool } = {}) {
-  const config = testConfig({ TRUST_PROXY_HOPS: '1' });
-  const store = createSessionStore({ redis: redisClient, lifetimes: config.sessionLifetimes, keyPrefix: redis.keyPrefix });
-  const guards = createAuthGuards({ store, pool });
-  const limiter = createRateLimiter({ redis: redisClient, secret: SECRET, policies: POLICIES, keyPrefix: redis.keyPrefix });
-  const verifier = createDevChallengeVerifier({ secret: SECRET });
-  const challengeGuard = createChallengeGuard({ redis: redisClient, verifier, keyPrefix: redis.keyPrefix });
-  const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl });
+async function startApi(options = {}) {
+  const api = await startTestApi({ database, redis, policies: POLICIES, ...options });
 
-  const { logger } = createCapturingLogger();
-  const app = createApp({
-    config,
-    logger,
-    routers: [
-      createRedirectRouter({ resolver: createRedirectResolver({ pool }) }),
-      createAuthRouter({ store, guards }),
-      createLinksRouter({ guards, limiter, challengeGuard, linkService }),
-      createDevChallengeRouter({ verifier }),
-    ],
-  });
+  servers.push(api.server);
 
-  const server = await startServer(app);
-
-  servers.push(server);
-
-  return { server, store };
+  return api;
 }
 
-// Each simulated browser gets its own client address unless one is given, so rate-limit
-// counters never leak between tests.
-let nextHost = 1;
-
-function uniqueClientIp() {
-  nextHost += 1;
-
-  return `203.0.113.${nextHost}`;
+function createLink(browser, body, extraHeaders) {
+  return browser.post('/api/v1/links', body, extraHeaders);
 }
 
-// A browser: one session cookie and one simulated client address.
-async function newBrowser(server, clientIp = uniqueClientIp()) {
-  const response = await fetch(`${server.url}/api/v1/auth/csrf`, { headers: { Origin: ALLOWED_ORIGIN, 'X-Forwarded-For': clientIp } });
-  const cookie = response.headers.getSetCookie()[0].split(';')[0];
-  const { csrfToken } = await response.json();
-
-  return {
-    clientIp,
-    cookie,
-    csrfToken,
-    headers(extra = {}) {
-      return {
-        'Content-Type': 'application/json',
-        Origin: ALLOWED_ORIGIN,
-        Cookie: cookie,
-        'X-CSRF-Token': csrfToken,
-        'X-Forwarded-For': clientIp,
-        ...extra,
-      };
-    },
-  };
-}
-
-function createLink(server, browser, body, extraHeaders) {
-  return fetch(`${server.url}/api/v1/links`, {
-    method: 'POST',
-    headers: browser.headers(extraHeaders),
-    body: JSON.stringify(body),
-  });
-}
-
-async function challengeToken(server, browser, action = 'guest-create') {
-  const response = await fetch(`${server.url}/api/v1/dev/challenge-token`, {
-    method: 'POST',
-    headers: browser.headers(),
-    body: JSON.stringify({ action }),
-  });
+async function challengeToken(browser, action = 'guest-create') {
+  const response = await browser.post('/api/v1/dev/challenge-token', { action });
 
   return (await response.json()).challengeToken;
 }
@@ -134,7 +62,7 @@ describe('guest link creation', () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
 
-    const response = await createLink(server, browser, { destinationUrl: 'https://example.com/a?b=c' });
+    const response = await createLink(browser, { destinationUrl: 'https://example.com/a?b=c' });
     const body = await response.json();
 
     assert.equal(response.status, 201);
@@ -149,7 +77,7 @@ describe('guest link creation', () => {
 
     assert.ok(days > 6.99 && days <= 7, `expires in ${days} days`);
 
-    const redirect = await fetch(`${server.url}/r/${body.code}`, { redirect: 'manual' });
+    const redirect = await browser.request(`/r/${body.code}`);
 
     assert.equal(redirect.status, 302);
     assert.equal(redirect.headers.get('location'), 'https://example.com/a?b=c');
@@ -158,7 +86,7 @@ describe('guest link creation', () => {
   test('stores the link without an owner, as a generated code', async () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
-    const { code } = await (await createLink(server, browser, { destinationUrl: 'https://example.com' })).json();
+    const { code } = await (await createLink(browser, { destinationUrl: 'https://example.com' })).json();
 
     const { rows } = await database.pool.query('SELECT owner_id, is_custom_alias FROM links WHERE code = $1', [code]);
 
@@ -171,7 +99,7 @@ describe('guest link creation', () => {
 
     for (const extra of [{ customAlias: 'my-alias' }, { expiresAt: '2030-01-01T00:00:00Z' }, { ownerId: someUser }, { enabled: false }]) {
       const browser = await newBrowser(server);
-      const response = await createLink(server, browser, { destinationUrl: 'https://example.com', ...extra });
+      const response = await createLink(browser, { destinationUrl: 'https://example.com', ...extra });
       const error = await errorOf(response);
 
       assert.equal(response.status, 400, JSON.stringify(extra));
@@ -187,7 +115,7 @@ describe('guest link creation', () => {
   test('invalid destinations are field errors', async () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
-    const response = await createLink(server, browser, { destinationUrl: 'http://192.168.0.1/router' });
+    const response = await createLink(browser, { destinationUrl: 'http://192.168.0.1/router' });
     const error = await errorOf(response);
 
     assert.equal(response.status, 400);
@@ -200,7 +128,7 @@ describe('session and CSRF', () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
 
-    const response = await createLink(server, browser, { destinationUrl: 'https://example.com' }, { 'X-CSRF-Token': 'wrong' });
+    const response = await createLink(browser, { destinationUrl: 'https://example.com' }, { 'X-CSRF-Token': 'wrong' });
 
     assert.equal(response.status, 403);
     assert.equal((await errorOf(response)).code, 'CSRF_INVALID');
@@ -210,7 +138,7 @@ describe('session and CSRF', () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
 
-    const response = await createLink(server, browser, { destinationUrl: 'https://example.com' }, { Cookie: `${SESSION_COOKIE}=expired-or-forged` });
+    const response = await createLink(browser, { destinationUrl: 'https://example.com' }, { Cookie: `${SESSION_COOKIE}=expired-or-forged` });
 
     assert.equal(response.status, 403);
     assert.equal((await errorOf(response)).code, 'CSRF_INVALID');
@@ -226,10 +154,10 @@ describe('session and CSRF', () => {
     const { token, session } = await store.rotate(null, { id: rows[0].id, role: rows[0].role, sessionVersion: rows[0].session_version });
     const browser = await newBrowser(server);
 
-    const response = await createLink(server, browser, { destinationUrl: 'https://example.com' }, {
-      Cookie: `${SESSION_COOKIE}=${token}`,
-      'X-CSRF-Token': session.csrfToken,
-    });
+    browser.cookie = `${SESSION_COOKIE}=${token}`;
+    browser.csrfToken = session.csrfToken;
+
+    const response = await createLink(browser, { destinationUrl: 'https://example.com' });
 
     assert.equal(response.status, 501);
     assert.equal((await errorOf(response)).code, 'NOT_IMPLEMENTED');
@@ -240,7 +168,7 @@ describe('suspicious activity, quotas and outages', () => {
   test('a burst requires a challenge, and a retry with a verified token succeeds', async () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
-    const create = (body) => createLink(server, browser, { destinationUrl: 'https://example.com', ...body });
+    const create = (body) => createLink(browser, { destinationUrl: 'https://example.com', ...body });
 
     assert.equal((await create()).status, 201);
     assert.equal((await create()).status, 201);
@@ -250,14 +178,14 @@ describe('suspicious activity, quotas and outages', () => {
     assert.equal(challenged.status, 403);
     assert.equal((await errorOf(challenged)).code, 'CHALLENGE_REQUIRED');
 
-    assert.equal((await create({ challengeToken: await challengeToken(server, browser) })).status, 201);
+    assert.equal((await create({ challengeToken: await challengeToken(browser) })).status, 201);
   });
 
   test('a used challenge token cannot be replayed', async () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
-    const create = (body) => createLink(server, browser, { destinationUrl: 'https://example.com', ...body });
-    const token = await challengeToken(server, browser);
+    const create = (body) => createLink(browser, { destinationUrl: 'https://example.com', ...body });
+    const token = await challengeToken(browser);
 
     await create();
     await create();
@@ -270,12 +198,12 @@ describe('suspicious activity, quotas and outages', () => {
     const { server } = await startApi();
     const browser = await newBrowser(server);
 
-    await createLink(server, browser, { destinationUrl: 'https://example.com' });
-    await createLink(server, browser, { destinationUrl: 'https://example.com' });
+    await createLink(browser, { destinationUrl: 'https://example.com' });
+    await createLink(browser, { destinationUrl: 'https://example.com' });
 
-    const response = await createLink(server, browser, {
+    const response = await createLink(browser, {
       destinationUrl: 'https://example.com',
-      challengeToken: await challengeToken(server, browser, 'report'),
+      challengeToken: await challengeToken(browser, 'report'),
     });
 
     assert.equal(response.status, 403);
@@ -287,9 +215,9 @@ describe('suspicious activity, quotas and outages', () => {
     const statuses = [];
 
     for (let i = 0; i < 6; i += 1) {
-      const response = await createLink(server, browser, {
+      const response = await createLink(browser, {
         destinationUrl: 'https://example.com',
-        challengeToken: await challengeToken(server, browser),
+        challengeToken: await challengeToken(browser),
       });
 
       statuses.push(response.status);
@@ -310,11 +238,11 @@ describe('suspicious activity, quotas and outages', () => {
     for (let i = 0; i < 4; i += 1) {
       const browser = await newBrowser(server, clientIp);
 
-      await createLink(server, browser, { destinationUrl: 'https://example.com', challengeToken: await challengeToken(server, browser) });
+      await createLink(browser, { destinationUrl: 'https://example.com', challengeToken: await challengeToken(browser) });
     }
 
     const freshSession = await newBrowser(server, clientIp);
-    const response = await createLink(server, freshSession, { destinationUrl: 'https://example.com' });
+    const response = await createLink(freshSession, { destinationUrl: 'https://example.com' });
 
     assert.equal(response.status, 429, 'a new session from the same network does not reset the quota');
   });
@@ -328,7 +256,12 @@ describe('suspicious activity, quotas and outages', () => {
       const { server: offline } = await startApi({ redisClient: down });
       const { rows: before } = await database.pool.query('SELECT count(*)::int AS n FROM links');
 
-      const response = await createLink(offline, browser, { destinationUrl: 'https://example.com' });
+      // The same browser (cookie, CSRF token) talking to an API instance whose Redis is down.
+      const response = await fetch(`${offline.url}/api/v1/links`, {
+        method: 'POST',
+        headers: browser.headers(),
+        body: JSON.stringify({ destinationUrl: 'https://example.com' }),
+      });
 
       assert.equal(response.status, 503);
       assert.equal((await errorOf(response)).code, 'SERVICE_UNAVAILABLE');
@@ -348,7 +281,7 @@ describe('suspicious activity, quotas and outages', () => {
 
     const { server } = await startApi({ pool: deadPool });
     const browser = await newBrowser(server);
-    const response = await createLink(server, browser, { destinationUrl: 'https://example.com' });
+    const response = await createLink(browser, { destinationUrl: 'https://example.com' });
 
     assert.equal(response.status, 503);
     assert.equal((await errorOf(response)).code, 'SERVICE_UNAVAILABLE');

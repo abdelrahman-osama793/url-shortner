@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). There is no way to sign in yet (T13) and no web UI yet (T23) (tasks T01–T12, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them, and people can sign up, verify their email and sign in, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification and sign-in. There is no web UI yet (T23), and signed-in users cannot create links yet (T17) (tasks T01–T13, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -134,6 +134,32 @@ curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/dev/challenge-token 
 
 After 5 creations in an hour from your machine you get `429 RATE_LIMITED` with `Retry-After`. Delete `cookies.txt` when you are done.
 
+#### Create an account and sign in
+
+Using the same `cookies.txt` and CSRF token as above, sign up (passwords need at least 12 characters):
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/auth/register -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"email":"you@example.com","password":"a long passphrase here"}'
+```
+
+Open Mailpit at http://localhost:8025, open the "Confirm your Shortlist email address" message, and copy the value after `#token=` in its link. (The link itself opens a page that arrives with the UI in T25.) Verify with it:
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/auth/email/verify -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"token":"PASTE_EMAIL_TOKEN"}'
+```
+
+Then sign in. `-c` saves the new session cookie that sign-in issues:
+
+```bash
+curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:3000/api/v1/auth/login -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"email":"you@example.com","password":"a long passphrase here"}'
+```
+
+Sign-in returns a **new** `csrfToken`; the old one stops working. Check who you are:
+
+```bash
+curl -s -b cookies.txt http://localhost:3000/api/v1/auth/me
+```
+
 ### Stopping
 
 ```bash
@@ -215,7 +241,7 @@ apps/server/src/
   modules/links/          destination rules, code generation and allocation, effective status
   modules/abuse/          shared rate limits, client network keys, challenge verification
   modules/sessions/       Redis session store (hashed tokens, idle and absolute expiry, rotation)
-  modules/accounts/       user lookups, hashed single-use verification and reset tokens
+  modules/accounts/       sign-up, verification, password sign-in (Argon2id), email normalisation, one-time tokens
   modules/email/          encrypted email outbox, delivery with retries, email templates
   infra/mailer.js         SMTP adapter (Mailpit in development)
   infra/redis.js          Redis client that fails fast instead of queueing while disconnected
@@ -272,7 +298,7 @@ Planning follows a 39-task backlog across eight milestones:
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
-| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T12 done (sessions, CSRF, guards, one-time tokens, email outbox); no sign-in method yet |
+| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T13 done (sessions, CSRF, email outbox, sign-up, verification, password sign-in); next T14 |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |

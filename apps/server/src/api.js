@@ -16,6 +16,7 @@ import { createPool, isDatabaseReachable } from './infra/postgres.js';
 import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
 import { createChallengeGuard, createDevChallengeVerifier } from './modules/abuse/challenge.js';
+import { createAccountService } from './modules/accounts/service.js';
 import { createRateLimiter } from './modules/abuse/rate-limiter.js';
 import { createRedirectResolver } from './modules/links/redirects.js';
 import { createLinkService } from './modules/links/service.js';
@@ -65,11 +66,17 @@ async function main() {
   const challengeGuard = createChallengeGuard({ redis, verifier });
 
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, logger });
+  const accountService = createAccountService({
+    pool,
+    outboxKey: config.mail.outboxKey,
+    tokenLifetimes: config.tokenLifetimes,
+    logger,
+  });
 
   const routers = [
     createHealthRouter({ checkDatabase: () => isDatabaseReachable(pool) }),
     createRedirectRouter({ resolver: createRedirectResolver({ pool }) }),
-    createAuthRouter({ store, guards }),
+    createAuthRouter({ store, guards, limiter, accountService }),
     createLinksRouter({ guards, limiter, challengeGuard, linkService }),
   ];
 

@@ -299,7 +299,7 @@ describe('authorization guards', () => {
   });
 
   test('no endpoint signs someone in without proof (no test login shortcut)', async () => {
-    for (const path of ['/api/v1/auth/login', '/api/v1/auth/test-login', '/api/v1/auth/session']) {
+    for (const path of ['/api/v1/auth/test-login', '/api/v1/auth/session', '/api/v1/auth/impersonate']) {
       assert.equal((await request(path, { method: 'POST' })).status, 404, path);
     }
   });

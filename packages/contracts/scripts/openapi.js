@@ -15,6 +15,12 @@ import * as contracts from '../src/index.js';
 const OUTPUT = fileURLToPath(new URL('../openapi.json', import.meta.url));
 
 const COMPONENT_SCHEMAS = {
+  Acknowledgement: contracts.AcknowledgementSchema,
+  RegisterRequest: contracts.RegisterRequestSchema,
+  LoginRequest: contracts.LoginRequestSchema,
+  LoginResponse: contracts.LoginResponseSchema,
+  VerifyEmailRequest: contracts.VerifyEmailRequestSchema,
+  ResendVerificationRequest: contracts.ResendVerificationRequestSchema,
   CsrfResponse: contracts.CsrfResponseSchema,
   MeResponse: contracts.MeResponseSchema,
   User: contracts.UserSchema,
@@ -40,6 +46,12 @@ function jsonResponse(description, schemaName) {
     content: { 'application/json': { schema: { $ref: `#/components/schemas/${schemaName}` } } },
   };
 }
+
+function jsonBody(schemaName) {
+  return { required: true, content: { 'application/json': { schema: { $ref: `#/components/schemas/${schemaName}` } } } };
+}
+
+const CSRF_NOTE = ' Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.';
 
 function buildDocument() {
   return {
@@ -74,6 +86,52 @@ function buildDocument() {
           },
         },
       },
+      '/api/v1/auth/register': {
+        post: {
+          summary: `Create an email/password account and send a verification email.${CSRF_NOTE}`,
+          requestBody: jsonBody('RegisterRequest'),
+          responses: {
+            202: jsonResponse('Always the same answer, whether or not the email already has an account.', 'Acknowledgement'),
+            400: jsonResponse('VALIDATION_FAILED (password needs 12-256 characters).', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/email/verify': {
+        post: {
+          summary: `Consume an email verification token. Does not sign in.${CSRF_NOTE}`,
+          requestBody: jsonBody('VerifyEmailRequest'),
+          responses: {
+            204: { description: 'Email verified.' },
+            400: jsonResponse('TOKEN_INVALID, TOKEN_EXPIRED or TOKEN_USED.', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/email/resend': {
+        post: {
+          summary: `Send a new verification link (revokes the previous one).${CSRF_NOTE}`,
+          requestBody: jsonBody('ResendVerificationRequest'),
+          responses: {
+            202: jsonResponse('Always the same answer; mail is sent only to an existing unverified account.', 'Acknowledgement'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/login': {
+        post: {
+          summary: `Sign in with email and password. Replaces the session cookie and CSRF token.${CSRF_NOTE}`,
+          requestBody: jsonBody('LoginRequest'),
+          responses: {
+            200: jsonResponse('Signed in. Use the returned csrfToken from now on.', 'LoginResponse'),
+            401: jsonResponse('INVALID_CREDENTIALS, identical for unknown email and wrong password.', 'ErrorEnvelope'),
+            403: jsonResponse('ACCOUNT_SUSPENDED (correct password), CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
       '/api/v1/auth/me': {
         get: {
           summary: 'The signed-in user',
@@ -105,7 +163,7 @@ function buildDocument() {
           responses: {
             201: jsonResponse('Created. Generated code, expires in 7 days. No id, Location or ETag.', 'GuestCreateLinkResponse'),
             400: jsonResponse('VALIDATION_FAILED (fields listed; unknown fields such as customAlias or ownerId are rejected), INVALID_JSON.', 'ErrorEnvelope'),
-            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, or CHALLENGE_REQUIRED (retry with challengeToken).', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (retry with challengeToken), or EMAIL_NOT_VERIFIED for a signed-in unverified account.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED; Retry-After is set.', 'ErrorEnvelope'),
             501: jsonResponse('Signed-in creation is not implemented yet (T17).', 'ErrorEnvelope'),
             503: jsonResponse('Redis or PostgreSQL unavailable; Retry-After is set.', 'ErrorEnvelope'),

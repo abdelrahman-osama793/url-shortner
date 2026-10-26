@@ -190,6 +190,23 @@ One server package with two entry points (modular monolith), not separate servic
 - **Worker** now runs the sender loop (1 s polling, immediate re-poll after a full batch) and on SIGTERM finishes the current batch before closing the mailer and pool.
 - Development mail goes to Mailpit only. A real provider and sender domain are launch dependencies (T36/T37); nothing here claims real delivery.
 
+### Registration, verification and password sign-in (T13)
+
+- **Argon2id** via `argon2` 0.45 with OWASP's minimum: m=19456 KiB, t=2, p=1 (encoded as `m=19456,p=1,t=2`). Measured about 32 ms per hash on the development laptop. Runs on libuv's thread pool (default 4 concurrent per process); rate limits bound the queue. `needsRehash` upgrades outdated hashes after a successful sign-in.
+- **Password policy**: 12-256 characters, no composition rules. Login accepts any 1-256 character password, so older passwords still work and the policy is not revealed. Shared constants live in `@shortlist/contracts` for the sign-up form.
+- **Email normalisation**: trim, lower-case, IDN domain to ASCII via `url.domainToASCII`; dots and `+tags` are kept; the typed address is stored and shown.
+- **No account discovery**:
+  - Register and resend always return `202 {"status":"accepted"}`.
+  - Register hashes the password before touching the database in every case, and an existing address is left untouched: no credential overwrite, no new email.
+  - Sign-in returns one `401 INVALID_CREDENTIALS` for unknown email, wrong password and password-less (Google-only) accounts, and verifies a dummy Argon2id hash when no hash exists, so timing matches (tested: an unknown email takes comparable time to a wrong password).
+  - A correct password on a suspended account gets `403 ACCOUNT_SUSPENDED`, since the caller already proved control of it.
+- **Atomic sign-up**: user, password credential, verification token and outbox email are one transaction; concurrent sign-ups for one address create exactly one account and one email (`ON CONFLICT DO NOTHING`).
+- **Verification**: `400 TOKEN_INVALID / TOKEN_EXPIRED / TOKEN_USED`; verifying never signs anyone in. A link revoked by a resend reports `TOKEN_USED`.
+- **Restricted sessions**: unverified users can sign in; `POST /api/v1/links` for any signed-in user now runs `user` + `verified` guards, so unverified accounts get `403 EMAIL_NOT_VERIFIED` (verified ones get 501 until T17).
+- **Session rotation** on sign-in: the anonymous session is deleted and a new cookie and CSRF token are issued; the old CSRF token stops working (verified with curl).
+- **Rate limits**: register and resend use `accountEmail` (account + network + global); sign-in uses `login` (network + account). Tested: the 6th wrong attempt on one account from different networks gets 429.
+- **Test helpers**: `test/support/api.js` wires every router like `api.js`; `test/support/browser.js` keeps cookies and CSRF tokens like a browser.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

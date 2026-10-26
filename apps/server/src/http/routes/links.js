@@ -8,14 +8,21 @@ import { validateBody } from '../middleware/validate.js';
 
 const byNetwork = (req) => ({ network: req.clientNetwork });
 
-// Signed-in users must not receive a guest link: registered creation (alias, expiry,
-// management, idempotency) is T17. Until then the honest answer is "not implemented".
-function rejectSignedInUntilRegisteredCreationExists(req, _res, next) {
-  if (req.session?.userId) {
-    return next(new AppError(501, ERROR_CODES.NOT_IMPLEMENTED, 'Creating links from an account is not available yet.'));
-  }
+// Signed-in users never receive a guest link. Their account must be active and verified
+// (unverified accounts are restricted, T13); registered creation itself is T17, so until then
+// a verified user gets an honest "not implemented".
+function signedInBranch(guards) {
+  return (req, res, next) => {
+    if (!req.session?.userId) return next();
 
-  next();
+    guards.user(req, res, (userError) => {
+      if (userError) return next(userError);
+
+      guards.verified(req, res, (verifiedError) => {
+        next(verifiedError ?? new AppError(501, ERROR_CODES.NOT_IMPLEMENTED, 'Creating links from an account is not available yet.'));
+      });
+    });
+  };
 }
 
 // POST /api/v1/links — guest branch (api-contracts.md, "Links"; decision D04).
@@ -32,7 +39,7 @@ export function createLinksRouter({ guards, limiter, challengeGuard, linkService
     '/api/v1/links',
     guards.session,
     guards.csrf,
-    rejectSignedInUntilRegisteredCreationExists,
+    signedInBranch(guards),
     rateLimit(limiter, 'guestCreate', byNetwork),
     validateBody(GuestCreateLinkRequestSchema),
     requireChallengeWhenSuspicious({
