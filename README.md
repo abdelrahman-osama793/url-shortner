@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, and Redis-backed rate limits with a development-only challenge (no link routes yet) (tasks T01–T08, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, and working public redirects (`/r/{code}`). Links cannot be created over HTTP yet (T09/T17) (tasks T01–T08 and T10, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -199,7 +199,8 @@ docs/DECISIONS.md         implementation decisions and their reasons
 
 ## API conventions
 
-- **Base path:** `/api/v1` for the API (routes arrive from T07), `/r/{code}` for redirects, and `/health/live` and `/health/ready` for operations.
+- **Base path:** `/api/v1` for the API, `/r/{code}` for redirects, and `/health/live` and `/health/ready` for operations.
+- **Redirects:** `302` to the stored destination (the request's query string is never appended), `404` for unknown codes, `410` for any inactive link (one generic answer), `503` when PostgreSQL is down or overloaded. Codes are matched exactly and case-sensitively. Redirects never depend on Redis, and nothing is cached, so edits and disables apply to the very next request.
 - **Errors:** every failure returns `{ "error": { "code", "message", "requestId", "fields"? } }`. The codes are listed in `packages/contracts/src/errors.js` and in [`openapi.json`](packages/contracts/openapi.json). Responses never include stack traces or internal details.
 - **Requests:** JSON bodies are limited to 16 KiB, and unknown fields are rejected. State-changing requests must send an `Origin` listed in `ALLOWED_ORIGINS`.
 - **Responses:** every response has `Cache-Control: no-store` and a server-generated `X-Request-Id`. Quote that ID when reporting an error; it matches the log line.
@@ -238,7 +239,7 @@ Planning follows a 39-task backlog across eight milestones:
 | Milestone | Scope | Status |
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
-| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07–T08 done (link domain and rate limits at service/middleware level); next T10, then T09 after T11 |
+| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07, T08, T10 done (link domain, rate limits, redirects); next T11, then T09 |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |

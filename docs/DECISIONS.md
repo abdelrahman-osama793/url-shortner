@@ -142,6 +142,17 @@ One server package with two entry points (modular monolith), not separate servic
 - **Challenges**: `requireChallengeWhenSuspicious` runs **after** the quota check. When the risk policy is exceeded (provisionally a third guest creation within 10 minutes per network), the request needs `challengeToken` → otherwise 403 `CHALLENGE_REQUIRED`. The guard enforces, for every provider, an exact action match and single use (`SET NX` of the token hash, 15-minute replay window); the token is removed from the body before handlers run.
 - **Development provider only**: HMAC-signed `{action, expiresAt, nonce}` tokens from `POST /api/v1/dev/challenge-token`, mounted only when `CHALLENGE_PROVIDER=dev`. This is mock behaviour, not human verification. `config.js` refuses to start with `NODE_ENV=production` because no real provider exists yet (T36 selects one, T37 integrates and checks hostname binding).
 
+### Redirects (T10)
+
+- `modules/links/redirects.js` decides; `http/routes/redirects.js` maps the decision to HTTP. The resolver depends only on the PostgreSQL pool, never on Redis.
+- **One statement per redirect** on the primary: link + owner status + `now()`. Expiry uses the database clock, the same clock that set guest expiry. No cache, no read replica, no long transaction (decision D12).
+- **Responses**: 302 + Location (stored destination; incoming query not appended); 404 unknown or malformed code (pattern checked before any query); 410 `LINK_INACTIVE`, one generic answer for expired/disabled/blocked/owner-suspended; 400 `BAD_REQUEST` for malformed percent-encoding (Express raises `URIError`); 405 with `Allow: GET, HEAD`; 503 with `Retry-After: 2` when PostgreSQL fails or the redirect is shed. All are `no-store`.
+- **Case-sensitive routing**: Express routes are case-insensitive by default (`/R/x` matched `/r/:code` in a probe), so the redirect router uses `caseSensitive: true`.
+- **Bounded concurrency**: the pool size caps concurrent lookups; `connectionTimeoutMillis` (2 s) caps waiting; requests are shed immediately when `pool.waitingCount >= 50`. Redirects share the API pool for now. A separate redirect pool is an option if the load test (T35) shows contention with management traffic.
+- **429 for redirects is the edge's job** (technical-design §6). An application limit would put Redis on the redirect path, contradicting the failure design. Recorded for T37 deployment configuration.
+- Known 5xx `AppError`s (dependency outages) are now logged at warn level with their cause; previously only unexpected errors were logged.
+- HEAD is served by the GET handler without a body. Analytics capture (T19) must only count `GET`.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

@@ -62,6 +62,26 @@ function buildDocument() {
           },
         },
       },
+      '/r/{code}': {
+        get: {
+          summary: 'Public redirect (HEAD behaves the same with no body)',
+          parameters: [{
+            name: 'code',
+            in: 'path',
+            required: true,
+            description: 'Exact, case-sensitive short code (4-32 of A-Z a-z 0-9 _ -).',
+            schema: { type: 'string', pattern: contracts.ALIAS_PATTERN.source },
+          }],
+          responses: {
+            302: { description: 'Active link. Location is the stored destination; the request query is not appended.' },
+            400: jsonResponse('Malformed percent-encoding in the path.', 'ErrorEnvelope'),
+            404: jsonResponse('Unknown or malformed code.', 'ErrorEnvelope'),
+            405: jsonResponse('Only GET and HEAD are allowed.', 'ErrorEnvelope'),
+            410: jsonResponse('Inactive link (expired, disabled, blocked or owner suspended).', 'ErrorEnvelope'),
+            503: jsonResponse('Database unavailable or overloaded. Retry-After is set.', 'ErrorEnvelope'),
+          },
+        },
+      },
     },
     components: {
       schemas: Object.fromEntries(

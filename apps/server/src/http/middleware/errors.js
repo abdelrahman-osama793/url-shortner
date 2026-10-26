@@ -13,6 +13,11 @@ const BODY_PARSER_ERRORS = {
 function toAppError(error) {
   if (error instanceof AppError) return error;
 
+  // Express's router raises this for malformed percent-encoding in a path parameter.
+  if (error instanceof URIError && error.status === 400) {
+    return new AppError(400, ERROR_CODES.BAD_REQUEST, 'The request path is not valid.');
+  }
+
   const fromBodyParser = BODY_PARSER_ERRORS[error?.type];
 
   return fromBodyParser ? fromBodyParser() : null;
@@ -46,6 +51,11 @@ export function errorHandler(logger) {
     const appError = toAppError(error);
 
     if (appError) {
+      // Expected server-side failures (e.g. a dependency outage) are still worth an operator's attention.
+      if (appError.status >= 500) {
+        logger.warn({ err: appError.cause ?? appError, requestId: req.id, path: req.path, code: appError.code }, 'request failed with a known server error');
+      }
+
       return sendError(req, res, appError);
     }
 

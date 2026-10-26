@@ -7,11 +7,13 @@ import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.js';
 import { createHealthRouter } from './http/routes/health.js';
+import { createRedirectRouter } from './http/routes/redirects.js';
 import { createLogger } from './infra/logger.js';
 import { createPool, isDatabaseReachable } from './infra/postgres.js';
 import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
 import { createDevChallengeVerifier } from './modules/abuse/challenge.js';
+import { createRedirectResolver } from './modules/links/redirects.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();
@@ -50,6 +52,7 @@ async function main() {
 
   const routers = [
     createHealthRouter({ checkDatabase: () => isDatabaseReachable(pool) }),
+    createRedirectRouter({ resolver: createRedirectResolver({ pool }) }),
   ];
 
   if (config.challenge.provider === 'dev') {

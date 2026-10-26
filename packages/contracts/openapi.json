@@ -49,6 +49,78 @@
           }
         }
       }
+    },
+    "/r/{code}": {
+      "get": {
+        "summary": "Public redirect (HEAD behaves the same with no body)",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Exact, case-sensitive short code (4-32 of A-Z a-z 0-9 _ -).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{4,32}$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Active link. Location is the stored destination; the request query is not appended."
+          },
+          "400": {
+            "description": "Malformed percent-encoding in the path.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or malformed code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET and HEAD are allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Inactive link (expired, disabled, blocked or owner suspended).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or overloaded. Retry-After is set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -111,7 +183,10 @@
           "ORIGIN_NOT_ALLOWED",
           "CHALLENGE_REQUIRED",
           "RATE_LIMITED",
+          "BAD_REQUEST",
           "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "LINK_INACTIVE",
           "ALIAS_UNAVAILABLE",
           "SERVICE_UNAVAILABLE",
           "INTERNAL_ERROR"
