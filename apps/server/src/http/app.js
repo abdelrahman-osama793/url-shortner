@@ -1,20 +1,35 @@
 import express from 'express';
 
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
-import { createHealthRouter } from './routes/health.js';
+import { noStore } from './middleware/no-store.js';
+import { requireAllowedOrigin } from './middleware/origin.js';
+import { requestId } from './middleware/request-id.js';
+import { requestLogger } from './middleware/request-logger.js';
 
-// Composes the Express application from routers.
-// It does not listen on a port, so tests can mount it without starting a server.
-export function createApp() {
+export const JSON_BODY_LIMIT = '16kb';
+
+// Applies the API conventions (request IDs, logging, no-store, origin check, JSON limits,
+// error envelopes) around the given routers. The caller decides which routers to mount,
+// so new features plug in without editing this file, and tests can mount their own.
+export function createApp({ config, logger, routers }) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.set('trust proxy', config.trustProxyHops);
 
-  app.use(createHealthRouter());
+  app.use(requestId());
+  app.use(requestLogger(logger));
+  app.use(noStore());
+  app.use(requireAllowedOrigin(config.allowedOrigins));
+  app.use(express.json({ limit: JSON_BODY_LIMIT, strict: true }));
+
+  for (const router of routers) {
+    app.use(router);
+  }
 
   // Must stay last: catch-all 404, then the error handler.
   app.use(notFoundHandler);
-  app.use(errorHandler);
+  app.use(errorHandler(logger));
 
   return app;
 }

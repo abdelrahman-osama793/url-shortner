@@ -2,7 +2,7 @@
 
 A URL shortener built as a deliberate **system-design and implementation exercise**: guest and registered short links, public redirects, custom aliases, click analytics, Google and email/password sign-in, and an abuse-moderation workspace.
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment and the database schema (tasks T01–T04, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) (tasks T01–T05, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -101,10 +101,10 @@ Open http://localhost:4200.
 ### 5. Check it works
 
 ```bash
-curl http://localhost:3000/health/live
+curl http://localhost:3000/health/ready
 ```
 
-The expected response is `{"status":"ok"}`.
+The expected response is `{"status":"ready","checks":{"postgres":"up"}}`. `/health/live` only shows that the process is answering; `/health/ready` also checks PostgreSQL.
 
 ### Stopping
 
@@ -132,11 +132,12 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 | Command | What it does |
 |---|---|
 | `npm run build` | Generates contract type declarations, then builds Angular |
-| `npm run check` | Type-checks the shared contracts (JSDoc). Angular is type-checked by its build |
+| `npm run check` | Type-checks the shared contracts (JSDoc) and fails if `openapi.json` is out of date. Angular is type-checked by its build |
+| `npm run openapi -w @shortlist/contracts` | Regenerates `packages/contracts/openapi.json` from the zod schemas |
 | `npm test` | Runs server integration tests (needs the Compose PostgreSQL running) and Angular unit tests |
 | `npm test -w @shortlist/server` | Server integration tests only. Each test file creates and drops its own throwaway database |
 | `docker compose run --rm migrate` | Apply pending migrations |
-| `docker compose logs -f api worker` | Follow backend logs |
+| `docker compose logs -f api worker` | Follow backend logs (JSON lines) |
 | `docker compose ps` | Service status and health |
 | `npm run dev:api -w @shortlist/server` | Run the API on the host instead of in Docker (needs the env vars from compose) |
 
@@ -149,14 +150,24 @@ apps/server/src/
   infra/postgres.js       connection pool and transaction helper
   config.js               reads environment once; passed to modules as arguments
   lifecycle.js            startup, graceful shutdown, process-level error handlers
-  http/                   Express app, routes and middleware
-packages/contracts/       zod schemas shared by server and web
+  errors.js               AppError: the only errors whose details reach API clients
+  infra/logger.js         structured JSON logs with secret redaction
+  http/                   Express app, routes and middleware (request IDs, no-store, origin check, validation, errors)
+packages/contracts/       zod schemas shared by server and web, plus generated openapi.json
 database/migrations/      versioned SQL migrations
 apps/server/test/         integration tests (node:test against real PostgreSQL)
 deploy/                   Dockerfiles
 compose.yaml              local development stack
 docs/DECISIONS.md         implementation decisions and their reasons
 ```
+
+## API conventions
+
+- **Base path:** `/api/v1` for the API (routes arrive from T07), `/r/{code}` for redirects, and `/health/live` and `/health/ready` for operations.
+- **Errors:** every failure returns `{ "error": { "code", "message", "requestId", "fields"? } }`. The codes are listed in `packages/contracts/src/errors.js` and in [`openapi.json`](packages/contracts/openapi.json). Responses never include stack traces or internal details.
+- **Requests:** JSON bodies are limited to 16 KiB, and unknown fields are rejected. State-changing requests must send an `Origin` listed in `ALLOWED_ORIGINS`.
+- **Responses:** every response has `Cache-Control: no-store` and a server-generated `X-Request-Id`. Quote that ID when reporting an error; it matches the log line.
+- **Logs:** JSON on stdout. Passwords, tokens, cookies and credentials inside connection strings are redacted. Query strings and client IPs are never logged.
 
 ## Database migrations
 
@@ -188,7 +199,7 @@ Planning follows a 39-task backlog across eight milestones:
 
 | Milestone | Scope | Status |
 |---|---|---|
-| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T04 done; next T05 (API conventions) |
+| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T05 done; next T06 (CI checks) |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Not started |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |

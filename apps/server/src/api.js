@@ -1,11 +1,17 @@
-// API process entry point.
+// API process entry point: builds every dependency and wires them together.
 
 import { once } from 'node:events';
 import { promisify } from 'node:util';
 
 import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
+import { createHealthRouter } from './http/routes/health.js';
+import { createLogger } from './infra/logger.js';
+import { createPool, isDatabaseReachable } from './infra/postgres.js';
 import { onShutdown, runMain } from './lifecycle.js';
+
+// Created before configuration so that configuration errors are logged too.
+const logger = createLogger();
 
 // once() resolves on 'listening' and rejects if 'error' (e.g. EADDRINUSE) fires first.
 async function listen(app, port) {
@@ -24,13 +30,28 @@ async function close(server) {
 
 async function main() {
   const config = loadConfig();
-  const app = createApp();
 
+  logger.level = config.logLevel;
+
+  const pool = createPool({
+    databaseUrl: config.database.url,
+    maxConnections: config.database.poolMax,
+    logger,
+  });
+
+  const routers = [
+    createHealthRouter({ checkDatabase: () => isDatabaseReachable(pool) }),
+  ];
+
+  const app = createApp({ config, logger, routers });
   const server = await listen(app, config.port);
 
-  console.log(`api listening on :${config.port}`);
+  logger.info({ port: config.port }, 'api listening');
 
-  onShutdown(() => close(server));
+  onShutdown(async () => {
+    await close(server);
+    await pool.end();
+  }, logger);
 }
 
-runMain(main);
+runMain(main, logger);

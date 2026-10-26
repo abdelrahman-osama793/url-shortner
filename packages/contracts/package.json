@@ -7,11 +7,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.js"
-    }
+    },
+    "./openapi.json": "./openapi.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit && node scripts/openapi.js --check",
+    "openapi": "node scripts/openapi.js"
   },
   "dependencies": {
     "zod": "^4.6.7"

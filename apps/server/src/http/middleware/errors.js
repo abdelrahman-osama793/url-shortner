@@ -1,27 +1,57 @@
-import { randomUUID } from 'node:crypto';
+import { ERROR_CODES } from '@shortlist/contracts';
 
-// Express 5 forwards both thrown errors and rejected promises from route handlers
-// to the error middleware below, so handlers do not need their own try/catch.
-// Responses use the documented error envelope and never include stack traces.
+import { AppError, notFoundError } from '../../errors.js';
 
-function sendError(res, status, code, message) {
-  const requestId = `req_${randomUUID()}`;
+// Errors raised by express.json() before any route runs, identified by their `type`.
+const BODY_PARSER_ERRORS = {
+  'entity.too.large': () => new AppError(413, ERROR_CODES.PAYLOAD_TOO_LARGE, 'The request body is too large.'),
+  'entity.parse.failed': () => new AppError(400, ERROR_CODES.INVALID_JSON, 'The request body is not valid JSON.'),
+  'encoding.unsupported': () => new AppError(415, ERROR_CODES.UNSUPPORTED_MEDIA_TYPE, 'Unsupported content encoding.'),
+  'charset.unsupported': () => new AppError(415, ERROR_CODES.UNSUPPORTED_MEDIA_TYPE, 'Unsupported character set.'),
+};
 
-  res.status(status);
-  res.set('Cache-Control', 'no-store');
-  res.json({ error: { code, message, requestId } });
+function toAppError(error) {
+  if (error instanceof AppError) return error;
 
-  return requestId;
+  const fromBodyParser = BODY_PARSER_ERRORS[error?.type];
+
+  return fromBodyParser ? fromBodyParser() : null;
 }
 
-export function notFoundHandler(_req, res) {
-  sendError(res, 404, 'NOT_FOUND', 'The requested resource does not exist.');
+function sendError(req, res, appError) {
+  res.status(appError.status);
+
+  if (appError.headers) res.set(appError.headers);
+
+  res.json({
+    error: {
+      code: appError.code,
+      message: appError.message,
+      requestId: req.id,
+      fields: appError.fields,
+    },
+  });
 }
 
-// Express identifies error middleware by its four parameters, so `next` must stay.
-// eslint-disable-next-line no-unused-vars
-export function errorHandler(error, _req, res, next) {
-  const requestId = sendError(res, 500, 'INTERNAL_ERROR', 'Something went wrong.');
+export function notFoundHandler(_req, _res, next) {
+  next(notFoundError());
+}
 
-  console.error(`request ${requestId} failed`, error);
+// Express 5 forwards both thrown errors and rejected promises from route handlers here,
+// so handlers do not need their own try/catch. Expected errors (AppError, malformed bodies)
+// are returned as-is. Anything else is logged and becomes a generic 500 with no details.
+export function errorHandler(logger) {
+  // Express identifies error middleware by its four parameters, so `next` must stay.
+  // eslint-disable-next-line no-unused-vars
+  return (error, req, res, next) => {
+    const appError = toAppError(error);
+
+    if (appError) {
+      return sendError(req, res, appError);
+    }
+
+    logger.error({ err: error, requestId: req.id, method: req.method, path: req.path }, 'request failed');
+
+    sendError(req, res, new AppError(500, ERROR_CODES.INTERNAL_ERROR, 'Something went wrong.'));
+  };
 }

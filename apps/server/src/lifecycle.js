@@ -4,42 +4,42 @@ const SHUTDOWN_SIGNALS = ['SIGINT', 'SIGTERM'];
 
 // Last line of defence: an error nobody handled means the process state is unknown.
 // Log it and exit non-zero so the container supervisor restarts a clean process.
-export function installProcessErrorHandlers() {
+function installProcessErrorHandlers(logger) {
   process.on('unhandledRejection', (reason) => {
-    console.error('unhandled promise rejection', reason);
+    logger.fatal({ err: reason }, 'unhandled promise rejection');
     process.exit(1);
   });
 
   process.on('uncaughtException', (error) => {
-    console.error('uncaught exception', error);
+    logger.fatal({ err: error }, 'uncaught exception');
     process.exit(1);
   });
 }
 
 // Runs the async startup function and exits cleanly if it fails.
-export function runMain(main) {
-  installProcessErrorHandlers();
+export function runMain(main, logger) {
+  installProcessErrorHandlers(logger);
 
   main().catch((error) => {
-    console.error('startup failed', error);
+    logger.fatal({ err: error }, 'startup failed');
     process.exit(1);
   });
 }
 
-export function onShutdown(stop) {
+export function onShutdown(stop, logger) {
   let stopping = false;
 
   const handleSignal = async (signal) => {
     if (stopping) return;
     stopping = true;
 
-    console.log(`received ${signal}, shutting down`);
+    logger.info({ signal }, 'shutting down');
 
     try {
       await stop();
       process.exit(0);
     } catch (error) {
-      console.error('shutdown failed', error);
+      logger.fatal({ err: error }, 'shutdown failed');
       process.exit(1);
     }
   };

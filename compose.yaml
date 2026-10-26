@@ -13,6 +13,9 @@ x-server: &server
     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     SMTP_URL: smtp://mailpit:1025
+    # Angular's dev server (host) proxies /api and /r to the API, so the browser origin is :4200.
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:4200}
+    LOG_LEVEL: ${LOG_LEVEL:-info}
   # Source is mounted read-only and `node --watch` restarts on edits.
   volumes:
     - ./apps/server/src:/app/apps/server/src:ro
@@ -46,13 +49,14 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # Health check uses readiness: the container is healthy only while PostgreSQL is reachable.
   api:
     <<: *server
     command: ["node", "--watch", "src/api.js"]
     ports:
       - "127.0.0.1:${API_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 3s
       retries: 3

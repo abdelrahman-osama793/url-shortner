@@ -96,6 +96,20 @@ One server package with two entry points (modular monolith), not separate servic
 - `withTransaction(pool, work, { isolationLevel, readOnly })` in `infra/postgres.js` commits on success and rolls back on failure. If ROLLBACK fails, it destroys the connection rather than returning it to the pool. Isolation levels come from an allow-list because they cannot be parameterised.
 - Migrations run in a one-shot `migrate` Compose service before the API and worker, matching the "migrations as a separate release step" design. The same image and command serve as the production release step.
 
+### API conventions (T05)
+
+- **Composition root**: `api.js` builds the config, logger, pool and routers; `createApp({ config, logger, routers })` wraps them in the shared conventions. Tests mount their own routers through the same function.
+- **Middleware order**: request ID → request log → `no-store` → Origin check (unsafe methods) → `express.json` (16 KiB, strict) → routers → 404 → error handler.
+- **Errors**: `AppError(status, code, message, { fields, headers })` is the only error whose details reach clients. Body-parser failures map to `INVALID_JSON` (400), `PAYLOAD_TOO_LARGE` (413) and `UNSUPPORTED_MEDIA_TYPE` (415). Everything else is logged and becomes a generic 500.
+- **Contract extension**: `fields: [{ path, message }]` on `VALIDATION_FAILED`, documented in api-contracts.md. Values are never echoed; unknown keys are reported as "Unknown field."
+- **Origin check now, CSRF later**: unsafe methods need an `Origin` from `ALLOWED_ORIGINS` (default: the origin of `PUBLIC_BASE_URL`). A missing Origin is rejected because v1 has no non-browser API clients. Synchronizer CSRF tokens are added in T11.
+- **Request IDs** are always server-generated (`req_<uuid>`). Incoming `X-Request-Id` is ignored, to prevent log injection and spoofing.
+- **Logging**: pino JSON to stdout. Redaction covers password, token, credential, cookie, authorization and CSRF keys (top level and two levels deep). Credentials embedded in URLs are scrubbed from error messages and stacks. The error serializer keeps only type/message/code/stack/cause, dropping library-attached objects. Request logs record method, path (no query string), status, duration and request ID; no IP, headers or bodies.
+- **Config**: validated with zod at startup. Invalid or missing values stop the process with a message listing every problem, without echoing values.
+- **Readiness** = PostgreSQL only (`SELECT 1`, 2 s connect/query timeouts). Redis is excluded on purpose (api-contracts.md). The compose API health check uses readiness.
+- **OpenAPI**: `packages/contracts/scripts/openapi.js` builds OpenAPI 3.1 from the zod schemas (`z.toJSONSchema`); `openapi.json` is committed. `npm run check` fails when it is stale. Only implemented paths are listed; planned shapes are components.
+- **Angular dev proxy (for T23)**: in development the browser origin is `http://localhost:4200`, and Angular's dev server must proxy `/api` and `/r` to `:3000`, so cookies and Origin stay same-origin.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |
