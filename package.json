@@ -12,7 +12,15 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "lint": "eslint . && npm run lint -w @shortlist/web",
     "check": "npm run check --workspaces --if-present",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "verify": "npm run build && npm run lint && npm run check && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-promise": "^7.3.0",
+    "globals": "^17.13.0"
   }
 }

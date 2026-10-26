@@ -41,9 +41,8 @@ export function notFoundHandler(_req, _res, next) {
 // so handlers do not need their own try/catch. Expected errors (AppError, malformed bodies)
 // are returned as-is. Anything else is logged and becomes a generic 500 with no details.
 export function errorHandler(logger) {
-  // Express identifies error middleware by its four parameters, so `next` must stay.
-  // eslint-disable-next-line no-unused-vars
-  return (error, req, res, next) => {
+  // Express identifies error middleware by its four parameters, so `_next` must stay.
+  return (error, req, res, _next) => {
     const appError = toAppError(error);
 
     if (appError) {

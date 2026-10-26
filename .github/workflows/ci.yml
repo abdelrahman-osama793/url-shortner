@@ -1,0 +1,81 @@
+# Runs on every push and pull request. A job fails if any step fails; nothing is skipped
+# when a dependency is missing (database tests error out instead of passing).
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Lint, type check, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build (contract types, Angular)
+        run: npm run build
+
+      - name: Lint (backend and Angular)
+        run: npm run lint
+
+      - name: Check (contract types, OpenAPI up to date)
+        run: npm run check
+
+      - name: Angular unit tests
+        run: npm test -w @shortlist/web
+
+  server-tests:
+    name: Server integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    # Throwaway credentials that exist only inside this CI job.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      # Redis is added with the first Redis-backed feature (T08 rate limits).
+
+    env:
+      TEST_DATABASE_URL: postgres://ci:ci-only-password@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test -w @shortlist/server

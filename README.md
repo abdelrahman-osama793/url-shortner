@@ -2,7 +2,9 @@
 
 A URL shortener built as a deliberate **system-design and implementation exercise**: guest and registered short links, public redirects, custom aliases, click analytics, Google and email/password sign-in, and an abuse-moderation workspace.
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) (tasks T01–T05, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+[![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
+
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) (tasks T01–T06, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -131,15 +133,46 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 
 | Command | What it does |
 |---|---|
+| `npm run verify` | **Everything CI runs:** build, lint, check, then all tests. Run it before pushing |
 | `npm run build` | Generates contract type declarations, then builds Angular |
-| `npm run check` | Type-checks the shared contracts (JSDoc) and fails if `openapi.json` is out of date. Angular is type-checked by its build |
+| `npm run lint` | ESLint for the JavaScript backend and the Angular app |
+| `npm run check` | Type-checks the shared contracts (JSDoc) and fails if `openapi.json` is out of date |
+| `npm test` | Server integration tests (needs PostgreSQL) and Angular unit tests |
+| `npm test -w @shortlist/server` | Server tests only |
 | `npm run openapi -w @shortlist/contracts` | Regenerates `packages/contracts/openapi.json` from the zod schemas |
-| `npm test` | Runs server integration tests (needs the Compose PostgreSQL running) and Angular unit tests |
-| `npm test -w @shortlist/server` | Server integration tests only. Each test file creates and drops its own throwaway database |
 | `docker compose run --rm migrate` | Apply pending migrations |
 | `docker compose logs -f api worker` | Follow backend logs (JSON lines) |
 | `docker compose ps` | Service status and health |
-| `npm run dev:api -w @shortlist/server` | Run the API on the host instead of in Docker (needs the env vars from compose) |
+
+## Contributing
+
+### Before you push
+
+1. Start the stack with `docker compose up -d --wait`, because the server tests need PostgreSQL.
+2. Run `npm run verify`. It must exit 0.
+3. If you changed a schema in `packages/contracts`, run `npm run openapi -w @shortlist/contracts` and commit the regenerated `openapi.json`.
+
+### How the tests reach the database
+
+Server tests use real PostgreSQL, not mocks. Each test file creates its own throwaway database (`shortlist_test_<random>`), applies the migrations and drops it afterwards, so test runs never touch your development data and can run in parallel.
+
+Connection settings come from `TEST_DATABASE_URL` if set; otherwise from `POSTGRES_*` in `.env` (via the host port). If neither is available, or PostgreSQL is down, the tests **fail**. They are never skipped and never reported as passing.
+
+### Lint rules that enforce the conventions
+
+| Rule | Why |
+|---|---|
+| `promise/catch-or-return` | Every promise chain is awaited, returned or ends in `.catch` |
+| `promise/avoid-new` | Use `async`/`await`, `util.promisify` or `events.once`, not `new Promise` |
+| `no-console` | Backend code logs through the injected pino logger, which redacts secrets |
+| `@typescript-eslint/no-floating-promises` | The same rule as the first row, for Angular (type-aware) |
+
+### Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
+
+- **Lint, type check, build:** `npm ci`, build, lint, check and the Angular tests.
+- **Server integration tests:** the server suite against a PostgreSQL 17 service container, using throwaway credentials that exist only inside the job.
 
 ## Project layout
 
@@ -199,8 +232,8 @@ Planning follows a 39-task backlog across eight milestones:
 
 | Milestone | Scope | Status |
 |---|---|---|
-| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T05 done; next T06 (CI checks) |
-| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Not started |
+| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
+| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Next: T07 (link domain) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
