@@ -84,3 +84,43 @@ export async function resetPasswordAndRevokeSessions(db, userId, passwordHash) {
 
   return true;
 }
+
+// The user linked to an external identity (e.g. a Google subject), or null.
+export async function findUserByIdentity(db, { provider, subject }) {
+  const { rows } = await db.query(
+    `SELECT u.id, u.email, u.email_verified_at, u.role, u.status, u.session_version
+     FROM external_identities i
+     JOIN users u ON u.id = i.user_id
+     WHERE i.provider = $1 AND i.subject = $2`,
+    [provider, subject],
+  );
+
+  return rows[0] ?? null;
+}
+
+// Creates a user without a password (an external-identity account). Returns the new user, or
+// null when the normalised email is already taken.
+export async function insertUserWithoutPassword(db, { email, emailNormalized, emailVerified }) {
+  const { rows } = await db.query(
+    `INSERT INTO users (email, email_normalized, email_verified_at)
+     VALUES ($1, $2, CASE WHEN $3::boolean THEN now() END)
+     ON CONFLICT (email_normalized) DO NOTHING
+     RETURNING id, email, email_verified_at, role, status, session_version`,
+    [email, emailNormalized, emailVerified],
+  );
+
+  return rows[0] ?? null;
+}
+
+export async function insertIdentity(db, { userId, provider, subject }) {
+  await db.query(
+    'INSERT INTO external_identities (user_id, provider, subject) VALUES ($1, $2, $3)',
+    [userId, provider, subject],
+  );
+}
+
+// Serialises sign-ins of one external identity, so two simultaneous first sign-ins cannot both
+// try to create the account. Namespace 1002 keeps these locks apart from code allocation (1001).
+export async function lockIdentity(db, { provider, subject }) {
+  await db.query('SELECT pg_advisory_xact_lock(1002, hashtext($1))', [`${provider}:${subject}`]);
+}

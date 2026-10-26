@@ -8,12 +8,14 @@ import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
 import { createAuthController } from './http/controllers/auth.controller.js';
 import { createDevChallengeController } from './http/controllers/dev-challenge.controller.js';
+import { createGoogleController } from './http/controllers/google.controller.js';
 import { createHealthController } from './http/controllers/health.controller.js';
 import { createLinksController } from './http/controllers/links.controller.js';
 import { createRedirectsController } from './http/controllers/redirects.controller.js';
 import { createAuthGuards } from './http/middleware/session.js';
 import { createAuthRouter } from './http/routes/auth.routes.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.routes.js';
+import { createGoogleRouter } from './http/routes/google.routes.js';
 import { createHealthRouter } from './http/routes/health.routes.js';
 import { createLinksRouter } from './http/routes/links.routes.js';
 import { createRedirectRouter } from './http/routes/redirects.routes.js';
@@ -24,6 +26,9 @@ import { onShutdown, runMain } from './lifecycle.js';
 import { createChallengeGuard, createDevChallengeVerifier } from './modules/abuse/challenge.service.js';
 import { createRateLimiter } from './modules/abuse/rate-limit.service.js';
 import { createAccountService } from './modules/accounts/accounts.service.js';
+import { createGoogleAttemptsService } from './modules/accounts/google-attempts.service.js';
+import { createGoogleIdentityService } from './modules/accounts/google-identity.service.js';
+import { createGoogleSignInService } from './modules/accounts/google-sign-in.service.js';
 import { createLinkService } from './modules/links/links.service.js';
 import { createRedirectService } from './modules/links/redirects.service.js';
 import { createSessionService } from './modules/sessions/sessions.service.js';
@@ -88,6 +93,26 @@ async function main() {
     createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService }), guards, limiter, challengeGuard }),
   ];
+
+  if (config.google.clientId) {
+    const googleAttempts = createGoogleAttemptsService({ redis });
+    const googleSignIn = createGoogleSignInService({
+      pool,
+      attempts: googleAttempts,
+      identity: createGoogleIdentityService({ clientId: config.google.clientId }),
+      outboxKey: config.mail.outboxKey,
+      tokenLifetimes: config.tokenLifetimes,
+      logger,
+    });
+
+    routers.push(createGoogleRouter({
+      controller: createGoogleController({ googleAttempts, googleSignIn, sessionService }),
+      guards,
+      limiter,
+    }));
+  } else {
+    logger.warn('GOOGLE_CLIENT_ID not set: Google sign-in is disabled');
+  }
 
   if (config.challenge.provider === 'dev') {
     routers.push(createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) }));

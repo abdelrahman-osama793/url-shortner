@@ -37,6 +37,11 @@ export const DEFAULT_POLICIES = Object.freeze({
     { subject: 'account', limit: 10, windowSeconds: 15 * MINUTE },
   ],
 
+  // Starting a Google sign-in, link or re-authentication attempt.
+  googleAttempt: [
+    { subject: 'network', limit: 20, windowSeconds: 15 * MINUTE },
+  ],
+
   // Verification and password-reset emails, with a global budget protecting the mail quota.
   accountEmail: [
     { subject: 'account', limit: 3, windowSeconds: HOUR },

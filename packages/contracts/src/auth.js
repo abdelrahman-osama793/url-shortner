@@ -35,6 +35,24 @@ export const ForgotPasswordRequestSchema = z.strictObject({ email });
 
 export const ResetPasswordRequestSchema = z.strictObject({ token: oneTimeToken, newPassword });
 
+// Google sign-in (Google Identity Services). The browser first asks for a short-lived attempt
+// and passes its nonce to Google; Google embeds the nonce in the signed ID token (credential).
+export const GOOGLE_PURPOSES = ['login', 'link', 'reauthenticate'];
+
+export const GoogleStartRequestSchema = z.strictObject({
+  purpose: z.enum(GOOGLE_PURPOSES),
+});
+
+export const GoogleStartResponseSchema = z.object({
+  attemptId: z.string(),
+  nonce: z.string(),
+});
+
+export const GoogleSignInRequestSchema = z.strictObject({
+  attemptId: z.string().min(1).max(128),
+  credential: z.string().min(1).max(4096),
+});
+
 export const CsrfResponseSchema = z.object({
   csrfToken: z.string(),
 });

@@ -22,6 +22,9 @@ const COMPONENT_SCHEMAS = {
   VerifyEmailRequest: contracts.VerifyEmailRequestSchema,
   ResendVerificationRequest: contracts.ResendVerificationRequestSchema,
   ForgotPasswordRequest: contracts.ForgotPasswordRequestSchema,
+  GoogleStartRequest: contracts.GoogleStartRequestSchema,
+  GoogleStartResponse: contracts.GoogleStartResponseSchema,
+  GoogleSignInRequest: contracts.GoogleSignInRequestSchema,
   ResetPasswordRequest: contracts.ResetPasswordRequestSchema,
   CsrfResponse: contracts.CsrfResponseSchema,
   MeResponse: contracts.MeResponseSchema,
@@ -153,6 +156,31 @@ function buildDocument() {
             401: jsonResponse('INVALID_CREDENTIALS, identical for unknown email and wrong password.', 'ErrorEnvelope'),
             403: jsonResponse('ACCOUNT_SUSPENDED (correct password), CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/google/start': {
+        post: {
+          summary: `Start a five-minute Google attempt bound to this browser session; pass the nonce to Google Identity Services. Only when GOOGLE_CLIENT_ID is configured.${CSRF_NOTE}`,
+          requestBody: jsonBody('GoogleStartRequest'),
+          responses: {
+            200: jsonResponse('Attempt created.', 'GoogleStartResponse'),
+            401: jsonResponse('link and reauthenticate need a signed-in user.', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/google': {
+        post: {
+          summary: `Sign in with the Google ID token (credential) from a login attempt. Replaces the session cookie and CSRF token.${CSRF_NOTE}`,
+          requestBody: jsonBody('GoogleSignInRequest'),
+          responses: {
+            200: jsonResponse('Signed in (new account created on first use).', 'LoginResponse'),
+            401: jsonResponse('GOOGLE_SIGN_IN_FAILED: unknown, expired, reused or foreign attempt; invalid, expired or foreign token; nonce mismatch.', 'ErrorEnvelope'),
+            403: jsonResponse('ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            409: jsonResponse('ACCOUNT_LINK_REQUIRED: a password account already uses this email; sign in to it and link Google.', 'ErrorEnvelope'),
+            503: jsonResponse("Google's signing keys or session storage unavailable.", 'ErrorEnvelope'),
           },
         },
       },

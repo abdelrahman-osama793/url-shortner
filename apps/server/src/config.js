@@ -53,6 +53,14 @@ const EnvSchema = z.object({
   // 32 random bytes, base64. Encrypts one-time tokens inside queued emails.
   EMAIL_OUTBOX_KEY: z.string(),
 
+  // Google Identity Services web client ID. Optional: without it Google sign-in is not offered.
+  // Public (not a secret); the client secret is never used by this flow.
+  // Compose passes an empty string when it is unset, which means "not configured".
+  GOOGLE_CLIENT_ID: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().regex(/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/, 'must be a Google OAuth web client ID').optional(),
+  ),
+
   // One-time token lifetimes (provisional, technical-design §4).
   VERIFICATION_TOKEN_HOURS: z.coerce.number().int().positive().default(24),
   RESET_TOKEN_MINUTES: z.coerce.number().int().positive().default(30),
@@ -118,6 +126,9 @@ export function loadConfig(env = process.env) {
     tokenLifetimes: Object.freeze({
       verificationMs: vars.VERIFICATION_TOKEN_HOURS * HOUR_MS,
       resetMs: vars.RESET_TOKEN_MINUTES * MINUTE_MS,
+    }),
+    google: Object.freeze({
+      clientId: vars.GOOGLE_CLIENT_ID ?? null,
     }),
     challenge: Object.freeze({
       provider: resolveChallengeProvider(vars.NODE_ENV, vars.CHALLENGE_PROVIDER),

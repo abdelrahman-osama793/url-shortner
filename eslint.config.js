@@ -37,7 +37,7 @@ export default defineConfig([
 
   // Command-line scripts report to the terminal directly.
   {
-    files: ['packages/contracts/scripts/**/*.js'],
+    files: ['packages/contracts/scripts/**/*.js', 'apps/server/scripts/**/*.mjs'],
     rules: { 'no-console': 'off' },
   },
 ]);

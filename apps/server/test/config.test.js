@@ -57,6 +57,16 @@ describe('loadConfig', () => {
     assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{"report":[{"subject":"network","limit":0,"windowSeconds":60}]}' }), /RATE_LIMIT_POLICIES is invalid/);
   });
 
+  test('Google sign-in is optional; an empty value means not configured; a malformed ID is refused', () => {
+    assert.equal(loadConfig(VALID_ENV).google.clientId, null);
+    assert.equal(loadConfig({ ...VALID_ENV, GOOGLE_CLIENT_ID: '' }).google.clientId, null);
+
+    const id = '123456789012-abcdefghijklmnop.apps.googleusercontent.com';
+
+    assert.equal(loadConfig({ ...VALID_ENV, GOOGLE_CLIENT_ID: id }).google.clientId, id);
+    assert.throws(() => loadConfig({ ...VALID_ENV, GOOGLE_CLIENT_ID: 'my-client-secret' }), /GOOGLE_CLIENT_ID/);
+  });
+
   test('requires a 32-byte base64 outbox key', () => {
     assert.equal(loadConfig(VALID_ENV).mail.outboxKey.length, 32);
     assert.throws(() => loadConfig({ ...VALID_ENV, EMAIL_OUTBOX_KEY: Buffer.alloc(16).toString('base64') }), /EMAIL_OUTBOX_KEY must be 32 bytes/);

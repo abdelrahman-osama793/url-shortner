@@ -365,6 +365,130 @@
         }
       }
     },
+    "/api/v1/auth/google/start": {
+      "post": {
+        "summary": "Start a five-minute Google attempt bound to this browser session; pass the nonce to Google Identity Services. Only when GOOGLE_CLIENT_ID is configured. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attempt created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleStartResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "link and reauthenticate need a signed-in user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "summary": "Sign in with the Google ID token (credential) from a login attempt. Replaces the session cookie and CSRF token. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in (new account created on first use).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "GOOGLE_SIGN_IN_FAILED: unknown, expired, reused or foreign attempt; invalid, expired or foreign token; nonce mismatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ACCOUNT_LINK_REQUIRED: a password account already uses this email; sign in to it and link Google.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Google's signing keys or session storage unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/me": {
       "get": {
         "summary": "The signed-in user",
@@ -740,6 +864,59 @@
         ],
         "additionalProperties": false
       },
+      "GoogleStartRequest": {
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "login",
+              "link",
+              "reauthenticate"
+            ]
+          }
+        },
+        "required": [
+          "purpose"
+        ],
+        "additionalProperties": false
+      },
+      "GoogleStartResponse": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attemptId",
+          "nonce"
+        ],
+        "additionalProperties": false
+      },
+      "GoogleSignInRequest": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "credential": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "attemptId",
+          "credential"
+        ],
+        "additionalProperties": false
+      },
       "ResetPasswordRequest": {
         "type": "object",
         "properties": {
@@ -916,6 +1093,8 @@
           "CSRF_INVALID",
           "AUTHENTICATION_REQUIRED",
           "INVALID_CREDENTIALS",
+          "GOOGLE_SIGN_IN_FAILED",
+          "ACCOUNT_LINK_REQUIRED",
           "TOKEN_INVALID",
           "TOKEN_EXPIRED",
           "TOKEN_USED",
