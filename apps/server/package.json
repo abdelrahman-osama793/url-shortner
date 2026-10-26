@@ -1,0 +1,16 @@
+{
+  "name": "@shortlist/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "node --watch src/api.js",
+    "dev:worker": "node --watch src/worker.js",
+    "start:api": "node src/api.js",
+    "start:worker": "node src/worker.js"
+  },
+  "dependencies": {
+    "@shortlist/contracts": "*",
+    "express": "^5.3.0"
+  }
+}

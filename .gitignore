@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.angular/
+coverage/
+.env
+*.log
+
+# Planning handoff is kept locally, not versioned.
+url-shortener-handoff/
