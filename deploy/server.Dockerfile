@@ -18,6 +18,7 @@ RUN npm ci --omit=dev --workspace=@shortlist/server --include-workspace-root=fal
 
 COPY packages/contracts/src packages/contracts/src
 COPY apps/server/src apps/server/src
+COPY database/migrations database/migrations
 
 USER node
 

@@ -18,6 +18,8 @@ x-server: &server
     - ./apps/server/src:/app/apps/server/src:ro
     - ./packages/contracts/src:/app/packages/contracts/src:ro
   depends_on:
+    migrate:
+      condition: service_completed_successfully
     postgres:
       condition: service_healthy
     redis:
@@ -27,6 +29,23 @@ x-server: &server
   restart: unless-stopped
 
 services:
+  # One-shot release step: applies pending migrations, then exits. The API and worker
+  # start only after it succeeds. Each migration runs in its own transaction.
+  migrate:
+    image: shortlist-server:dev
+    build:
+      context: .
+      dockerfile: deploy/server.Dockerfile
+    command: ["npm", "run", "migrate", "--", "up"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    volumes:
+      - ./database/migrations:/app/database/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   api:
     <<: *server
     command: ["node", "--watch", "src/api.js"]

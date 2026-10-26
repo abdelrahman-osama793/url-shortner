@@ -29,7 +29,7 @@ guest + registered creation, public redirects (D01); creation/redirect/managemen
 | Redis | **7.4** (Docker), client **`redis` (node-redis) 5** | Official client; separate blocking client for stream reads. Local `redis-cli` 6.0 is only a debugging aid. |
 | Passwords | **`argon2`** (Argon2id) | Per design / OWASP. |
 | Google sign-in | Google Identity Services in browser + **`google-auth-library`** server verification | D06; no Auth0/Firebase. |
-| Tests | **Vitest** for server/contracts against real Compose PostgreSQL/Redis; Angular's built-in test runner for UI; Playwright for E2E journeys (T33) | Checks must fail, not skip, when dependencies are missing (T06). |
+| Tests | **`node:test`** (built into Node) for the server, against real Compose PostgreSQL/Redis; Angular's built-in test runner for UI; Playwright for E2E journeys (T33) | Changed from Vitest in T04: once the backend became plain JS, Node's own runner covers it with no extra dependency. Checks fail, not skip, when dependencies are missing. |
 | Dev mail | **Mailpit** container | Local SMTP catcher; not a real provider. |
 | Containers | Docker Engine 29 / Compose v5 present | See blocker below. |
 
@@ -50,7 +50,7 @@ apps/server/src/lifecycle.js  Shared graceful shutdown
 packages/contracts/       zod schemas + inferred types shared by server and web
 database/migrations/      versioned SQL
 deploy/                   Dockerfile(s) and compose.yaml
-tests/integration/, tests/load/
+apps/server/test/         integration tests (kept beside the code they test); tests/load/ later
 ```
 
 One server package with two entry points (modular monolith), not separate services.
@@ -81,6 +81,20 @@ One server package with two entry points (modular monolith), not separate servic
 - Redis: append-only persistence, `noeviction`, `requirepass`. Host port defaults to 6380 because this machine already runs a host Redis on 6379. Every host port is configurable and bound to 127.0.0.1.
 - The worker has no health check until its heartbeat exists (T22).
 - Snap-packaged Docker cannot read `/tmp` or hidden home folders; documented in the README.
+
+### Database schema (T04)
+
+- Four migrations by domain area: `0001_accounts`, `0002_links`, `0003_analytics`, `0004_moderation`. They implement database-schema.md, including every documented CHECK, UNIQUE, FK and index.
+- Choices beyond the schema doc:
+  - `short_code` domain (`varchar(32) COLLATE "C"`, pattern `^[A-Za-z0-9_-]{4,32}$`) shared by `links.code` and `code_reservations.code`, giving exact case-sensitive comparison.
+  - `token_hash` is `bytea` with a 32-byte check (SHA-256) instead of `text`.
+  - `admin_audit` append-only rule is enforced by triggers (UPDATE/DELETE/TRUNCATE raise `42501`), so it holds for every database role, not only a restricted application role.
+  - Consistency checks: a block reason requires a block; resolved/dismissed reports require `resolved_at` and `resolved_by`; the `total` dimension uses bucket `all`.
+  - Seeded forbidden aliases (admin, login, logout, signup, account, health, report, static, assets, support, shortlist) are a provisional list.
+  - Foreign keys use the default NO ACTION (no cascades), matching "no physical deletion in v1".
+- Bug caught by the tests: the first guest CHECK used `expires_at = created_at + 168h`, which lets a NULL `expires_at` through, because a CHECK accepts NULL. Fixed with `IS NOT DISTINCT FROM`.
+- `withTransaction(pool, work, { isolationLevel, readOnly })` in `infra/postgres.js` commits on success and rolls back on failure. If ROLLBACK fails, it destroys the connection rather than returning it to the pool. Isolation levels come from an allow-list because they cannot be parameterised.
+- Migrations run in a one-shot `migrate` Compose service before the API and worker, matching the "migrations as a separate release step" design. The same image and command serve as the production release step.
 
 ## 5. Provider-dependent work (external accounts needed — not configured)
 

@@ -2,7 +2,7 @@
 
 A URL shortener built as a deliberate **system-design and implementation exercise**: guest and registered short links, public redirects, custom aliases, click analytics, Google and email/password sign-in, and an abuse-moderation workspace.
 
-> **Status: early development.** The repository currently contains the project scaffold and the local Docker environment (tasks T01–T03, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment and the database schema (tasks T01–T04, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -88,6 +88,8 @@ docker compose up -d --build --wait
 
 This starts the API, the worker, PostgreSQL, Redis and Mailpit, and waits until their health checks pass. Backend source is mounted into the containers, so saving a file restarts the process automatically.
 
+Startup order: PostgreSQL becomes healthy → the one-shot `migrate` service applies pending migrations and exits → the API and worker start.
+
 ### 4. Start the frontend
 
 ```bash
@@ -131,7 +133,9 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 |---|---|
 | `npm run build` | Generates contract type declarations, then builds Angular |
 | `npm run check` | Type-checks the shared contracts (JSDoc). Angular is type-checked by its build |
-| `npm test` | Runs the Angular unit tests. Server integration tests arrive with T06 |
+| `npm test` | Runs server integration tests (needs the Compose PostgreSQL running) and Angular unit tests |
+| `npm test -w @shortlist/server` | Server integration tests only. Each test file creates and drops its own throwaway database |
+| `docker compose run --rm migrate` | Apply pending migrations |
 | `docker compose logs -f api worker` | Follow backend logs |
 | `docker compose ps` | Service status and health |
 | `npm run dev:api -w @shortlist/server` | Run the API on the host instead of in Docker (needs the env vars from compose) |
@@ -142,15 +146,34 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 apps/web/                 Angular app (TypeScript)
 apps/server/src/
   api.js, worker.js       process entry points
+  infra/postgres.js       connection pool and transaction helper
   config.js               reads environment once; passed to modules as arguments
   lifecycle.js            startup, graceful shutdown, process-level error handlers
   http/                   Express app, routes and middleware
 packages/contracts/       zod schemas shared by server and web
-database/migrations/      versioned SQL migrations (from T04)
+database/migrations/      versioned SQL migrations
+apps/server/test/         integration tests (node:test against real PostgreSQL)
 deploy/                   Dockerfiles
 compose.yaml              local development stack
 docs/DECISIONS.md         implementation decisions and their reasons
 ```
+
+## Database migrations
+
+Migrations are plain SQL files in [`database/migrations/`](database/migrations), applied in filename order by [node-pg-migrate](https://salsita.github.io/node-pg-migrate/). Applied migrations are recorded in the `pgmigrations` table. Each file has an `-- Up Migration` section and a `-- Down Migration` section that reverses it.
+
+**Adding a migration:** create the next numbered file, for example `0005_add_something.sql`. Never edit a migration that has already been applied anywhere; write a new one that changes the schema instead.
+
+**If a migration fails:**
+
+1. Each migration runs in its own transaction. A failure rolls back that file completely and it is not recorded, so the database stays at the last successful migration. The automated tests check this.
+2. Read the error with `docker compose logs migrate`. The API and worker will not have started, because they wait for `migrate` to succeed.
+3. Fix the SQL. If the failed migration was never applied anywhere, edit that file. Otherwise add a new migration.
+4. Run `docker compose run --rm migrate` again, then `docker compose up -d --wait`.
+
+To undo the most recent applied migration in development, run `docker compose run --rm migrate npm run migrate -- down`.
+
+Exception: statements that cannot run inside a transaction, such as `CREATE INDEX CONCURRENTLY`, must sit alone in their own migration. If one fails, recover by hand (for example, drop an invalid index) before retrying. For a shared or production database, take a backup before migrating; restoring from it is the recovery path when a migration succeeds but turns out to be wrong.
 
 ## Engineering conventions
 
@@ -165,7 +188,7 @@ Planning follows a 39-task backlog across eight milestones:
 
 | Milestone | Scope | Status |
 |---|---|---|
-| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T03 done; next T04 (migrations) |
+| A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **In progress**: T01–T04 done; next T05 (API conventions) |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | Not started |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | Not started |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
