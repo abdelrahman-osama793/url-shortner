@@ -8,6 +8,8 @@ const VALID_ENV = {
   PUBLIC_BASE_URL: 'https://shortlist.example/',
   REDIS_URL: 'redis://localhost:6379',
   RATE_LIMIT_SECRET: 'x'.repeat(32),
+  SMTP_URL: 'smtp://localhost:1025',
+  EMAIL_OUTBOX_KEY: Buffer.alloc(32, 1).toString('base64'),
 };
 
 describe('loadConfig', () => {
@@ -53,6 +55,11 @@ describe('loadConfig', () => {
     assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{' }), /not valid JSON/);
     assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{"unknownPolicy":[]}' }), /RATE_LIMIT_POLICIES is invalid/);
     assert.throws(() => loadConfig({ ...VALID_ENV, RATE_LIMIT_POLICIES: '{"report":[{"subject":"network","limit":0,"windowSeconds":60}]}' }), /RATE_LIMIT_POLICIES is invalid/);
+  });
+
+  test('requires a 32-byte base64 outbox key', () => {
+    assert.equal(loadConfig(VALID_ENV).mail.outboxKey.length, 32);
+    assert.throws(() => loadConfig({ ...VALID_ENV, EMAIL_OUTBOX_KEY: Buffer.alloc(16).toString('base64') }), /EMAIL_OUTBOX_KEY must be 32 bytes/);
   });
 
   test('requires a rate-limit secret of at least 32 characters', () => {

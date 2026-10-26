@@ -177,6 +177,19 @@ One server package with two entry points (modular monolith), not separate servic
 - **PostgreSQL outages → 503 everywhere**: `isDatabaseUnavailable()` (network error codes, SQLSTATE 08xxx/57P01-3/53300, pg connect/query timeouts, AggregateError) is applied in the shared error handler, so any route hitting a dead database answers 503 with `Retry-After` instead of 500.
 - In local Docker, every host request reaches the API from the Docker gateway address, so all manual testing shares one guest quota. Behind a real proxy, `TRUST_PROXY_HOPS` must be set so that client addresses are used.
 
+### One-time tokens and email outbox (T12)
+
+- **Tokens** (`modules/accounts/tokens.js`): 32 random bytes (base64url) given to the user; only `sha256` stored (`bytea`, 32 bytes). Issuing revokes the user's older unused tokens of the same purpose (only the newest email link works). `consumeToken` locks the row `FOR UPDATE`, distinguishes `invalid`/`expired`/`used`, and marks it used inside the caller's transaction, so a rollback restores the token. Lifetimes: verification 24 h, reset 30 min (provisional, env-configurable).
+- **Atomic issue + email**: `issueTokenWithEmail()` writes the token and its outbox row in the caller's transaction; the message expires with its token.
+- **Payload encryption** (`modules/email/payload-crypto.js`): AES-256-GCM with `EMAIL_OUTBOX_KEY` (32 bytes, base64), the row id as authenticated data (a payload copied to another row fails), and a version byte for future key rotation. The payload `{ to, token, expiresAt }` is erased (empty bytea) after delivery, after giving up, or after expiry.
+- **Delivery** (`modules/email/sender.js`, worker): purge undeliverable → claim up to 20 due messages with `FOR UPDATE SKIP LOCKED` and a 60 s lease (short transaction) → decrypt and send each outside any transaction → `markSent` or `markFailed`. Backoff 30 s × 2^(attempt-1), capped at 1 h; give up after 8 attempts or on a permanent (5xx) SMTP rejection. A lease that expires after a crash makes the message claimable again, so delivery is **at least once**: a duplicate email (same token) is possible; losing a committed one is not. The outbox message id is passed as an idempotency key for providers that support one.
+- Decryption is per message: a payload that cannot be read is given up (`PAYLOAD_UNREADABLE`) without blocking the rest of the batch.
+- **Email text** states the token's real expiry time in UTC rather than a hard-coded duration, so it stays correct if lifetimes change. Links use `#token=` fragments (`/verify-email`, `/reset-password`) for the UI to POST (T25).
+- **Mailer** (`infra/mailer.js`): nodemailer 10 over SMTP with 10 s timeouts. Errors become `MailDeliveryError` with a short code (`SMTP_550`, `ESOCKET`, …) and a permanent/transient flag; provider messages (which can include addresses) are never stored or logged.
+- **Logs** record message id, kind, attempt and error code only; tests assert that the token and address never appear.
+- **Worker** now runs the sender loop (1 s polling, immediate re-poll after a full batch) and on SIGTERM finishes the current batch before closing the mailer and pool.
+- Development mail goes to Mailpit only. A real provider and sender domain are launch dependencies (T36/T37); nothing here claims real delivery.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

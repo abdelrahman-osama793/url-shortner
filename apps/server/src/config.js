@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { resolvePolicies } from './modules/abuse/policies.js';
+import { parseOutboxKey } from './modules/email/payload-crypto.js';
 
 // Reads and validates environment variables once at startup.
 // Every other module receives configuration as an argument instead of reading process.env.
@@ -44,6 +45,17 @@ const EnvSchema = z.object({
   ADMIN_SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(60),
   ADMIN_SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
   ANONYMOUS_SESSION_MINUTES: z.coerce.number().int().positive().default(120),
+
+  // Outgoing mail. In development this is Mailpit, which never delivers (real provider: T37).
+  SMTP_URL: z.url({ protocol: /^smtps?$/ }),
+  MAIL_FROM: z.string().min(3).default('Shortlist <no-reply@shortlist.local>'),
+
+  // 32 random bytes, base64. Encrypts one-time tokens inside queued emails.
+  EMAIL_OUTBOX_KEY: z.string(),
+
+  // One-time token lifetimes (provisional, technical-design §4).
+  VERIFICATION_TOKEN_HOURS: z.coerce.number().int().positive().default(24),
+  RESET_TOKEN_MINUTES: z.coerce.number().int().positive().default(30),
 });
 
 const MINUTE_MS = 60 * 1000;
@@ -97,6 +109,15 @@ export function loadConfig(env = process.env) {
       member: { idleMs: vars.SESSION_IDLE_MINUTES * MINUTE_MS, absoluteMs: vars.SESSION_ABSOLUTE_HOURS * HOUR_MS },
       admin: { idleMs: vars.ADMIN_SESSION_IDLE_MINUTES * MINUTE_MS, absoluteMs: vars.ADMIN_SESSION_ABSOLUTE_HOURS * HOUR_MS },
       anonymous: { idleMs: vars.ANONYMOUS_SESSION_MINUTES * MINUTE_MS, absoluteMs: vars.ANONYMOUS_SESSION_MINUTES * MINUTE_MS },
+    }),
+    mail: Object.freeze({
+      smtpUrl: vars.SMTP_URL,
+      from: vars.MAIL_FROM,
+      outboxKey: parseOutboxKey(vars.EMAIL_OUTBOX_KEY),
+    }),
+    tokenLifetimes: Object.freeze({
+      verificationMs: vars.VERIFICATION_TOKEN_HOURS * HOUR_MS,
+      resetMs: vars.RESET_TOKEN_MINUTES * MINUTE_MS,
     }),
     challenge: Object.freeze({
       provider: resolveChallengeProvider(vars.NODE_ENV, vars.CHALLENGE_PROVIDER),

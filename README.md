@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). There is no way to sign in yet (T13) and no web UI yet (T23) (tasks T01–T11, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). There is no way to sign in yet (T13) and no web UI yet (T23) (tasks T01–T12, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -74,13 +74,13 @@ npm install
 
 ### 2. Create your local environment file
 
-`.env` holds local secrets and is git-ignored. Copy the example, then fill in `POSTGRES_PASSWORD`, `REDIS_PASSWORD` and `RATE_LIMIT_SECRET`:
+`.env` holds local secrets and is git-ignored. Copy the example, then fill in `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `RATE_LIMIT_SECRET` and `EMAIL_OUTBOX_KEY`:
 
 ```bash
 cp .env.example .env
 ```
 
-Also set `RATE_LIMIT_SECRET` (at least 32 characters). Generate each value with `openssl rand -hex 24` (use `-hex 32` for the rate-limit secret). Compose refuses to start while a required value is missing.
+Also set `RATE_LIMIT_SECRET` (at least 32 characters) and `EMAIL_OUTBOX_KEY` (32 random bytes, base64). Generate the passwords with `openssl rand -hex 24`, the rate-limit secret with `openssl rand -hex 32`, and the outbox key with `openssl rand -base64 32`. Compose refuses to start while a required value is missing.
 
 ### 3. Start the backend stack
 
@@ -180,7 +180,7 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 
 ### How the tests reach the database
 
-Server tests use real PostgreSQL and Redis, not mocks. Each test file creates its own throwaway database (`shortlist_test_<random>`) and Redis key prefix (`test:<random>:`), and removes them afterwards, so test runs never touch your development data and can run in parallel.
+Server tests use real PostgreSQL, Redis and Mailpit, not mocks. Each test file creates its own throwaway database (`shortlist_test_<random>`) and Redis key prefix (`test:<random>:`), and removes them afterwards, so test runs never touch your development data and can run in parallel.
 
 Connection settings come from `TEST_DATABASE_URL` / `TEST_REDIS_URL` if set; otherwise from `POSTGRES_*` / `REDIS_*` in `.env` (via the host ports). If neither is available, or a service is down, the tests **fail**. They are never skipped and never reported as passing.
 
@@ -198,7 +198,7 @@ Connection settings come from `TEST_DATABASE_URL` / `TEST_REDIS_URL` if set; oth
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
 
 - **Lint, type check, build:** `npm ci`, build, lint, check and the Angular tests.
-- **Server integration tests:** the server suite against PostgreSQL 17 and Redis 7.4 service containers, using throwaway credentials that exist only inside the job.
+- **Server integration tests:** the server suite against PostgreSQL 17, Redis 7.4 and Mailpit service containers, using throwaway credentials that exist only inside the job.
 
 ## Project layout
 
@@ -215,7 +215,9 @@ apps/server/src/
   modules/links/          destination rules, code generation and allocation, effective status
   modules/abuse/          shared rate limits, client network keys, challenge verification
   modules/sessions/       Redis session store (hashed tokens, idle and absolute expiry, rotation)
-  modules/accounts/       user lookups
+  modules/accounts/       user lookups, hashed single-use verification and reset tokens
+  modules/email/          encrypted email outbox, delivery with retries, email templates
+  infra/mailer.js         SMTP adapter (Mailpit in development)
   infra/redis.js          Redis client that fails fast instead of queueing while disconnected
 packages/contracts/       zod schemas shared by server and web, plus generated openapi.json
 database/migrations/      versioned SQL migrations
@@ -235,6 +237,7 @@ docs/DECISIONS.md         implementation decisions and their reasons
 - **Sessions and CSRF:** the browser first calls `GET /api/v1/auth/csrf`, which sets an `__Host-session` cookie (HttpOnly, Secure, SameSite=Lax) and returns a CSRF token. Every state-changing request must send that token as `X-CSRF-Token`, including before sign-in. Protected requests re-check the account's status and session version in the database, so suspension and password resets take effect immediately. If Redis is down, session-dependent requests return `503`; they are never treated as anonymous.
 - **Rate limits:** shared across API instances through Redis. Over the limit returns `429 RATE_LIMITED` with `Retry-After`; if Redis is unavailable, protected operations return `503` instead of running unlimited. Suspicious guests must pass a challenge (`403 CHALLENGE_REQUIRED`), and a passed challenge never resets a quota.
 - **Challenges in development are mock:** `POST /api/v1/dev/challenge-token` issues test tokens and exists only when `CHALLENGE_PROVIDER=dev`. Production refuses to start until a real provider is integrated (T37).
+- **Email:** account emails are written to an outbox in the same database transaction as their one-time token, then delivered by the worker with retries. In development every email lands in Mailpit (http://localhost:8025) and nothing is really sent.
 - **Logs:** JSON on stdout. Passwords, tokens, cookies and credentials inside connection strings are redacted. Query strings and client IPs are never logged.
 
 ## Database migrations
@@ -269,7 +272,7 @@ Planning follows a 39-task backlog across eight milestones:
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
-| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11 done (sessions, CSRF, guards); no sign-in method yet |
+| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T12 done (sessions, CSRF, guards, one-time tokens, email outbox); no sign-in method yet |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |

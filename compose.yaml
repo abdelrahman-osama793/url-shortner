@@ -16,6 +16,8 @@ x-server: &server
     # Angular's dev server (host) proxies /api and /r to the API, so the browser origin is :4200.
     PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:4200}
     RATE_LIMIT_SECRET: ${RATE_LIMIT_SECRET:?set RATE_LIMIT_SECRET in .env}
+    EMAIL_OUTBOX_KEY: ${EMAIL_OUTBOX_KEY:?set EMAIL_OUTBOX_KEY in .env}
+    MAIL_FROM: Shortlist (development) <no-reply@shortlist.local>
     # Optional JSON overriding default rate-limit policies.
     RATE_LIMIT_POLICIES: ${RATE_LIMIT_POLICIES:-}
     # Development stand-in for human verification. Production refuses to start with it.

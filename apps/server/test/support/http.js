@@ -13,6 +13,8 @@ export function testConfig(env = {}) {
     PUBLIC_BASE_URL: ALLOWED_ORIGIN,
     REDIS_URL: 'redis://localhost:6379',
     RATE_LIMIT_SECRET: 'test-secret-that-is-at-least-32-characters',
+    SMTP_URL: 'smtp://localhost:1025',
+    EMAIL_OUTBOX_KEY: Buffer.alloc(32, 7).toString('base64'),
     ...env,
   });
 }
