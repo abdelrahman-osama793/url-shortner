@@ -15,6 +15,9 @@ import * as contracts from '../src/index.js';
 const OUTPUT = fileURLToPath(new URL('../openapi.json', import.meta.url));
 
 const COMPONENT_SCHEMAS = {
+  CsrfResponse: contracts.CsrfResponseSchema,
+  MeResponse: contracts.MeResponseSchema,
+  User: contracts.UserSchema,
   ErrorEnvelope: contracts.ErrorEnvelopeSchema,
   ErrorCode: contracts.ErrorCodeSchema,
   LivenessResponse: contracts.LivenessResponseSchema,
@@ -59,6 +62,36 @@ function buildDocument() {
           responses: {
             200: jsonResponse('PostgreSQL is reachable.', 'ReadinessResponse'),
             503: jsonResponse('PostgreSQL is not reachable.', 'ReadinessResponse'),
+          },
+        },
+      },
+      '/api/v1/auth/csrf': {
+        get: {
+          summary: 'CSRF token for this browser; creates an anonymous session cookie (__Host-session) if needed',
+          responses: {
+            200: jsonResponse('Send this value as X-CSRF-Token on every state-changing request.', 'CsrfResponse'),
+            503: jsonResponse('Session storage unavailable.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/me': {
+        get: {
+          summary: 'The signed-in user',
+          responses: {
+            200: jsonResponse('Current user, re-checked against the database.', 'MeResponse'),
+            401: jsonResponse('No valid signed-in session (AUTHENTICATION_REQUIRED).', 'ErrorEnvelope'),
+            403: jsonResponse('Account suspended (ACCOUNT_SUSPENDED).', 'ErrorEnvelope'),
+            503: jsonResponse('Session storage or database unavailable.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/logout': {
+        post: {
+          summary: 'End the session (requires X-CSRF-Token and an allowed Origin)',
+          responses: {
+            204: { description: 'Server session deleted and cookie cleared.' },
+            403: jsonResponse('Missing or wrong CSRF token, or foreign Origin.', 'ErrorEnvelope'),
+            503: jsonResponse('Session storage unavailable; the session was not deleted.', 'ErrorEnvelope'),
           },
         },
       },

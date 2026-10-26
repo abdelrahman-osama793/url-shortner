@@ -5,6 +5,8 @@ import { promisify } from 'node:util';
 
 import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
+import { createAuthGuards } from './http/middleware/session.js';
+import { createAuthRouter } from './http/routes/auth.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.js';
 import { createHealthRouter } from './http/routes/health.js';
 import { createRedirectRouter } from './http/routes/redirects.js';
@@ -14,6 +16,7 @@ import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
 import { createDevChallengeVerifier } from './modules/abuse/challenge.js';
 import { createRedirectResolver } from './modules/links/redirects.js';
+import { createSessionStore } from './modules/sessions/store.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();
@@ -50,9 +53,13 @@ async function main() {
 
   connectInBackground(redis, logger);
 
+  const store = createSessionStore({ redis, lifetimes: config.sessionLifetimes });
+  const guards = createAuthGuards({ store, pool });
+
   const routers = [
     createHealthRouter({ checkDatabase: () => isDatabaseReachable(pool) }),
     createRedirectRouter({ resolver: createRedirectResolver({ pool }) }),
+    createAuthRouter({ store, guards }),
   ];
 
   if (config.challenge.provider === 'dev') {

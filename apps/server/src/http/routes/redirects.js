@@ -1,7 +1,7 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 import { Router } from 'express';
 
-import { AppError, notFoundError } from '../../errors.js';
+import { AppError, notFoundError, serviceUnavailableError } from '../../errors.js';
 import { RedirectUnavailableError } from '../../modules/links/redirects.js';
 
 // Public redirect endpoint (api-contracts.md, "Redirect contract"). Served by the API, never
@@ -18,11 +18,6 @@ import { RedirectUnavailableError } from '../../modules/links/redirects.js';
 // application limit would make every redirect depend on Redis.
 
 const linkInactiveError = () => new AppError(410, ERROR_CODES.LINK_INACTIVE, 'This link is no longer active.');
-
-const unavailableError = (cause) => new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, 'The service is temporarily unavailable.', {
-  headers: { 'Retry-After': '2' },
-  cause,
-});
 
 const methodNotAllowedError = () => new AppError(405, ERROR_CODES.METHOD_NOT_ALLOWED, 'Only GET and HEAD are allowed.', {
   headers: { Allow: 'GET, HEAD' },
@@ -43,7 +38,7 @@ export function createRedirectRouter({ resolver }) {
 
       res.redirect(302, result.destination);
     } catch (error) {
-      next(error instanceof RedirectUnavailableError ? unavailableError(error) : error);
+      next(error instanceof RedirectUnavailableError ? serviceUnavailableError({ retryAfterSeconds: 2, cause: error }) : error);
     }
   });
 

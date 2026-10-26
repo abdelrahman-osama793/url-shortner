@@ -50,6 +50,110 @@
         }
       }
     },
+    "/api/v1/auth/csrf": {
+      "get": {
+        "summary": "CSRF token for this browser; creates an anonymous session cookie (__Host-session) if needed",
+        "responses": {
+          "200": {
+            "description": "Send this value as X-CSRF-Token on every state-changing request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsrfResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Session storage unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "The signed-in user",
+        "responses": {
+          "200": {
+            "description": "Current user, re-checked against the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid signed-in session (AUTHENTICATION_REQUIRED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account suspended (ACCOUNT_SUSPENDED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Session storage or database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "End the session (requires X-CSRF-Token and an allowed Origin)",
+        "responses": {
+          "204": {
+            "description": "Server session deleted and cookie cleared."
+          },
+          "403": {
+            "description": "Missing or wrong CSRF token, or foreign Origin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Session storage unavailable; the session was not deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/r/{code}": {
       "get": {
         "summary": "Public redirect (HEAD behaves the same with no body)",
@@ -125,6 +229,103 @@
   },
   "components": {
     "schemas": {
+      "CsrfResponse": {
+        "type": "object",
+        "properties": {
+          "csrfToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "csrfToken"
+        ],
+        "additionalProperties": false
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "email": {
+                "type": "string"
+              },
+              "emailVerified": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "admin"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "suspended"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "emailVerified",
+              "role",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "admin"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "emailVerified",
+          "role",
+          "status"
+        ],
+        "additionalProperties": false
+      },
       "ErrorEnvelope": {
         "type": "object",
         "properties": {
@@ -181,6 +382,12 @@
           "UNSUPPORTED_MEDIA_TYPE",
           "PAYLOAD_TOO_LARGE",
           "ORIGIN_NOT_ALLOWED",
+          "CSRF_INVALID",
+          "AUTHENTICATION_REQUIRED",
+          "ACCOUNT_SUSPENDED",
+          "EMAIL_NOT_VERIFIED",
+          "REAUTHENTICATION_REQUIRED",
+          "FORBIDDEN",
           "CHALLENGE_REQUIRED",
           "RATE_LIMITED",
           "BAD_REQUEST",

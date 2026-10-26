@@ -1,10 +1,8 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 
-import { AppError } from '../../errors.js';
+import { AppError, serviceUnavailableError } from '../../errors.js';
 import { ChallengeUnavailableError } from '../../modules/abuse/challenge.js';
 import { RateLimitUnavailableError } from '../../modules/abuse/rate-limiter.js';
-
-import { protectionUnavailableError } from './rate-limit.js';
 
 function challengeRequired(message) {
   return new AppError(403, ERROR_CODES.CHALLENGE_REQUIRED, message);
@@ -35,7 +33,7 @@ export function requireChallengeWhenSuspicious({ limiter, guard, riskPolicy, act
     } catch (error) {
       const unavailable = error instanceof RateLimitUnavailableError || error instanceof ChallengeUnavailableError;
 
-      next(unavailable ? protectionUnavailableError(error) : error);
+      next(unavailable ? serviceUnavailableError({ cause: error }) : error);
     }
   };
 }

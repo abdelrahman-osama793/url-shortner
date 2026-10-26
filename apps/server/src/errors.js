@@ -22,3 +22,11 @@ export function notFoundError() {
   return new AppError(404, ERROR_CODES.NOT_FOUND, 'The requested resource does not exist.');
 }
 
+
+// A dependency (PostgreSQL, Redis) cannot be used safely right now. Never a quota error.
+export function serviceUnavailableError({ retryAfterSeconds = 5, cause } = {}) {
+  return new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, 'The service is temporarily unavailable.', {
+    headers: { 'Retry-After': String(retryAfterSeconds) },
+    cause,
+  });
+}

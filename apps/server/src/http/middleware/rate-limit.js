@@ -1,6 +1,6 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 
-import { AppError } from '../../errors.js';
+import { AppError, serviceUnavailableError } from '../../errors.js';
 import { RateLimitUnavailableError } from '../../modules/abuse/rate-limiter.js';
 
 // Quota exceeded and quota service down are different answers (api-contracts.md):
@@ -13,13 +13,6 @@ export function rateLimitedError(retryAfterSeconds) {
   });
 }
 
-export function protectionUnavailableError(cause) {
-  return new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, 'The service is temporarily unavailable.', {
-    headers: { 'Retry-After': '5' },
-    cause,
-  });
-}
-
 // `subjectsOf(req)` returns the subjects the policy needs, e.g. { network: req.clientNetwork }.
 export function rateLimit(limiter, policyName, subjectsOf) {
   return async (req, _res, next) => {
@@ -28,7 +21,7 @@ export function rateLimit(limiter, policyName, subjectsOf) {
 
       next(allowed ? undefined : rateLimitedError(retryAfterSeconds));
     } catch (error) {
-      next(error instanceof RateLimitUnavailableError ? protectionUnavailableError(error) : error);
+      next(error instanceof RateLimitUnavailableError ? serviceUnavailableError({ cause: error }) : error);
     }
   };
 }

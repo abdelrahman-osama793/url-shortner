@@ -37,7 +37,17 @@ const EnvSchema = z.object({
 
   // Human-verification provider. Only the development stand-in exists until T37.
   CHALLENGE_PROVIDER: z.enum(['dev']).optional(),
+
+  // Session lifetimes (provisional, technical-design §4): idle timeout and absolute limit.
+  SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(24 * 60),
+  SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(7 * 24),
+  ADMIN_SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(60),
+  ADMIN_SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
+  ANONYMOUS_SESSION_MINUTES: z.coerce.number().int().positive().default(120),
 });
+
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
 
 // The development challenge verifier accepts tokens anyone can mint from a dev-only
 // endpoint, so it must never run in production. No real provider exists yet (T36/T37),
@@ -82,6 +92,11 @@ export function loadConfig(env = process.env) {
     rateLimit: Object.freeze({
       secret: vars.RATE_LIMIT_SECRET,
       policies: resolvePolicies(vars.RATE_LIMIT_POLICIES),
+    }),
+    sessionLifetimes: Object.freeze({
+      member: { idleMs: vars.SESSION_IDLE_MINUTES * MINUTE_MS, absoluteMs: vars.SESSION_ABSOLUTE_HOURS * HOUR_MS },
+      admin: { idleMs: vars.ADMIN_SESSION_IDLE_MINUTES * MINUTE_MS, absoluteMs: vars.ADMIN_SESSION_ABSOLUTE_HOURS * HOUR_MS },
+      anonymous: { idleMs: vars.ANONYMOUS_SESSION_MINUTES * MINUTE_MS, absoluteMs: vars.ANONYMOUS_SESSION_MINUTES * MINUTE_MS },
     }),
     challenge: Object.freeze({
       provider: resolveChallengeProvider(vars.NODE_ENV, vars.CHALLENGE_PROVIDER),

@@ -153,6 +153,19 @@ One server package with two entry points (modular monolith), not separate servic
 - Known 5xx `AppError`s (dependency outages) are now logged at warn level with their cause; previously only unexpected errors were logged.
 - HEAD is served by the GET handler without a body. Analytics capture (T19) must only count `GET`.
 
+### Sessions, CSRF and authorization (T11)
+
+- **Store** (`modules/sessions/store.js`): 256-bit random token in the cookie; Redis key `session:<sha256(token)>` holding JSON `{ userId, role, sessionVersion, csrfToken, createdAt, lastSeenAt, recentAuthAt, absoluteExpiresAt }`. TTL = min(idle end, absolute end), so expiry needs no cleanup job. Idle refresh is written at most once a minute, with `SET … XX` so a logged-out session is never resurrected. `rotate()` deletes the old session and issues a new token and CSRF token on every sign-in (prevents session fixation).
+- **Lifetimes** (provisional, env-configurable): member 24 h idle / 7 d absolute, admin 1 h / 12 h, anonymous pre-login 2 h.
+- **Cookie**: `__Host-session`; `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, no `Domain`; `Max-Age` = absolute lifetime (the server enforces idle). Works on `http://localhost` because browsers treat localhost as secure.
+- **CSRF**: synchronizer token stored in the session, sent in `X-CSRF-Token`, compared with `timingSafeEqual`, on every unsafe method, including pre-login actions (anonymous session from `GET /api/v1/auth/csrf`). It applies on top of the global Origin check.
+- **Guards** (`http/middleware/session.js`, `createAuthGuards({ store, pool })`): `session` (loads; never rejects by itself), `csrf`, `user` (re-reads `status` and `session_version` from PostgreSQL on every protected request; version mismatch → 401 and session deleted; suspended → 403 `ACCOUNT_SUSPENDED` and session deleted), `verified` (403 `EMAIL_NOT_VERIFIED`), `admin` (role from the users row, so demotion is immediate; 403 `FORBIDDEN`), `recentAuth(windowMs)` (403 `REAUTHENTICATION_REQUIRED`). `isOwnedBy()` supports the "someone else's private resource is a 404" rule.
+- **Fail closed**: any Redis failure while loading a session sets state `unavailable`; `csrf`, `user`, session creation and logout then answer 503. A request carrying a session cookie is never downgraded to an anonymous guest.
+- **Logout** returns 204 only after the Redis delete succeeds; otherwise 503. Best-effort deletion is used only for sessions the users row has already invalidated.
+- **Scope**: the guards are attached per route, never globally, so redirects and health checks stay independent of Redis (verified with Redis stopped: csrf 503, redirect 302, ready 200).
+- **Refactor**: one `serviceUnavailableError()` in `errors.js` replaces three local copies (rate limits, redirects, sessions).
+- **Known gap**: anonymous sessions are not rate-limited. Their memory is bounded by the 2-hour TTL; a per-network policy can be added if abuse appears.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |
