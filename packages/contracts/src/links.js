@@ -14,6 +14,9 @@ export const GENERATED_CODE_LENGTH = 8;
 // Guest links expire this long after creation (decision D04).
 export const GUEST_LINK_LIFETIME_DAYS = 7;
 
+// Challenge action bound to guest link creation tokens.
+export const GUEST_CREATE_CHALLENGE_ACTION = 'guest-create';
+
 const destinationUrl = z.string().max(DESTINATION_MAX_LENGTH);
 
 export const GuestCreateLinkRequestSchema = z.strictObject({

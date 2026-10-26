@@ -1,6 +1,7 @@
 import { ERROR_CODES } from '@shortlist/contracts';
 
-import { AppError, notFoundError } from '../../errors.js';
+import { AppError, notFoundError, serviceUnavailableError } from '../../errors.js';
+import { isDatabaseUnavailable } from '../../infra/postgres.js';
 
 // Errors raised by express.json() before any route runs, identified by their `type`.
 const BODY_PARSER_ERRORS = {
@@ -20,7 +21,12 @@ function toAppError(error) {
 
   const fromBodyParser = BODY_PARSER_ERRORS[error?.type];
 
-  return fromBodyParser ? fromBodyParser() : null;
+  if (fromBodyParser) return fromBodyParser();
+
+  // A database outage is a dependency failure (503), not a bug (500).
+  if (isDatabaseUnavailable(error)) return serviceUnavailableError({ cause: error });
+
+  return null;
 }
 
 function sendError(req, res, appError) {

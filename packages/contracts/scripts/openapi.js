@@ -95,6 +95,23 @@ function buildDocument() {
           },
         },
       },
+      '/api/v1/links': {
+        post: {
+          summary: 'Create a guest link (requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin)',
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/GuestCreateLinkRequest' } } },
+          },
+          responses: {
+            201: jsonResponse('Created. Generated code, expires in 7 days. No id, Location or ETag.', 'GuestCreateLinkResponse'),
+            400: jsonResponse('VALIDATION_FAILED (fields listed; unknown fields such as customAlias or ownerId are rejected), INVALID_JSON.', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, or CHALLENGE_REQUIRED (retry with challengeToken).', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED; Retry-After is set.', 'ErrorEnvelope'),
+            501: jsonResponse('Signed-in creation is not implemented yet (T17).', 'ErrorEnvelope'),
+            503: jsonResponse('Redis or PostgreSQL unavailable; Retry-After is set.', 'ErrorEnvelope'),
+          },
+        },
+      },
       '/r/{code}': {
         get: {
           summary: 'Public redirect (HEAD behaves the same with no body)',

@@ -166,6 +166,17 @@ One server package with two entry points (modular monolith), not separate servic
 - **Refactor**: one `serviceUnavailableError()` in `errors.js` replaces three local copies (rate limits, redirects, sessions).
 - **Known gap**: anonymous sessions are not rate-limited. Their memory is bounded by the 2-hour TTL; a per-network policy can be added if abuse appears.
 
+### Guest link creation (T09)
+
+- `POST /api/v1/links` chain: `session` → `csrf` → signed-in check → `rateLimit(guestCreate, network)` → `validateBody(GuestCreateLinkRequestSchema)` → `requireChallengeWhenSuspicious(guestCreateRisk, 'guest-create')` → `linkService.createGuestLink`.
+  - The quota is counted before validation, so malformed attempts are limited too. The risk counter is only consumed by valid requests.
+  - An unknown or expired session cookie fails CSRF (403); it is never downgraded to a guest.
+  - Signed-in callers get 501 `NOT_IMPLEMENTED` until registered creation lands in T17, rather than silently receiving an unmanageable guest link.
+- The response is exactly `{ code, shortUrl, expiresAt }` with 201: no id, `Location` or `ETag`.
+- **Automatic ETags disabled** (`app.set('etag', false)`). Express added weak content-hash ETags to every JSON response, which contradicts "no ETag for guests" and would collide with the `"vN"` version ETags of T17. Caught by the T09 tests.
+- **PostgreSQL outages → 503 everywhere**: `isDatabaseUnavailable()` (network error codes, SQLSTATE 08xxx/57P01-3/53300, pg connect/query timeouts, AggregateError) is applied in the shared error handler, so any route hitting a dead database answers 503 with `Retry-After` instead of 500.
+- In local Docker, every host request reaches the API from the Docker gateway address, so all manual testing shares one guest quota. Behind a real proxy, `TRUST_PROXY_HOPS` must be set so that client addresses are used.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. There is no way to sign in yet (T13), and links cannot be created over HTTP yet (T09/T17) (tasks T01–T08, T10–T11, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). There is no way to sign in yet (T13) and no web UI yet (T23) (tasks T01–T11, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -107,6 +107,32 @@ curl http://localhost:3000/health/ready
 ```
 
 The expected response is `{"status":"ready","checks":{"postgres":"up"}}`. `/health/live` only shows that the process is answering; `/health/ready` also checks PostgreSQL.
+
+### 6. Try it with curl
+
+There is no web UI yet (it arrives with T23–T24), but you can create a guest link and follow it from a terminal. The cookie file keeps your session between commands, like a browser would.
+
+Get a session cookie and its CSRF token:
+
+```bash
+curl -s -c cookies.txt -H 'Origin: http://localhost:4200' http://localhost:3000/api/v1/auth/csrf
+```
+
+Copy the `csrfToken` value from the response, then create a link (replace `PASTE_TOKEN`):
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/links -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"destinationUrl":"https://www.wikipedia.org/"}'
+```
+
+The response contains a `code`. Open `http://localhost:3000/r/<code>` in a browser to be redirected. (The returned `shortUrl` uses port 4200, which only works once the Angular app proxies `/r` in T23.)
+
+The third creation within 10 minutes returns `403 CHALLENGE_REQUIRED`. In development, get a mock challenge token and send it as `"challengeToken"` in the body:
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/dev/challenge-token -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"action":"guest-create"}'
+```
+
+After 5 creations in an hour from your machine you get `429 RATE_LIMITED` with `Retry-After`. Delete `cookies.txt` when you are done.
 
 ### Stopping
 
@@ -242,7 +268,7 @@ Planning follows a 39-task backlog across eight milestones:
 | Milestone | Scope | Status |
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
-| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **In progress**: T07, T08, T10 done (link domain, rate limits, redirects); next T09 |
+| B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11 done (sessions, CSRF, guards); no sign-in method yet |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |

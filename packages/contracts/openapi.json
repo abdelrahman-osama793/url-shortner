@@ -154,6 +154,83 @@
         }
       }
     },
+    "/api/v1/links": {
+      "post": {
+        "summary": "Create a guest link (requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestCreateLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created. Generated code, expires in 7 days. No id, Location or ETag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestCreateLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED (fields listed; unknown fields such as customAlias or ownerId are rejected), INVALID_JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID, ORIGIN_NOT_ALLOWED, or CHALLENGE_REQUIRED (retry with challengeToken).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED; Retry-After is set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Signed-in creation is not implemented yet (T17).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Redis or PostgreSQL unavailable; Retry-After is set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/r/{code}": {
       "get": {
         "summary": "Public redirect (HEAD behaves the same with no body)",
@@ -396,6 +473,7 @@
           "LINK_INACTIVE",
           "ALIAS_UNAVAILABLE",
           "SERVICE_UNAVAILABLE",
+          "NOT_IMPLEMENTED",
           "INTERNAL_ERROR"
         ]
       },

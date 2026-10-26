@@ -139,7 +139,7 @@ describe('API conventions', () => {
     assert.match(failures[0].err.stack, /conventions\.test\.js/);
   });
 
-  test('every response has a request ID, no-store and no X-Powered-By', async () => {
+  test('every response has a request ID, no-store, and no X-Powered-By or automatic ETag', async () => {
     const responses = await Promise.all([
       fetch(`${server.url}/missing`),
       fetch(`${server.url}/boom`),
@@ -150,6 +150,7 @@ describe('API conventions', () => {
       assert.match(response.headers.get('x-request-id'), /^req_[0-9a-f-]{36}$/);
       assert.equal(response.headers.get('cache-control'), 'no-store');
       assert.equal(response.headers.get('x-powered-by'), null);
+      assert.equal(response.headers.get('etag'), null);
     }
 
     const body = await responses[0].json();

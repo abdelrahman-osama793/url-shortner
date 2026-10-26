@@ -70,3 +70,24 @@ async function rollbackAndRelease(client, logger) {
     client.release(rollbackError);
   }
 }
+
+// Errors meaning "PostgreSQL cannot be used right now", as opposed to bugs or bad data.
+// They become 503 responses (see http/middleware/errors.js), never 500s.
+const UNAVAILABLE_NETWORK_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENOTFOUND', 'EAI_AGAIN']);
+
+// SQLSTATE: 08xxx connection exceptions; 57P01-57P03 server shutting down or starting;
+// 53300 too many connections.
+const UNAVAILABLE_SQLSTATES = /^(08...|57P0[123]|53300)$/;
+
+const UNAVAILABLE_MESSAGES = /timeout exceeded when trying to connect|Connection terminated|Query read timeout/i;
+
+export function isDatabaseUnavailable(error) {
+  if (!error || typeof error !== 'object') return false;
+
+  if (UNAVAILABLE_NETWORK_CODES.has(error.code)) return true;
+  if (typeof error.code === 'string' && UNAVAILABLE_SQLSTATES.test(error.code)) return true;
+  if (UNAVAILABLE_MESSAGES.test(error.message ?? '')) return true;
+
+  // Node reports a refused connection to several addresses as an AggregateError.
+  return Array.isArray(error.errors) && error.errors.some(isDatabaseUnavailable);
+}

@@ -16,6 +16,10 @@ export function createApp({ config, logger, routers }) {
   const app = express();
 
   app.disable('x-powered-by');
+
+  // No automatic content-hash ETags: guest responses must carry none, and link resources set
+  // their own version ETag ("vN") for If-Match (api-contracts.md). Responses are no-store anyway.
+  app.set('etag', false);
   app.set('trust proxy', config.trustProxyHops);
 
   app.use(requestId());
