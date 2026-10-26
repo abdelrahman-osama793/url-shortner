@@ -69,6 +69,41 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     }, { logger });
   }
 
+  // Emails a reset link only to an existing, active account that has a password. Silent in
+  // every other case; issuing a link revokes earlier reset links.
+  async function requestPasswordReset({ email }) {
+    await withTransaction(pool, async (client) => {
+      const user = await repository.findUserWithPasswordByEmail(client, normalizeEmail(email));
+
+      if (!user || !user.password_hash || user.status !== 'active') return;
+
+      await issueTokenWithEmail(client, {
+        key: outboxKey,
+        user,
+        purpose: TOKEN_PURPOSES.reset,
+        lifetimeMs: tokenLifetimes.resetMs,
+      });
+    }, { logger });
+  }
+
+  // Consumes the reset token, sets the new password and signs out every existing session, in
+  // one transaction. The new password is hashed first so the transaction stays short.
+  async function resetPassword({ token, newPassword }) {
+    const passwordHash = await hashPassword(newPassword);
+
+    await withTransaction(pool, async (client) => {
+      const result = await consumeToken(client, { token, purpose: TOKEN_PURPOSES.reset });
+
+      if (!result.ok) throw TOKEN_ERRORS[result.reason]();
+
+      const changed = await repository.resetPasswordAndRevokeSessions(client, result.userId, passwordHash);
+
+      if (!changed) throw TOKEN_ERRORS.invalid();
+    }, { logger });
+
+    logger?.info('password reset completed');
+  }
+
   // Returns the user row for valid credentials, otherwise throws a generic 401. Wrong email,
   // wrong password and Google-only accounts are indistinguishable (same error, similar time).
   // A correct password for a suspended account gets 403: the caller already proved ownership.
@@ -89,5 +124,5 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     return user;
   }
 
-  return { register, verifyEmail, resendVerification, authenticate };
+  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate };
 }

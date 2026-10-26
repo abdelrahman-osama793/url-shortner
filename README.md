@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them, and people can sign up, verify their email and sign in, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification and sign-in. There is no web UI yet (T23), and signed-in users cannot create links yet (T17) (tasks T01–T13, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them, and people can sign up, verify their email, sign in and reset their password, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. There is no web UI yet (T23), and signed-in users cannot create links yet (T17) (tasks T01–T14, verified). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -160,6 +160,8 @@ Sign-in returns a **new** `csrfToken`; the old one stops working. Check who you 
 curl -s -b cookies.txt http://localhost:3000/api/v1/auth/me
 ```
 
+Forgot your password? `POST /api/v1/auth/password/forgot` with `{"email":"…"}` sends a "Reset your Shortlist password" email to Mailpit. Then `POST /api/v1/auth/password/reset` with `{"token":"…","newPassword":"…"}`, using the token from that email's link. Every session signed in before the reset stops working.
+
 ### Stopping
 
 ```bash
@@ -298,7 +300,7 @@ Planning follows a 39-task backlog across eight milestones:
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
-| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T13 done (sessions, CSRF, email outbox, sign-up, verification, password sign-in); next T14 |
+| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14 done (sessions, CSRF, email outbox, sign-up, verification, password sign-in and reset); next T15 (Google) |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |

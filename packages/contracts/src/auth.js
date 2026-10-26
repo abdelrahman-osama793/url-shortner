@@ -31,6 +31,10 @@ export const VerifyEmailRequestSchema = z.strictObject({ token: oneTimeToken });
 
 export const ResendVerificationRequestSchema = z.strictObject({ email });
 
+export const ForgotPasswordRequestSchema = z.strictObject({ email });
+
+export const ResetPasswordRequestSchema = z.strictObject({ token: oneTimeToken, newPassword });
+
 export const CsrfResponseSchema = z.object({
   csrfToken: z.string(),
 });

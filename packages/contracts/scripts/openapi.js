@@ -21,6 +21,8 @@ const COMPONENT_SCHEMAS = {
   LoginResponse: contracts.LoginResponseSchema,
   VerifyEmailRequest: contracts.VerifyEmailRequestSchema,
   ResendVerificationRequest: contracts.ResendVerificationRequestSchema,
+  ForgotPasswordRequest: contracts.ForgotPasswordRequestSchema,
+  ResetPasswordRequest: contracts.ResetPasswordRequestSchema,
   CsrfResponse: contracts.CsrfResponseSchema,
   MeResponse: contracts.MeResponseSchema,
   User: contracts.UserSchema,
@@ -117,6 +119,28 @@ function buildDocument() {
             202: jsonResponse('Always the same answer; mail is sent only to an existing unverified account.', 'Acknowledgement'),
             403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/password/forgot': {
+        post: {
+          summary: `Email a password-reset link (revokes earlier links).${CSRF_NOTE}`,
+          requestBody: jsonBody('ForgotPasswordRequest'),
+          responses: {
+            202: jsonResponse('Always the same answer; mail goes only to an existing active account with a password.', 'Acknowledgement'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/password/reset': {
+        post: {
+          summary: `Set a new password with a reset token. Signs out every existing session; does not sign in.${CSRF_NOTE}`,
+          requestBody: jsonBody('ResetPasswordRequest'),
+          responses: {
+            204: { description: 'Password changed and all previous sessions revoked.' },
+            400: jsonResponse('TOKEN_INVALID, TOKEN_EXPIRED, TOKEN_USED, or VALIDATION_FAILED (newPassword needs 12-256 characters).', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
           },
         },
       },

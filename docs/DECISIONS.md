@@ -207,6 +207,13 @@ One server package with two entry points (modular monolith), not separate servic
 - **Rate limits**: register and resend use `accountEmail` (account + network + global); sign-in uses `login` (network + account). Tested: the 6th wrong attempt on one account from different networks gets 429.
 - **Test helpers**: `test/support/api.js` wires every router like `api.js`; `test/support/browser.js` keeps cookies and CSRF tokens like a browser.
 
+### Password recovery (T14)
+
+- `POST /auth/password/forgot`: always `202 {"status":"accepted"}`; rate-limited with `accountEmail`. Mail goes only to an existing, **active** account **with a password**. Google-only accounts get nothing (password enrolment is outside v1), and neither do suspended accounts. A new link revokes earlier reset links.
+- `POST /auth/password/reset { token, newPassword }`: the new password is hashed first; then one transaction consumes the token, updates the hash and `password_changed_at`, and increments `session_version`. Every existing session fails its next request with 401 (the PostgreSQL check from T11). It answers 204 and does not sign in. Distinct `TOKEN_INVALID / TOKEN_EXPIRED / TOKEN_USED`; a verification token is `TOKEN_INVALID` for reset (purpose-bound). Invalid input fails validation before the token is touched, so a rejected password does not burn the link.
+- **Engineering decision**: a successful reset also sets `email_verified_at` (if unset), because following the emailed link proves control of the mailbox exactly as the verification link does. This lets a user who never verified recover through reset alone.
+- If the account has no password credential at reset time, the transaction rolls back with `TOKEN_INVALID`. This is defensive, as such accounts are never sent reset links.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

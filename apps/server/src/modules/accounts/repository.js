@@ -57,6 +57,33 @@ export async function updatePasswordHash(db, userId, passwordHash) {
   await db.query('UPDATE password_credentials SET password_hash = $2 WHERE user_id = $1', [userId, passwordHash]);
 }
 
+// Sets a new password and increments session_version, which makes every existing session of
+// this user fail its next PostgreSQL check (http/middleware/session.js). Following the emailed
+// reset link proves control of the mailbox, so the email also counts as verified.
+// Returns false when the user has no password credential (Google-only accounts are never
+// given one through reset; enrolment is a separate flow outside v1).
+export async function resetPasswordAndRevokeSessions(db, userId, passwordHash) {
+  const { rowCount } = await db.query(
+    `UPDATE password_credentials
+     SET password_hash = $2, password_changed_at = now()
+     WHERE user_id = $1`,
+    [userId, passwordHash],
+  );
+
+  if (rowCount === 0) return false;
+
+  await db.query(
+    `UPDATE users
+     SET session_version = session_version + 1,
+         email_verified_at = COALESCE(email_verified_at, now()),
+         updated_at = now()
+     WHERE id = $1`,
+    [userId],
+  );
+
+  return true;
+}
+
 // The public account shape (contracts UserSchema). Never includes the session version.
 export function toUserResource(row) {
   return {
