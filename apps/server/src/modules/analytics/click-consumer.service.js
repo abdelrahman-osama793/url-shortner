@@ -23,6 +23,17 @@ export const CONSUMER_GROUP = 'analytics-v1';
 export const DEAD_LETTER_STREAM = 'clicks:dead:v1';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Stream ids are "<milliseconds>-<sequence>"; compares them numerically.
+function compareIds(a, b) {
+  const [aMs, aSeq] = a.split('-').map(BigInt);
+  const [bMs, bSeq] = b.split('-').map(BigInt);
+
+  if (aMs !== bMs) return aMs < bMs ? -1 : 1;
+  if (aSeq !== bSeq) return aSeq < bSeq ? -1 : 1;
+
+  return 0;
+}
 const RAW_RETENTION_MS = 30 * DAY_MS;
 const DEAD_LETTER_RETENTION_MS = 7 * DAY_MS;
 
@@ -42,7 +53,7 @@ export function createClickConsumer({
   const streamKey = `${keyPrefix}${CLICK_STREAM}`;
   const deadLetterKey = `${keyPrefix}${DEAD_LETTER_STREAM}`;
 
-  const stats = { inserted: 0, duplicates: 0, deadLettered: 0, expired: 0, failedBatches: 0 };
+  const stats = { inserted: 0, duplicates: 0, deadLettered: 0, expired: 0, failedBatches: 0, lastCommittedAt: null, lastPassFailed: false };
 
   async function ensureGroup() {
     try {
@@ -141,6 +152,8 @@ export function createClickConsumer({
     await afterCommit?.();
 
     await finish([...done, ...valid.map(({ entry }) => entry)]);
+
+    stats.lastCommittedAt = clock();
   }
 
   // One pass: reclaim abandoned entries, or read new ones (waiting up to blockMs).
@@ -166,9 +179,11 @@ export function createClickConsumer({
         await ensureGroup();
         await processOnce();
         failures = 0;
+        stats.lastPassFailed = false;
       } catch (error) {
         failures += 1;
         stats.failedBatches += 1;
+        stats.lastPassFailed = true;
         logger?.error({ err: error, failures }, 'click consumer pass failed; will retry');
 
         await sleep(Math.min(1000 * 2 ** (failures - 1), 30_000), undefined, { signal }).catch(() => {});
@@ -176,5 +191,28 @@ export function createClickConsumer({
     }
   }
 
-  return { ensureGroup, processOnce, run, snapshot: () => ({ ...stats }) };
+  // Deletes entries that were acknowledged but not deleted (a crash between XACK and XDEL).
+  // Everything older than both the oldest pending entry and the group's last delivered id is
+  // acknowledged, so it is safe to trim; pending and never-read entries are kept.
+  // Returns the number of entries removed.
+  async function trimProcessed() {
+    const groups = await redis.xInfoGroups(streamKey);
+    const group = groups.find((candidate) => candidate.name === CONSUMER_GROUP);
+
+    if (!group) return 0;
+
+    const { firstId } = await redis.xPending(streamKey, CONSUMER_GROUP);
+    const boundary = firstId && compareIds(firstId, group['last-delivered-id']) < 0 ? firstId : group['last-delivered-id'];
+
+    return redis.xTrim(streamKey, 'MINID', boundary);
+  }
+
+  // Time of the oldest entry still in the stream (unread or pending), or null when empty.
+  async function oldestUnprocessedAt() {
+    const [oldest] = await redis.xRange(streamKey, '-', '+', { COUNT: 1 });
+
+    return oldest ? Number(oldest.id.split('-')[0]) : null;
+  }
+
+  return { ensureGroup, processOnce, run, trimProcessed, oldestUnprocessedAt, snapshot: () => ({ ...stats }) };
 }

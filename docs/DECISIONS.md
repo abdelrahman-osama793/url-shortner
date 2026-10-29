@@ -277,6 +277,15 @@ One server package with two entry points (modular monolith), not separate servic
 - `lastUpdatedAt` = `link_totals.updated_at` (null for a link never clicked). `pipeline` is `{ status: 'unknown', heartbeatAt: null, oldestPendingAt: null }` until T22 supplies real worker health through the injected `getPipelineStatus`. `approximate` is always `true`.
 - Not the owner, a guest link, an unknown id or a malformed id → 404.
 
+### Retention and pipeline health (T22)
+
+- **Retention** (`modules/maintenance/retention.service.js`, worker, at start then hourly): raw `click_events` older than 30 days (D11), `daily_metrics` with `day < today − AGGREGATE_RETENTION_DAYS` (provisional 365), and expired `api_idempotency` rows. `link_totals` are never deleted. Each statement deletes at most 5,000 rows via a `ctid = ANY(ARRAY(SELECT … LIMIT n))` subquery using the existing time indexes, with at most 100 batches per table per run; leftovers continue next run (tested with batch 2 × 2).
+- **Stream janitor** (`clickConsumer.trimProcessed`): `XTRIM MINID` to the smaller of the oldest pending id and the group's `last-delivered-id`. Everything below that boundary is acknowledged, so pending and unread entries are never trimmed (tested with 2 acknowledged leftovers, 2 pending and 1 unread entry).
+- **Heartbeat** (`createPipelineReporter`, every 5 s): upserts `worker_state('analytics-consumer')` with `heartbeat_at`, `last_batch_committed_at`, `oldest_pending_at` (timestamp of the first entry still in the stream) and `status` (`degraded` if the last consumer pass failed or Redis could not be read). If PostgreSQL is down the heartbeat simply goes stale.
+- **Status** (`createPipelineStatusReader`, used by the analytics API), first match wins: `unknown` (no heartbeat, or older than 30 s) → `degraded` (capture loss within 5 min, from this instance's counters or the shared Redis key `analytics:capture-loss-at`, or worker status `degraded`) → `delayed` (oldest waiting event > 10 s) → `healthy`. Capture writes the shared key only for losses where Redis still answers (`queue_full`, `timeout`, `overloaded`), best effort, through an async helper so it can never break capture.
+- **Measured freshness** (`scripts/measure-analytics-freshness.mjs`, Docker on the development laptop, 29 Oct 2026, polling the real analytics API every 600 ms with 0 rejected polls): 40 clicks at 250 ms → p50 0.33 s, p95 0.59 s, max 0.62 s; 200 clicks at 10 ms → p50 0.32 s, p95 0.59 s, max 0.62 s. All 240 within 10 s; status healthy. The figures are bounded by the 600 ms poll interval. Light load only: not evidence for the 1,000 rps target (T35). A UI polling every 5 s would add up to 5 s.
+- **Measurement pitfall recorded**: a first burst run polled every 100 ms, exceeded the 120/min `memberRead` limit, got 429s and reported a false p95 of 7.34 s. The script now counts rejected polls and defaults to 600 ms.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

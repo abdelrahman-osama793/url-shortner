@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { TimeoutError } from 'redis';
 
+import { CAPTURE_LOSS_KEY } from './pipeline-health.service.js';
 import { countryCode } from './rules/country.js';
 import { classifyDevice } from './rules/device.js';
 import { referrerHost } from './rules/referrer.js';
@@ -66,11 +67,23 @@ export function createClickCaptureService({
   let consecutiveFailures = 0;
   let circuitOpenUntil = 0;
 
+  // Losses while Redis still answers (full queue, slow replies, overload) are also recorded in
+  // a shared key, so every API instance reports the pipeline as degraded. When Redis itself is
+  // down, each instance sees that locally.
+  const SHARED_LOSS_REASONS = new Set(['queue_full', 'timeout', 'overloaded']);
+
   function drop(reason) {
     stats.dropped[reason] += 1;
     stats.lastLossAt = clock();
 
+    if (SHARED_LOSS_REASONS.has(reason)) recordSharedLoss(stats.lastLossAt).catch(() => {});
+
     return reason;
+  }
+
+  // Best effort: a failure here must never affect capture or the redirect.
+  async function recordSharedLoss(at) {
+    await client.set(`${keyPrefix}${CAPTURE_LOSS_KEY}`, String(at), { expiration: { type: 'PX', value: 10 * 60_000 } });
   }
 
   function recordFailure() {

@@ -16,6 +16,7 @@ import { createRateLimiter } from '../../src/modules/abuse/rate-limit.service.js
 import { createAccountService } from '../../src/modules/accounts/accounts.service.js';
 import { createAnalyticsQueryService } from '../../src/modules/analytics/analytics-query.service.js';
 import { createClickCaptureService } from '../../src/modules/analytics/click-capture.service.js';
+import { createPipelineStatusReader } from '../../src/modules/analytics/pipeline-health.service.js';
 import { createGoogleAttemptsService } from '../../src/modules/accounts/google-attempts.service.js';
 import { createGoogleSignInService } from '../../src/modules/accounts/google-sign-in.service.js';
 import { createLinkService } from '../../src/modules/links/links.service.js';
@@ -41,7 +42,8 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
   const challengeGuard = createChallengeGuard({ redis: redisClient, verifier, keyPrefix: redis.keyPrefix });
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: SECRET, logger });
   const redirectService = createRedirectService({ pool });
-  const analyticsQuery = createAnalyticsQueryService({ pool, ...analytics });
+  const pipelineStatus = createPipelineStatusReader({ pool, redis: redisClient, keyPrefix: redis.keyPrefix });
+  const analyticsQuery = createAnalyticsQueryService({ pool, getPipelineStatus: pipelineStatus.getPipelineStatus, ...analytics });
   const clickCapture = createClickCaptureService({ redis: redisClient, keyPrefix: redis.keyPrefix, logger, ...capture });
   const accountService = createAccountService({ pool, outboxKey: config.mail.outboxKey, tokenLifetimes: config.tokenLifetimes, logger });
   const guards = createAuthGuards({ sessionService, pool });

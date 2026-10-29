@@ -28,6 +28,7 @@ import { createRateLimiter } from './modules/abuse/rate-limit.service.js';
 import { createAccountService } from './modules/accounts/accounts.service.js';
 import { createAnalyticsQueryService } from './modules/analytics/analytics-query.service.js';
 import { createClickCaptureService } from './modules/analytics/click-capture.service.js';
+import { createPipelineStatusReader } from './modules/analytics/pipeline-health.service.js';
 import { createGoogleAttemptsService } from './modules/accounts/google-attempts.service.js';
 import { createGoogleIdentityService } from './modules/accounts/google-identity.service.js';
 import { createGoogleSignInService } from './modules/accounts/google-sign-in.service.js';
@@ -75,12 +76,17 @@ async function main() {
   const limiter = createRateLimiter({ redis, secret: config.rateLimit.secret, policies: config.rateLimit.policies });
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger });
   const redirectService = createRedirectService({ pool });
-  const analyticsQuery = createAnalyticsQueryService({ pool, retentionDays: config.analytics.aggregateRetentionDays });
   const clickCapture = createClickCaptureService({
     redis,
     queueCap: config.analytics.queueCap,
     publishTimeoutMs: config.analytics.publishTimeoutMs,
     logger,
+  });
+  const pipelineStatus = createPipelineStatusReader({ pool, redis, clickCapture });
+  const analyticsQuery = createAnalyticsQueryService({
+    pool,
+    retentionDays: config.analytics.aggregateRetentionDays,
+    getPipelineStatus: pipelineStatus.getPipelineStatus,
   });
   const accountService = createAccountService({
     pool,

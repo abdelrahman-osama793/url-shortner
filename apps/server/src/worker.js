@@ -1,7 +1,8 @@
 // Worker process entry point. Runs, side by side:
 //   * the email outbox sender (T12);
-//   * the click analytics consumer (T20).
-// Maintenance jobs (T22) attach here later.
+//   * the click analytics consumer (T20);
+//   * the analytics heartbeat, every 5 s (T22);
+//   * maintenance: retention cleanup and stream trimming, at start and then hourly (T22).
 
 import { loadConfig } from './config.js';
 import { createLogger } from './infra/logger.js';
@@ -11,7 +12,10 @@ import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
 import { createClickAggregator } from './modules/analytics/click-aggregation.service.js';
 import { createClickConsumer } from './modules/analytics/click-consumer.service.js';
+import { createPipelineReporter } from './modules/analytics/pipeline-health.service.js';
 import { createOutboxSender } from './modules/email/email-delivery.service.js';
+import { createMaintenance } from './modules/maintenance/maintenance.service.js';
+import { createRetentionService } from './modules/maintenance/retention.service.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();
@@ -50,8 +54,22 @@ async function main() {
     logger,
   });
 
+  const reporter = createPipelineReporter({ pool, consumer: clickConsumer, logger });
+
+  const maintenance = createMaintenance({
+    retention: createRetentionService({ pool, aggregateRetentionDays: config.analytics.aggregateRetentionDays, logger }),
+    consumer: clickConsumer,
+    logger,
+  });
+
   const stop = new AbortController();
-  const runs = [outboxSender.run(stop.signal), clickConsumer.run(stop.signal)];
+
+  const runs = [
+    outboxSender.run(stop.signal),
+    clickConsumer.run(stop.signal),
+    reporter.run(stop.signal),
+    maintenance.run(stop.signal),
+  ];
 
   logger.info('worker started');
 
