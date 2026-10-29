@@ -261,7 +261,7 @@ apps/server/src/
     routes/<feature>.routes.js    paths + middleware chain + controller method, nothing else
     controllers/<feature>.controller.js   request → service call → response
     middleware/                   reusable checks: session, CSRF, rate limit, validation, errors
-  modules/<feature>/             accounts, links, sessions, email, abuse, idempotency
+  modules/<feature>/             accounts, links, sessions, email, abuse, idempotency, analytics
     <name>.service.js             business rules and transactions
     <name>.repository.js          SQL only
     <name>.presenter.js           database row → API response shape
