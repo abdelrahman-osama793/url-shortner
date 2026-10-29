@@ -120,10 +120,11 @@ describe('sign-up, verification and sign-in', () => {
 
     assert.equal(me.user.emailVerified, true);
 
-    // Verified: past the restriction (registered creation itself arrives with T17).
+    // Verified: the account can now create owned links.
     const unrestricted = await browser.post('/api/v1/links', { destinationUrl: 'https://example.com' });
 
-    assert.equal(unrestricted.status, 501);
+    assert.equal(unrestricted.status, 201);
+    assert.ok((await unrestricted.json()).id, 'an owned link, not a guest link');
   });
 
   test('verifying does not sign anyone in', async () => {

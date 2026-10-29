@@ -37,6 +37,8 @@ const COMPONENT_SCHEMAS = {
   GuestCreateLinkResponse: contracts.GuestCreateLinkResponseSchema,
   RegisteredCreateLinkRequest: contracts.RegisteredCreateLinkRequestSchema,
   Link: contracts.LinkSchema,
+  LinkListResponse: contracts.LinkListResponseSchema,
+  UpdateLinkRequest: contracts.UpdateLinkRequestSchema,
 };
 
 function toJsonSchema(schema) {
@@ -207,18 +209,61 @@ function buildDocument() {
       },
       '/api/v1/links': {
         post: {
-          summary: 'Create a guest link (requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin)',
+          summary: `Create a link. Anonymous (guest) session: generated code, 7-day expiry, body GuestCreateLinkRequest, no management handle. Signed-in verified account: body RegisteredCreateLinkRequest (optional alias and expiry), full Link with Location and ETag.${CSRF_NOTE}`,
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/GuestCreateLinkRequest' } } },
+            content: {
+              'application/json': {
+                schema: { oneOf: [{ $ref: '#/components/schemas/GuestCreateLinkRequest' }, { $ref: '#/components/schemas/RegisteredCreateLinkRequest' }] },
+              },
+            },
           },
           responses: {
-            201: jsonResponse('Created. Generated code, expires in 7 days. No id, Location or ETag.', 'GuestCreateLinkResponse'),
-            400: jsonResponse('VALIDATION_FAILED (fields listed; unknown fields such as customAlias or ownerId are rejected), INVALID_JSON.', 'ErrorEnvelope'),
-            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (retry with challengeToken), or EMAIL_NOT_VERIFIED for a signed-in unverified account.', 'ErrorEnvelope'),
+            201: {
+              description: 'Created. Guests receive GuestCreateLinkResponse only; account holders receive Link with Location /api/v1/links/{id} and ETag "v1".',
+              content: {
+                'application/json': {
+                  schema: { oneOf: [{ $ref: '#/components/schemas/GuestCreateLinkResponse' }, { $ref: '#/components/schemas/Link' }] },
+                },
+              },
+            },
+            400: jsonResponse('VALIDATION_FAILED (fields listed; unknown fields rejected; expiry must be in the future), INVALID_JSON.', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (guests; retry with challengeToken), EMAIL_NOT_VERIFIED or ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
+            409: jsonResponse('ALIAS_UNAVAILABLE (taken or reserved; same answer).', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED; Retry-After is set.', 'ErrorEnvelope'),
-            501: jsonResponse('Signed-in creation is not implemented yet (T17).', 'ErrorEnvelope'),
             503: jsonResponse('Redis or PostgreSQL unavailable; Retry-After is set.', 'ErrorEnvelope'),
+          },
+        },
+        get: {
+          summary: "The signed-in owner's links, newest first. Query: cursor (opaque, from nextCursor), limit (1-100, default 20).",
+          responses: {
+            200: jsonResponse('One page; nextCursor is null on the last page.', 'LinkListResponse'),
+            400: jsonResponse('VALIDATION_FAILED: limit out of range, or a cursor that was edited or issued to another account.', 'ErrorEnvelope'),
+            401: jsonResponse('AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/links/{id}': {
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        get: {
+          summary: 'One owned link. Its version is returned as ETag "vN".',
+          responses: {
+            200: jsonResponse('The link.', 'Link'),
+            401: jsonResponse('AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            404: jsonResponse('Not found, or not yours (the same answer).', 'ErrorEnvelope'),
+          },
+        },
+        patch: {
+          summary: `Change destination, expiry (null removes it) or enabled. Requires If-Match: "vN" from the last read. Enabling never overrides an admin block, an expiry or a suspension.${CSRF_NOTE}`,
+          requestBody: jsonBody('UpdateLinkRequest'),
+          responses: {
+            200: jsonResponse('Updated after commit; new ETag.', 'Link'),
+            400: jsonResponse('VALIDATION_FAILED: unknown or immutable fields (code, alias, owner), empty change, past expiry, invalid destination.', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, EMAIL_NOT_VERIFIED or ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
+            404: jsonResponse('Not found, or not yours.', 'ErrorEnvelope'),
+            412: jsonResponse('PRECONDITION_FAILED: the link changed since that version; reload and retry.', 'ErrorEnvelope'),
+            428: jsonResponse('PRECONDITION_REQUIRED: If-Match missing or malformed.', 'ErrorEnvelope'),
           },
         },
       },

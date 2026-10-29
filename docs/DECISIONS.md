@@ -219,6 +219,24 @@ One server package with two entry points (modular monolith), not separate servic
 - **Engineering decision**: a successful reset also sets `email_verified_at` (if unset), because following the emailed link proves control of the mailbox exactly as the verification link does. This lets a user who never verified recover through reset alone.
 - If the account has no password credential at reset time, the transaction rolls back with `TOKEN_INVALID`. This is defensive, as such accounts are never sent reset links.
 
+### Google sign-in (T15, in progress)
+
+- `google-identity.service.js`: google-auth-library 11 `verifySignedJwtWithCertsAsync` with Google's published keys (fetched and cached by the library), issuers `accounts.google.com` / `https://accounts.google.com`, audience = configured `GOOGLE_CLIENT_ID` only; then `payload.nonce` must equal the attempt's nonce. Key-fetch failure → 503; any token problem → one generic 401 `GOOGLE_SIGN_IN_FAILED`. The library's error messages contain token fragments, so only a short reason is logged.
+- `google-attempts.service.js`: Redis `login-attempt:<id>`, 5-minute TTL, `{ purpose, nonce, binding: sha256(session token), userId }`, consumed with `GETDEL` (atomic single use); a different purpose or browser session → null.
+- `google-sign-in.service.js`: per-subject advisory lock (namespace 1002); find by `(google, sub)` only. A Google email that matches an existing account → 409 `ACCOUNT_LINK_REQUIRED`, returned only after a valid proof, with no identity or session created. A new identity → password-less user; `email_verified_at` is set only when Google is authoritative (`gmail.com`, `googlemail.com`, or an `hd` Workspace claim); otherwise the account is restricted and our verification email is queued. The contact email is not replaced when the Google email later changes.
+- Routes are mounted only when `GOOGLE_CLIENT_ID` is set (an empty value from Compose means unset). `googleAttempt` policy: 20 attempts per 15 minutes per network.
+- Tests sign tokens with a local RSA key and run the real verification code; a probe confirmed the library rejects each bad case for the intended reason. `scripts/google-signin-check.mjs` is a development-only page on :4200 (proxying /api to :3000) for the required real-account check, which is still pending.
+
+### Registered link management (T17)
+
+- `POST /api/v1/links` has two routes on one path: the guest route ends with `anonymousOnly`, which passes signed-in callers on with `next('route')` to the registered route (`user` → `verified` → `registeredCreate` limit → `RegisteredCreateLinkRequestSchema`). `router.use('/api/v1/links', session, csrf)` runs once for every links request. The temporary 501 branch and its middleware were removed.
+- Owned creation returns 201 with the full `Link`, `Location: /api/v1/links/{id}` and `ETag: "v1"`. Version ETags are strong (`"vN"`); `If-Match` must match `^"v[1-9][0-9]*"$` exactly, otherwise 428 `PRECONDITION_REQUIRED` (weak `W/"v1"` and `*` are refused).
+- **Updates**: one `UPDATE … WHERE id = $1 AND owner_id = $2 AND version = $3 RETURNING version` inside a transaction. No row → re-read: missing or not owned → 404, otherwise 412 `PRECONDITION_FAILED`. The response is built from a read inside the same transaction and sent after commit. `enabled: true` only clears `owner_disabled_at`; effective status is recomputed, so blocks, expiry and suspension still apply. `expiresAt: null` removes the expiry; non-null must be in the future (server clock). Destinations are re-validated. Code, alias and owner are not accepted fields and are also protected by the 0005 trigger.
+- **Listing**: keyset pagination on `(created_at DESC, id DESC)` using the existing owner index, `limit + 1` rows to detect a next page. The cursor is HMAC-signed `{ owner, created_at as PostgreSQL text, id }`. Text keeps microseconds; a JavaScript Date would lose them and skip or repeat same-millisecond rows (tested with three links at an identical timestamp). A tampered cursor or another account's cursor → 400 on `cursor`. The cursor key is derived from `RATE_LIMIT_SECRET` (`HMAC(secret, 'links-cursor-v1')`). That variable now protects more than rate limits; renaming it to a general application secret is a candidate cleanup.
+- Reads of someone else's link, guest links, unknown ids and malformed ids all return the same 404.
+- New policies: `linkUpdate` (60/min per user); reads use `memberRead`; creation uses `registeredCreate` (user + network).
+- `validateQuery()` stores the parsed query in `req.validatedQuery` because `req.query` is read-only in Express 5.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

@@ -1,9 +1,10 @@
 import { ALIAS_PATTERN, ERROR_CODES, GUEST_LINK_LIFETIME_DAYS } from '@shortlist/contracts';
 
-import { AppError, validationError } from '../../errors.js';
+import { AppError, notFoundError, validationError } from '../../errors.js';
 import { withTransaction } from '../../infra/postgres.js';
 
 import { generateCode as generateRandomCode } from './rules/codes.js';
+import { createCursorCodec } from './rules/cursor.js';
 import { InvalidDestinationError, validateDestination } from './rules/destination.js';
 import { toGuestLinkResource, toLinkResource } from './links.presenter.js';
 import * as repository from './links.repository.js';
@@ -25,10 +26,25 @@ function codeSpaceExhausted() {
   });
 }
 
-// Link creation and code reservation. Every dependency is injected: tests replace the
-// code generator to force collisions and the clock to control "now".
-export function createLinkService({ pool, publicBaseUrl, logger, generateCode = generateRandomCode, clock = () => new Date() }) {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function staleVersion() {
+  return new AppError(412, ERROR_CODES.PRECONDITION_FAILED, 'This link was changed elsewhere. Reload it and try again.');
+}
+
+// Link creation, owner management and code reservation. Every dependency is injected: tests
+// replace the code generator to force collisions and the clock to control "now".
+// `cursorSecret` signs pagination cursors.
+export function createLinkService({
+  pool,
+  publicBaseUrl,
+  cursorSecret,
+  logger,
+  generateCode = generateRandomCode,
+  clock = () => new Date(),
+}) {
   const ownHosts = new Set([new URL(publicBaseUrl).hostname]);
+  const cursors = cursorSecret ? createCursorCodec(cursorSecret) : null;
 
   function checkDestination(destinationUrl) {
     try {
@@ -149,5 +165,63 @@ export function createLinkService({ pool, publicBaseUrl, logger, generateCode = 
     }, { logger });
   }
 
-  return { createGuestLink, createOwnedLink, reserveCode };
+  // An owner's links, newest first, one page at a time.
+  // Returns { items, nextCursor }; nextCursor is null on the last page.
+  async function listOwnedLinks({ ownerId, cursor, limit }) {
+    if (!cursors) throw new Error('createLinkService needs cursorSecret to list links');
+
+    const after = cursor ? cursors.decode(cursor, { ownerId }) : null;
+
+    if (cursor && !after) {
+      throw validationError([{ path: 'cursor', message: 'This page link is no longer valid. Start from the first page.' }]);
+    }
+
+    const rows = await repository.listOwnedLinks(pool, { ownerId, after, limit });
+    const page = rows.slice(0, limit);
+    const last = page.at(-1);
+    const now = clock();
+
+    return {
+      items: page.map((row) => toLinkResource(row, { publicBaseUrl, now })),
+      nextCursor: rows.length > limit ? cursors.encode({ ownerId, createdAt: last.created_at_cursor, id: last.id }) : null,
+    };
+  }
+
+  // Someone else's link, a guest link, an unknown id and a malformed id all look the same: 404.
+  async function getOwnedLink({ ownerId, id }) {
+    const row = UUID.test(id) ? await repository.findOwnedLink(pool, { ownerId, id }) : null;
+
+    if (!row) throw notFoundError();
+
+    return toLinkResource(row, { publicBaseUrl, now: clock() });
+  }
+
+  // Applies the owner's changes if the link is still at `expectedVersion` (from If-Match).
+  // A newer version means someone else changed it: 412, never a silent overwrite. Enabling only
+  // clears the owner's own "disabled" flag; blocks, expiry and suspension still apply.
+  async function updateOwnedLink({ ownerId, id, expectedVersion, changes }) {
+    if (!UUID.test(id)) throw notFoundError();
+
+    const now = clock();
+    const checked = { ...changes };
+
+    if ('destinationUrl' in changes) checked.destinationUrl = checkDestination(changes.destinationUrl);
+    if ('expiresAt' in changes) checked.expiresAt = checkExpiry(changes.expiresAt, now);
+
+    const row = await withTransaction(pool, async (client) => {
+      const newVersion = await repository.updateOwnedLink(client, { ownerId, id, expectedVersion, changes: checked });
+
+      if (newVersion === null) {
+        const exists = await repository.findOwnedLink(client, { ownerId, id });
+
+        throw exists ? staleVersion() : notFoundError();
+      }
+
+      return repository.findOwnedLink(client, { ownerId, id });
+    }, { logger });
+
+    return toLinkResource(row, { publicBaseUrl, now });
+  }
+
+  return { createGuestLink, createOwnedLink, listOwnedLinks, getOwnedLink, updateOwnedLink, reserveCode };
 }

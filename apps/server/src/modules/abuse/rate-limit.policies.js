@@ -49,6 +49,11 @@ export const DEFAULT_POLICIES = Object.freeze({
     { subject: 'global', limit: 200, windowSeconds: HOUR },
   ],
 
+  // Owners changing their links.
+  linkUpdate: [
+    { subject: 'user', limit: 60, windowSeconds: MINUTE },
+  ],
+
   // Dashboard and analytics reads (tuned against normal polling).
   memberRead: [
     { subject: 'user', limit: 120, windowSeconds: MINUTE },

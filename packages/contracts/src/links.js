@@ -62,3 +62,29 @@ export const LinkSchema = z.object({
 /** @typedef {z.infer<typeof RegisteredCreateLinkRequestSchema>} RegisteredCreateLinkRequest */
 /** @typedef {z.infer<typeof EffectiveStatusSchema>} EffectiveStatus */
 /** @typedef {z.infer<typeof LinkSchema>} Link */
+
+// Changing an owned link (PATCH /api/v1/links/{id}). Omitted fields stay as they are;
+// expiresAt: null removes the expiry. Code, alias and owner can never change.
+export const UpdateLinkRequestSchema = z
+  .strictObject({
+    destinationUrl: destinationUrl.optional(),
+    expiresAt: z.iso.datetime().nullable().optional(),
+    enabled: z.boolean().optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, { message: 'Change at least one field.' });
+
+export const LINKS_PAGE_DEFAULT = 20;
+export const LINKS_PAGE_MAX = 100;
+
+export const ListLinksQuerySchema = z.strictObject({
+  cursor: z.string().min(1).max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(LINKS_PAGE_MAX).default(LINKS_PAGE_DEFAULT),
+});
+
+export const LinkListResponseSchema = z.object({
+  items: z.array(LinkSchema),
+  nextCursor: z.string().nullable(),
+});
+
+/** @typedef {z.infer<typeof UpdateLinkRequestSchema>} UpdateLinkRequest */
+/** @typedef {z.infer<typeof LinkListResponseSchema>} LinkListResponse */

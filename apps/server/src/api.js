@@ -71,7 +71,7 @@ async function main() {
   // Services: business rules and data access.
   const sessionService = createSessionService({ redis, lifetimes: config.sessionLifetimes });
   const limiter = createRateLimiter({ redis, secret: config.rateLimit.secret, policies: config.rateLimit.policies });
-  const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, logger });
+  const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger });
   const redirectService = createRedirectService({ pool });
   const accountService = createAccountService({
     pool,

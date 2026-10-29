@@ -144,7 +144,7 @@ describe('session and CSRF', () => {
     assert.equal((await errorOf(response)).code, 'CSRF_INVALID');
   });
 
-  test('signed-in users do not get a guest link (registered creation is T17)', async () => {
+  test('signed-in users get an owned link, never a guest link', async () => {
     const { server, sessionService } = await startApi();
     const { rows } = await database.pool.query(
       'INSERT INTO users (email, email_normalized, email_verified_at) VALUES ($1, $1, now()) RETURNING id, role, session_version',
@@ -159,8 +159,12 @@ describe('session and CSRF', () => {
 
     const response = await createLink(browser, { destinationUrl: 'https://example.com' });
 
-    assert.equal(response.status, 501);
-    assert.equal((await errorOf(response)).code, 'NOT_IMPLEMENTED');
+    const body = await response.json();
+
+    assert.equal(response.status, 201);
+    assert.ok(body.id, 'owned links have a management id');
+    assert.equal(body.expiresAt, null, 'no guest expiry');
+    assert.equal(response.headers.get('etag'), '"v1"');
   });
 });
 

@@ -35,3 +35,18 @@ export function validateBody(schema) {
     next();
   };
 }
+
+// Query strings are read-only in Express 5, so the parsed query goes to req.validatedQuery.
+export function validateQuery(schema) {
+  return (req, _res, next) => {
+    const result = schema.safeParse(req.query);
+
+    if (!result.success) {
+      return next(validationError(toFieldErrors(result.error.issues)));
+    }
+
+    req.validatedQuery = result.data;
+
+    next();
+  };
+}

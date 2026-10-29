@@ -568,30 +568,44 @@
     },
     "/api/v1/links": {
       "post": {
-        "summary": "Create a guest link (requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin)",
+        "summary": "Create a link. Anonymous (guest) session: generated code, 7-day expiry, body GuestCreateLinkRequest, no management handle. Signed-in verified account: body RegisteredCreateLinkRequest (optional alias and expiry), full Link with Location and ETag. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GuestCreateLinkRequest"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestCreateLinkRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegisteredCreateLinkRequest"
+                  }
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Created. Generated code, expires in 7 days. No id, Location or ETag.",
+            "description": "Created. Guests receive GuestCreateLinkResponse only; account holders receive Link with Location /api/v1/links/{id} and ETag \"v1\".",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GuestCreateLinkResponse"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/GuestCreateLinkResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Link"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "VALIDATION_FAILED (fields listed; unknown fields such as customAlias or ownerId are rejected), INVALID_JSON.",
+            "description": "VALIDATION_FAILED (fields listed; unknown fields rejected; expiry must be in the future), INVALID_JSON.",
             "content": {
               "application/json": {
                 "schema": {
@@ -601,7 +615,17 @@
             }
           },
           "403": {
-            "description": "CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (retry with challengeToken), or EMAIL_NOT_VERIFIED for a signed-in unverified account.",
+            "description": "CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (guests; retry with challengeToken), EMAIL_NOT_VERIFIED or ACCOUNT_SUSPENDED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ALIAS_UNAVAILABLE (taken or reserved; same answer).",
             "content": {
               "application/json": {
                 "schema": {
@@ -620,8 +644,33 @@
               }
             }
           },
-          "501": {
-            "description": "Signed-in creation is not implemented yet (T17).",
+          "503": {
+            "description": "Redis or PostgreSQL unavailable; Retry-After is set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "The signed-in owner's links, newest first. Query: cursor (opaque, from nextCursor), limit (1-100, default 20).",
+        "responses": {
+          "200": {
+            "description": "One page; nextCursor is null on the last page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: limit out of range, or a cursor that was edited or issued to another account.",
             "content": {
               "application/json": {
                 "schema": {
@@ -630,8 +679,141 @@
               }
             }
           },
-          "503": {
-            "description": "Redis or PostgreSQL unavailable; Retry-After is set.",
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACCOUNT_SUSPENDED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/links/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "summary": "One owned link. Its version is returned as ETag \"vN\".",
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Link"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not yours (the same answer).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Change destination, expiry (null removes it) or enabled. Requires If-Match: \"vN\" from the last read. Enabling never overrides an admin block, an expiry or a suspension. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated after commit; new ETag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Link"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: unknown or immutable fields (code, alias, owner), empty change, past expiry, invalid destination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID, ORIGIN_NOT_ALLOWED, EMAIL_NOT_VERIFIED or ACCOUNT_SUSPENDED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not yours.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "PRECONDITION_FAILED: the link changed since that version; reload and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "PRECONDITION_REQUIRED: If-Match missing or malformed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1106,11 +1288,12 @@
           "RATE_LIMITED",
           "BAD_REQUEST",
           "NOT_FOUND",
+          "PRECONDITION_REQUIRED",
+          "PRECONDITION_FAILED",
           "METHOD_NOT_ALLOWED",
           "LINK_INACTIVE",
           "ALIAS_UNAVAILABLE",
           "SERVICE_UNAVAILABLE",
-          "NOT_IMPLEMENTED",
           "INTERNAL_ERROR"
         ]
       },
@@ -1298,6 +1481,116 @@
           "version",
           "createdAt"
         ],
+        "additionalProperties": false
+      },
+      "LinkListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "shortUrl": {
+                  "type": "string"
+                },
+                "destinationUrl": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "effectiveStatus": {
+                  "type": "string",
+                  "enum": [
+                    "blocked",
+                    "ownerSuspended",
+                    "disabled",
+                    "expired",
+                    "active"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "shortUrl",
+                "destinationUrl",
+                "expiresAt",
+                "enabled",
+                "effectiveStatus",
+                "version",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateLinkRequest": {
+        "type": "object",
+        "properties": {
+          "destinationUrl": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
         "additionalProperties": false
       }
     }

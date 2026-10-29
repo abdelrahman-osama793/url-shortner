@@ -7,6 +7,7 @@ const CODE_LOCK_NAMESPACE = 1001;
 
 const LINK_COLUMNS = `
   l.id,
+  l.created_at::text AS created_at_cursor,
   l.owner_id,
   l.code,
   l.is_custom_alias,
@@ -111,4 +112,67 @@ export async function findRedirectTarget(db, code) {
   );
 
   return rows[0] ?? null;
+}
+
+// One page of an owner's links, newest first. The keyset condition uses the (created_at, id)
+// index, so every page costs the same however deep the user scrolls. Fetches one extra row to
+// know whether another page exists.
+export async function listOwnedLinks(db, { ownerId, after, limit }) {
+  const { rows } = await db.query(
+    `SELECT ${LINK_COLUMNS}
+     FROM links l
+     JOIN users u ON u.id = l.owner_id
+     WHERE l.owner_id = $1
+       AND ($2::timestamptz IS NULL OR (l.created_at, l.id) < ($2::timestamptz, $3::uuid))
+     ORDER BY l.created_at DESC, l.id DESC
+     LIMIT $4`,
+    [ownerId, after?.createdAt ?? null, after?.id ?? null, limit + 1],
+  );
+
+  return rows;
+}
+
+// The link if it exists and belongs to this owner; otherwise null (never reveals other links).
+export async function findOwnedLink(db, { ownerId, id }) {
+  const { rows } = await db.query(
+    `SELECT ${LINK_COLUMNS}
+     FROM links l
+     JOIN users u ON u.id = l.owner_id
+     WHERE l.id = $1 AND l.owner_id = $2`,
+    [id, ownerId],
+  );
+
+  return rows[0] ?? null;
+}
+
+// Applies the changes only if the link belongs to the owner AND is still at the version the
+// owner last saw (optimistic concurrency). Returns the new version, or null if nothing matched.
+// Owner-disabled time is kept when disabling an already disabled link.
+export async function updateOwnedLink(db, { ownerId, id, expectedVersion, changes }) {
+  const { rows } = await db.query(
+    `UPDATE links
+     SET destination_url = CASE WHEN $4::boolean THEN $5 ELSE destination_url END,
+         expires_at = CASE WHEN $6::boolean THEN $7::timestamptz ELSE expires_at END,
+         owner_disabled_at = CASE
+           WHEN $8::boolean IS NULL THEN owner_disabled_at
+           WHEN $8::boolean THEN NULL
+           ELSE COALESCE(owner_disabled_at, now())
+         END,
+         version = version + 1,
+         updated_at = now()
+     WHERE id = $1 AND owner_id = $2 AND version = $3
+     RETURNING version`,
+    [
+      id,
+      ownerId,
+      expectedVersion,
+      'destinationUrl' in changes,
+      changes.destinationUrl ?? null,
+      'expiresAt' in changes,
+      changes.expiresAt ?? null,
+      changes.enabled ?? null,
+    ],
+  );
+
+  return rows[0]?.version ?? null;
 }
