@@ -99,7 +99,9 @@ export async function findLinkById(db, id) {
 // links.code makes the match exact and case-sensitive.
 export async function findRedirectTarget(db, code) {
   const { rows } = await db.query(
-    `SELECT l.destination_url,
+    `SELECT l.id,
+            l.version,
+            l.destination_url,
             l.admin_blocked_at,
             l.owner_disabled_at,
             l.expires_at,

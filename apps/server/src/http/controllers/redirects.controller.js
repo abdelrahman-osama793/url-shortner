@@ -17,9 +17,23 @@ const methodNotAllowedError = () => new AppError(405, ERROR_CODES.METHOD_NOT_ALL
   headers: { Allow: 'GET, HEAD' },
 });
 
-export function createRedirectsController({ redirectService }) {
-  // Express also answers HEAD with this handler and sends no body. Analytics capture (T19)
-  // must only count GET requests.
+// The request details analytics may use. Raw values go no further than the capture service,
+// which reduces them to a device category, a referring host and a country code.
+function clickHeaders(req, countryHeader) {
+  return {
+    userAgent: req.get('User-Agent'),
+    referer: req.get('Referer'),
+    country: countryHeader ? req.get(countryHeader) : undefined,
+    secPurpose: req.get('Sec-Purpose'),
+    purpose: req.get('Purpose'),
+    xMoz: req.get('X-Moz'),
+  };
+}
+
+// `clickCapture` and `countryHeader` are optional: without them redirects simply are not counted.
+export function createRedirectsController({ redirectService, clickCapture, countryHeader }) {
+  // Express also answers HEAD with this handler and sends no body. Only GET redirects are
+  // counted, and only after the 302 has been sent: analytics never delays a redirect.
   async function redirect(req, res, next) {
     try {
       const result = await redirectService.resolve(req.params.code);
@@ -28,6 +42,14 @@ export function createRedirectsController({ redirectService }) {
       if (result.outcome === 'inactive') return next(linkInactiveError());
 
       res.redirect(302, result.destination);
+
+      if (req.method === 'GET' && clickCapture) {
+        clickCapture.captureInBackground({
+          linkId: result.linkId,
+          linkVersion: result.linkVersion,
+          headers: clickHeaders(req, countryHeader),
+        });
+      }
     } catch (error) {
       next(error instanceof RedirectUnavailableError ? serviceUnavailableError({ retryAfterSeconds: 2, cause: error }) : error);
     }

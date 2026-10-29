@@ -23,7 +23,7 @@ export class RedirectUnavailableError extends Error {
 }
 
 export function createRedirectService({ pool, maxWaiting = 50 }) {
-  // Returns { outcome: 'redirect', destination } | { outcome: 'missing' } | { outcome: 'inactive' }.
+  // Returns { outcome: 'redirect', destination, linkId, linkVersion } | { outcome: 'missing' } | { outcome: 'inactive' }.
   // Throws RedirectUnavailableError when overloaded or when PostgreSQL fails.
   async function resolve(code) {
     // Malformed or overlong codes can never exist, so they never reach the database.
@@ -54,7 +54,7 @@ export function createRedirectService({ pool, maxWaiting = 50 }) {
 
     if (status !== 'active') return { outcome: 'inactive' };
 
-    return { outcome: 'redirect', destination: link.destination_url };
+    return { outcome: 'redirect', destination: link.destination_url, linkId: link.id, linkVersion: link.version };
   }
 
   return { resolve };

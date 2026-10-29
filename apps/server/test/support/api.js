@@ -14,6 +14,7 @@ import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modu
 import { DEFAULT_POLICIES } from '../../src/modules/abuse/rate-limit.policies.js';
 import { createRateLimiter } from '../../src/modules/abuse/rate-limit.service.js';
 import { createAccountService } from '../../src/modules/accounts/accounts.service.js';
+import { createClickCaptureService } from '../../src/modules/analytics/click-capture.service.js';
 import { createGoogleAttemptsService } from '../../src/modules/accounts/google-attempts.service.js';
 import { createGoogleSignInService } from '../../src/modules/accounts/google-sign-in.service.js';
 import { createLinkService } from '../../src/modules/links/links.service.js';
@@ -26,9 +27,10 @@ const SECRET = 'integration-test-secret-32-characters';
 
 // The real routers, controllers, middleware and services, wired the same way as src/api.js,
 // with injectable dependencies. Trusts one proxy hop, so tests can simulate client addresses
-// with X-Forwarded-For. Pass `googleIdentity` (see support/google.js) to enable Google sign-in.
-// Returns { server, sessionService, logLines, outboxKey }.
-export async function startTestApi({ database, redis, pool = database.pool, redisClient = redis.client, policies = {}, googleIdentity = null }) {
+// with X-Forwarded-For. Pass `googleIdentity` (see support/google.js) to enable Google sign-in and
+// `capture` options to tune click capture (e.g. { queueCap }).
+// Returns { server, sessionService, clickCapture, logLines, outboxKey }.
+export async function startTestApi({ database, redis, pool = database.pool, redisClient = redis.client, policies = {}, googleIdentity = null, capture = {} }) {
   const config = testConfig({ TRUST_PROXY_HOPS: '1' });
   const { logger, lines } = createCapturingLogger();
 
@@ -38,11 +40,12 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
   const challengeGuard = createChallengeGuard({ redis: redisClient, verifier, keyPrefix: redis.keyPrefix });
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: SECRET, logger });
   const redirectService = createRedirectService({ pool });
+  const clickCapture = createClickCaptureService({ redis: redisClient, keyPrefix: redis.keyPrefix, logger, ...capture });
   const accountService = createAccountService({ pool, outboxKey: config.mail.outboxKey, tokenLifetimes: config.tokenLifetimes, logger });
   const guards = createAuthGuards({ sessionService, pool });
 
   const routers = [
-    createRedirectRouter({ controller: createRedirectsController({ redirectService }) }),
+    createRedirectRouter({ controller: createRedirectsController({ redirectService, clickCapture, countryHeader: capture.countryHeader }) }),
     createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService }), guards, limiter, challengeGuard }),
     createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) }),
@@ -66,5 +69,5 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
 
   const server = await startServer(app);
 
-  return { server, sessionService, logLines: lines, outboxKey: config.mail.outboxKey };
+  return { server, sessionService, clickCapture, logLines: lines, outboxKey: config.mail.outboxKey };
 }

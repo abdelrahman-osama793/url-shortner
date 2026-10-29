@@ -53,6 +53,17 @@ const EnvSchema = z.object({
   // 32 random bytes, base64. Encrypts one-time tokens inside queued emails.
   EMAIL_OUTBOX_KEY: z.string(),
 
+  // Click analytics capture (technical-design §5). Values are provisional and configurable.
+  ANALYTICS_QUEUE_CAP: z.coerce.number().int().min(1).max(10_000_000).default(50_000),
+  ANALYTICS_PUBLISH_TIMEOUT_MS: z.coerce.number().int().min(1).max(5000).default(20),
+
+  // Header carrying the visitor's country, set by a trusted edge proxy (e.g. cf-ipcountry). Only
+  // configure it behind a proxy that overwrites the header; otherwise visitors could forge it.
+  TRUSTED_COUNTRY_HEADER: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().regex(/^[A-Za-z0-9-]{1,64}$/).optional(),
+  ),
+
   // Google Identity Services web client ID. Optional: without it Google sign-in is not offered.
   // Public (not a secret); the client secret is never used by this flow.
   // Compose passes an empty string when it is unset, which means "not configured".
@@ -126,6 +137,11 @@ export function loadConfig(env = process.env) {
     tokenLifetimes: Object.freeze({
       verificationMs: vars.VERIFICATION_TOKEN_HOURS * HOUR_MS,
       resetMs: vars.RESET_TOKEN_MINUTES * MINUTE_MS,
+    }),
+    analytics: Object.freeze({
+      queueCap: vars.ANALYTICS_QUEUE_CAP,
+      publishTimeoutMs: vars.ANALYTICS_PUBLISH_TIMEOUT_MS,
+      countryHeader: vars.TRUSTED_COUNTRY_HEADER ?? null,
     }),
     google: Object.freeze({
       clientId: vars.GOOGLE_CLIENT_ID ?? null,

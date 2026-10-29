@@ -246,6 +246,16 @@ One server package with two entry points (modular monolith), not separate servic
 - Retries still consume the `registeredCreate` quota, since the rate limit runs before the replay lookup. This is acceptable for normal retry counts and avoids a database read for every throttled request.
 - `links.service.js` split creation into `checkOwnedRequest` (validation, before the transaction) and `insertOwnedLink(client)` (allocation inside the caller's transaction); `createOwnedLinkOnce` wraps it.
 
+### Click capture (T19)
+
+- `modules/analytics/click-capture.service.js`. The redirect controller sends the 302 **first**, then calls `captureInBackground()` for `GET` only (HEAD, 404, 410, 503 and browser prefetches are never counted). Capture never throws and is never awaited by the request.
+- **Event** in Redis Stream `clicks:v1`: `v`, `e` (random UUID event id), `l` (link id), `lv` (link version), `t` (epoch ms), `c` (country), `d` (device), `r` (referring host), `b` (bot flag). No IP, User-Agent, full referrer, path or query string. Under 300 bytes, well below the 2 KiB budget.
+- **Dimensions** (`rules/`): a regex device classifier (bot → tablet → mobile → desktop → unknown; approximate by design, no library); referrer = lower-cased hostname of an http(s) Referer, else `direct_or_unknown`; country = ISO alpha-2 from the header named by `TRUSTED_COUNTRY_HEADER` (only behind a proxy that overwrites it), with provider placeholders (XX, T1, A1, …) mapped to `unknown`. No header configured → `unknown`.
+- **Bounded admission**: a Lua script does `XLEN` then `XADD` atomically and refuses when `XLEN >= ANALYTICS_QUEUE_CAP` (default 50,000). Queued events are never trimmed or evicted. Tested with 50 concurrent publishes against a cap of 10: exactly 10 admitted.
+- **Never blocks**: per-command timeout `ANALYTICS_PUBLISH_TIMEOUT_MS` (default 20 ms, via `withCommandOptions`); at most 1,000 publishes in flight (more are dropped as `overloaded`); a circuit breaker opens for 5 s after 5 consecutive failures (`circuit_open`, no Redis call). The client's disabled offline queue makes an unreachable Redis fail instantly. Measured locally: redirects stayed at about 2-3 ms with Redis stopped.
+- **Loss accounting**: in-process counters `captured`, `skipped.prefetch`, `dropped.{queue_full, timeout, redis_error, overloaded, circuit_open}` and `lastLossAt`, logged every 60 s when they change, with no user, link or code labels. A timeout is not retried (the event may have been stored with its acknowledgement lost). T22 turns these into the pipeline's "degraded" signal and a private metrics endpoint.
+- Library detail: node-redis `TimeoutError` does not set `.name`, so timeouts are detected with `instanceof TimeoutError` (imported from `redis`).
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

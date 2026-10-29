@@ -26,6 +26,7 @@ import { onShutdown, runMain } from './lifecycle.js';
 import { createChallengeGuard, createDevChallengeVerifier } from './modules/abuse/challenge.service.js';
 import { createRateLimiter } from './modules/abuse/rate-limit.service.js';
 import { createAccountService } from './modules/accounts/accounts.service.js';
+import { createClickCaptureService } from './modules/analytics/click-capture.service.js';
 import { createGoogleAttemptsService } from './modules/accounts/google-attempts.service.js';
 import { createGoogleIdentityService } from './modules/accounts/google-identity.service.js';
 import { createGoogleSignInService } from './modules/accounts/google-sign-in.service.js';
@@ -73,6 +74,12 @@ async function main() {
   const limiter = createRateLimiter({ redis, secret: config.rateLimit.secret, policies: config.rateLimit.policies });
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger });
   const redirectService = createRedirectService({ pool });
+  const clickCapture = createClickCaptureService({
+    redis,
+    queueCap: config.analytics.queueCap,
+    publishTimeoutMs: config.analytics.publishTimeoutMs,
+    logger,
+  });
   const accountService = createAccountService({
     pool,
     outboxKey: config.mail.outboxKey,
@@ -89,7 +96,9 @@ async function main() {
 
   const routers = [
     createHealthRouter({ controller: createHealthController({ checkDatabase: () => isDatabaseReachable(pool) }) }),
-    createRedirectRouter({ controller: createRedirectsController({ redirectService }) }),
+    createRedirectRouter({
+      controller: createRedirectsController({ redirectService, clickCapture, countryHeader: config.analytics.countryHeader }),
+    }),
     createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService }), guards, limiter, challengeGuard }),
   ];
@@ -124,7 +133,10 @@ async function main() {
 
   logger.info({ port: config.port }, 'api listening');
 
+  const stopCaptureStats = clickCapture.startStatsLog();
+
   onShutdown(async () => {
+    stopCaptureStats();
     await close(server);
     await pool.end();
     redis.destroy();
