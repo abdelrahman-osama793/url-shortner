@@ -1,0 +1,81 @@
+@switch (step()) {
+  @case ('result') {
+    <div class="result" role="status">
+      <p class="result-title"><app-icon name="check" /> Your short link is ready</p>
+      <div class="result-row">
+        <label class="visually-hidden" for="short-url">Your short link</label>
+        <input #resultField id="short-url" class="result-url" type="text" readonly [value]="result()?.shortUrl" (focus)="resultField.select()" />
+        <button class="btn btn-lime" type="button" (click)="copy()">
+          <app-icon [name]="copyState() === 'copied' ? 'check' : 'copy'" />
+          {{ copyState() === 'copied' ? 'Copied' : 'Copy link' }}
+        </button>
+      </div>
+      <p class="result-meta">Guest link · expires {{ expiry() }}. It can't be edited or tracked.</p>
+      @if (copyState() === 'failed') {
+        <p class="copy-help" role="alert">Copying isn't available here. The link is selected: press Ctrl+C (⌘C on a Mac), or long-press to copy.</p>
+      }
+      @if (copyState() === 'copied') {
+        <p class="visually-hidden" role="status">Link copied to the clipboard.</p>
+      }
+      <div class="result-actions">
+        <button class="btn btn-link light" type="button" (click)="startOver()">Shorten another link</button>
+        <a class="btn btn-link light" routerLink="/signup">Sign up to edit links and see clicks</a>
+      </div>
+    </div>
+  }
+
+  @default {
+    <form class="form" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()">
+      <label class="label" for="destination">Make your first short link</label>
+      <div class="row">
+        <input
+          #destinationField
+          id="destination"
+          class="input"
+          type="url"
+          inputmode="url"
+          autocomplete="url"
+          placeholder="Paste your long link here, e.g. https://example.com/page"
+          maxlength="4096"
+          [value]="destination()"
+          (input)="onInput(destinationField.value)"
+          [attr.aria-invalid]="fieldError() ? 'true' : null"
+          [attr.aria-describedby]="fieldError() ? 'destination-error destination-note' : 'destination-note'"
+          [disabled]="step() === 'challenge'"
+        />
+        @if (step() === 'form') {
+          <button class="btn btn-lime" type="submit" [disabled]="busy()">
+            {{ busy() ? 'Shortening…' : 'Shorten link' }}
+            <app-icon name="arrow-right" />
+          </button>
+        }
+      </div>
+
+      @if (fieldError(); as message) {
+        <p id="destination-error" class="error" role="alert">{{ message }}</p>
+      }
+
+      @if (step() === 'challenge') {
+        <div class="challenge" role="alert">
+          <p><strong>Quick check:</strong> {{ formError() }}</p>
+          @if (devChallengeAvailable) {
+            <button #challengeAction class="btn btn-lime" type="button" (click)="completeDevChallenge()" [disabled]="busy()">
+              {{ busy() ? 'Checking…' : 'Complete verification' }}
+            </button>
+            <p class="mock-note">Development mock: no real human verification takes place.</p>
+          } @else {
+            <p>Verification isn't available yet. Please try again later, or sign up to create links from an account.</p>
+          }
+          <button #challengeAction class="btn btn-link light" type="button" (click)="cancelChallenge()">Cancel</button>
+        </div>
+      } @else if (formError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div id="destination-note" class="note-row">
+        <span>No account needed. Guest links expire after 7 days.</span>
+        <a routerLink="/signup">Want to edit and track your links? Sign up</a>
+      </div>
+    </form>
+  }
+}

@@ -133,27 +133,6 @@
   border-top: 1px solid var(--night-line);
 }
 
-/* The preview banner on the dark hero needs light-on-dark colours to stay readable. */
-.mock-banner.on-hero {
-  border-color: var(--lime);
-  background: transparent;
-  color: var(--lime);
-}
-
-.hero-note {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  color: var(--night-muted);
-  font-size: 13px;
-}
-
-.hero-note a {
-  color: var(--lime);
-}
-
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

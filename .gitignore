@@ -11,3 +11,4 @@ docs/
 
 # Local editor/assistant launch settings.
 .claude/
+.playwright-mcp/

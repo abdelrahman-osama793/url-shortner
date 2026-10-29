@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T23, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links on the home page and follow them. People can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links and read their click analytics (API only so far; those screens come in T25–T27). Tasks T01–T14 and T17–T24 are done and verified. T15 (Google sign-in) is built and waiting for a check with a real Google account. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -100,7 +100,7 @@ npm start -w @shortlist/web
 
 Open http://localhost:4200. The Angular dev server forwards `/api`, `/r/` and `/health` to the API on port 3000 (`apps/web/proxy.conf.json`), so the browser uses one origin, exactly as in production. Short links returned by the API (`http://localhost:4200/r/…`) open from there too.
 
-Screens built so far: the public home page (the shortening form is connected in T24), the sign-in layout (forms in T25) and the workspace layout with clearly labelled **sample data** (real links in T26). Placeholder screens say which task builds them.
+Screens built so far: the public home page, whose shortening form is connected to the real API (in development, the verification step uses a labelled mock challenge), the sign-in layout (forms in T25) and the workspace layout with clearly labelled **sample data** (real links in T26). Placeholder screens say which task builds them.
 
 ### 5. Check it works
 
@@ -112,7 +112,7 @@ The expected response is `{"status":"ready","checks":{"postgres":"up"}}`. `/heal
 
 ### 6. Try it with curl
 
-There is no web UI yet (it arrives with T23–T24), but you can create a guest link and follow it from a terminal. The cookie file keeps your session between commands, like a browser would.
+The home page does this for you, but you can also create a guest link and follow it from a terminal. The cookie file keeps your session between commands, like a browser would.
 
 Get a session cookie and its CSRF token:
 
@@ -357,7 +357,7 @@ Planning follows a 39-task backlog across eight milestones:
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in built, awaiting the real-account check |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
-| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23 done (design system, layouts, light/dark); next T24 |
+| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23–T24 done (design system, layouts, light/dark, working guest shortening on the home page); next T25 |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |

@@ -1,21 +1,9 @@
 import { z } from 'zod';
 
+import { ALIAS_PATTERN, DESTINATION_MAX_LENGTH, LINKS_PAGE_DEFAULT, LINKS_PAGE_MAX } from './constants.js';
+
 // Link request/response shapes (api-contracts.md, Links).
 // Write schemas are strict: unknown fields such as ownerId or role are rejected.
-
-export const DESTINATION_MAX_LENGTH = 4096;
-
-// Custom aliases: 4-32 ASCII letters, digits, hyphens or underscores. Case-sensitive.
-export const ALIAS_PATTERN = /^[A-Za-z0-9_-]{4,32}$/;
-
-// Generated codes: this many random Base62 characters.
-export const GENERATED_CODE_LENGTH = 8;
-
-// Guest links expire this long after creation (decision D04).
-export const GUEST_LINK_LIFETIME_DAYS = 7;
-
-// Challenge action bound to guest link creation tokens.
-export const GUEST_CREATE_CHALLENGE_ACTION = 'guest-create';
 
 const destinationUrl = z.string().max(DESTINATION_MAX_LENGTH);
 
@@ -72,9 +60,6 @@ export const UpdateLinkRequestSchema = z
     enabled: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { message: 'Change at least one field.' });
-
-export const LINKS_PAGE_DEFAULT = 20;
-export const LINKS_PAGE_MAX = 100;
 
 export const ListLinksQuerySchema = z.strictObject({
   cursor: z.string().min(1).max(512).optional(),

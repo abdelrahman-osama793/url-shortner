@@ -299,6 +299,17 @@ One server package with two entry points (modular monolith), not separate servic
 - **Angular naming** follows the current Angular style guide used by the CLI (`public-layout.ts`, class `PublicLayout`), unlike the backend's suffix convention.
 - **Theme preference** is a per-browser convenience in `localStorage`, read and written inside try/catch (tested with storage throwing).
 
+### Guest journey (T24)
+
+- **Real integration, no mock result**: the home form posts to `POST /api/v1/links` through `HttpClient` (`withFetch`) and shows the API's `shortUrl` and `expiresAt`. The old preview's simulated result is gone.
+- **CSRF in one place**: `csrfInterceptor` adds `X-CSRF-Token` to unsafe `/api/` requests. The token is fetched once (concurrent callers share the request), and a `403 CSRF_INVALID` refreshes it and retries once.
+- **Errors map to their own messages** via `ApiError`: invalid URL → field error with `aria-invalid`; `RATE_LIMITED` → wait time from `Retry-After` ("about 30 minutes"); `CHALLENGE_REQUIRED` → verification step; `SERVICE_UNAVAILABLE` and network failures → "briefly unavailable". The server checks limits and the challenge before validating the URL, so an invalid URL can be answered with a challenge first.
+- **Challenge**: development builds (`isDevMode()`) show "Complete verification", which calls the dev-only token endpoint and retries with the token, labelled "Development mock". Production builds show no shortcut and say verification isn't available yet (real provider: T37).
+- **Copy**: `navigator.clipboard`; if that fails, the read-only link is selected and instructions for copying by hand are shown.
+- **Focus management**: focus moves to the new link, back to the field on "Shorten another link", to the first challenge action when one is required, and back to the field when the challenge is cancelled or ends in another error. It runs in `afterNextRender`. A microtask ran before rendering and focus fell to `<body>`, which the unit test and a visible Chromium both showed.
+- **Zod-free constants entry**: `@shortlist/contracts/constants` exports plain values (limits, patterns, error codes), so the web bundle does not pull in zod. A value import from the main entry grew the initial bundle from 73 to 159 kB gzipped; with the constants entry it is 82 kB.
+- **Dev-server pitfall**: after adding a package `exports` entry, a running `ng serve` keeps failing with TS7016 until it is restarted.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

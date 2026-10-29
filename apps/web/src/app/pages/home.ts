@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
-
 import { Icon } from '../shared/ui/icon';
 
-// Public home. The hero, illustration and benefits are final content; the shortening form is
-// connected to the API in T24 and is shown here as a labelled preview only.
+import { ShortenForm } from './shorten-form';
+
+// Public home (UI_HANDOFF "Public home"): hero, illustration, the guest shortening form and benefits.
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, Icon],
+  imports: [Icon, ShortenForm],
   templateUrl: './home.html',
   styleUrl: './home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,14 +1,8 @@
 import { z } from 'zod';
 
+import { EMAIL_MAX_LENGTH, GOOGLE_PURPOSES, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './constants.js';
+
 // Session and account shapes (api-contracts.md, "Authentication").
-
-// Password policy shared by the server and the sign-up form. Length only, no composition
-// rules (OWASP/NIST guidance). 12 is the UI handoff's provisional minimum; the maximum
-// bounds hashing cost.
-export const PASSWORD_MIN_LENGTH = 12;
-export const PASSWORD_MAX_LENGTH = 256;
-
-export const EMAIL_MAX_LENGTH = 254;
 
 const email = z.string().trim().max(EMAIL_MAX_LENGTH).pipe(z.email());
 
@@ -34,10 +28,6 @@ export const ResendVerificationRequestSchema = z.strictObject({ email });
 export const ForgotPasswordRequestSchema = z.strictObject({ email });
 
 export const ResetPasswordRequestSchema = z.strictObject({ token: oneTimeToken, newPassword });
-
-// Google sign-in (Google Identity Services). The browser first asks for a short-lived attempt
-// and passes its nonce to Google; Google embeds the nonce in the signed ID token (credential).
-export const GOOGLE_PURPOSES = ['login', 'link', 'reauthenticate'];
 
 export const GoogleStartRequestSchema = z.strictObject({
   purpose: z.enum(GOOGLE_PURPOSES),
