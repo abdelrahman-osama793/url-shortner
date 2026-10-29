@@ -256,6 +256,18 @@ One server package with two entry points (modular monolith), not separate servic
 - **Loss accounting**: in-process counters `captured`, `skipped.prefetch`, `dropped.{queue_full, timeout, redis_error, overloaded, circuit_open}` and `lastLossAt`, logged every 60 s when they change, with no user, link or code labels. A timeout is not retried (the event may have been stored with its acknowledgement lost). T22 turns these into the pipeline's "degraded" signal and a private metrics endpoint.
 - Library detail: node-redis `TimeoutError` does not set `.name`, so timeouts are detected with `instanceof TimeoutError` (imported from `redis`).
 
+### Analytics worker (T20)
+
+- `click-consumer.service.js` (Redis side) → `click-aggregation.service.js` (one transaction) → `click-events.repository.js` (SQL); `rules/click-event.js` validates every stream entry.
+- **Consumer group** `analytics-v1` on `clicks:v1` (created with `MKSTREAM`; `BUSYGROUP` ignored). Each pass first `XAUTOCLAIM`s entries idle ≥ 30 s (from a crashed or restarted consumer, including this one), otherwise `XREADGROUP … >` with `COUNT 500 BLOCK 2000` on a **separate blocking connection** (its command timeout is 5 s so the 2 s block cannot time out). Consumer name `hostname-pid`.
+- **Transaction**: `INSERT … SELECT FROM unnest(…) ON CONFLICT (event_id) DO NOTHING RETURNING …`, so only the rows actually inserted are counted. They are tallied in memory per `(link, UTC day, dimension, bucket)` and per link (unique keys, sorted), then upserted with `clicks = clicks + EXCLUDED.clicks`. Referrer admission takes `pg_advisory_xact_lock(1004, link:day)` in sorted order, reads existing host buckets and admits up to 100 per link/day; `direct_or_unknown` and `other` do not count towards the cap.
+- **Acknowledge after commit**: `XACK` then `XDEL` only after the transaction commits. A crash in between leaves the entries pending; they are reclaimed and their event ids are already stored, so nothing is double-counted (tested with a crash hook between commit and acknowledgement).
+- **Failure isolation**: a database **outage** (`isDatabaseUnavailable`) aborts the pass with nothing acknowledged, and the run loop retries with backoff (1 s doubling to 30 s). A **data** error retries the batch one event per transaction; events still rejected (e.g. an unknown link id) go to the dead-letter stream. Malformed entries are dead-lettered before the database is touched. This replaces the design's "after five attempts" counting: delivery counts are not needed because poison events are isolated on the first failure.
+- **Dead letters**: `clicks:dead:v1` with `{ reason, sourceId, fields (≤ 2 KiB) }`, trimmed by `MINID ~` to the last 7 days.
+- **Retention guard**: events older than 30 days are acknowledged and counted as `expired`, never stored, so raw-event deduplication is never relied on after cleanup could have removed the original.
+- Known gap (T22): an entry acknowledged but not yet deleted (crash between `XACK` and `XDEL`) stays in the stream unprocessed and unpending; a janitor will trim it.
+- **Local testing lesson**: `docker compose start <service>` also starts a stopped dependency (the worker depends on PostgreSQL), which silently ended a simulated outage. Use `docker compose up -d --no-deps <service>` for outage checks. Also, dev containers run `node --watch` on the mounted source, so editing `worker.js` restarts the running worker immediately.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

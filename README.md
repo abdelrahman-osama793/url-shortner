@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T19, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T20, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -211,6 +211,7 @@ All ports bind to `127.0.0.1` only. Change any that clash with local services in
 | `npm run check` | Type-checks the shared contracts (JSDoc) and fails if `openapi.json` is out of date |
 | `npm test` | Server integration tests (needs PostgreSQL) and Angular unit tests |
 | `npm test -w @shortlist/server` | Server tests only |
+| `docker compose up -d --no-deps <service>` | Restart one service without starting its dependencies (needed when simulating an outage) |
 | `npm run openapi -w @shortlist/contracts` | Regenerates `packages/contracts/openapi.json` from the zod schemas |
 | `docker compose run --rm migrate` | Apply pending migrations |
 | `docker compose logs -f api worker` | Follow backend logs (JSON lines) |
@@ -308,6 +309,7 @@ The file suffix always tells you the layer: `.routes`, `.controller`, `.service`
 - **Rate limits:** shared across API instances through Redis. Over the limit returns `429 RATE_LIMITED` with `Retry-After`; if Redis is unavailable, protected operations return `503` instead of running unlimited. Suspicious guests must pass a challenge (`403 CHALLENGE_REQUIRED`), and a passed challenge never resets a quota.
 - **Challenges in development are mock:** `POST /api/v1/dev/challenge-token` issues test tokens and exists only when `CHALLENGE_PROVIDER=dev`. Production refuses to start until a real provider is integrated (T37).
 - **Click capture:** every successful `GET` redirect publishes a small event (link, time, device category, referring site, country if a trusted proxy provides it) to a bounded Redis stream after the redirect is sent. No IP address, User-Agent or full referrer is stored. If Redis is slow, full or down, the redirect is unaffected and the lost event is counted. Click counts are approximate, not unique visitors.
+- **Click counting:** the worker reads the click stream in batches and stores each event once, with daily counts per country, device and referring site (at most 100 sites per link per day; the rest are grouped as "other") plus lifetime totals. Events are acknowledged only after the database commit, so a worker crash or database outage loses nothing and never double-counts.
 - **Email:** account emails are written to an outbox in the same database transaction as their one-time token, then delivered by the worker with retries. In development every email lands in Mailpit (http://localhost:8025) and nothing is really sent.
 - **Logs:** JSON on stdout. Passwords, tokens, cookies and credentials inside connection strings are redacted. Query strings and client IPs are never logged.
 
@@ -344,7 +346,7 @@ Planning follows a 39-task backlog across eight milestones:
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in built, awaiting the real-account check |
-| D. Analytics pipeline | Click capture, worker, queries, retention and health | **In progress**: T19 done (click capture); next T20 (worker) |
+| D. Analytics pipeline | Click capture, worker, queries, retention and health | **In progress**: T19–T20 done (click capture, worker aggregation); next T21 (analytics API) |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
