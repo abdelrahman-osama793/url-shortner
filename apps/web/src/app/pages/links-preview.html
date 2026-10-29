@@ -1,0 +1,31 @@
+<div class="head">
+  <div>
+    <h1>Your links</h1>
+    <p class="muted">Everything you share, in one place.</p>
+  </div>
+</div>
+
+<p class="mock-banner"><app-icon name="info" /> Sample data: these rows only show the layout and status styles. Your real links appear here in T26.</p>
+
+<div class="list surface" role="table" aria-label="Sample links">
+  <div class="row header" role="row">
+    <span role="columnheader">Link</span>
+    <span role="columnheader">Status</span>
+    <span role="columnheader" class="num">Clicks</span>
+  </div>
+  @for (link of links; track link.code) {
+    <div class="row" role="row">
+      <div class="name" role="cell">
+        <span class="symbol"><app-icon name="link" /></span>
+        <div class="info">
+          <strong>shortlist/r/{{ link.code }}</strong>
+          <span class="dest">{{ link.destination }}</span>
+        </div>
+      </div>
+      <span role="cell"><app-status-badge [status]="link.status" /></span>
+      <span role="cell" class="num">{{ link.clicks }}</span>
+    </div>
+  }
+</div>
+
+<p class="info-line"><app-icon name="info" [size]="14" /> Changes to a destination apply to new visits after saving.</p>

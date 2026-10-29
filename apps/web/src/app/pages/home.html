@@ -1,0 +1,70 @@
+<div class="public">
+  <section class="hero on-dark" aria-labelledby="hero-title">
+    <div class="hero-grid">
+      <div>
+        <h1 id="hero-title">Big ideas.<br /><span>Short links.</span></h1>
+        <p class="hero-copy">Give everything you share a better address. Create a short link, make it your own, and see where it goes.</p>
+      </div>
+
+      <figure class="example" aria-label="Illustration of a short link with its click count">
+        <div class="example-top">
+          <span class="example-icon"><app-icon name="file-text" /></span>
+          <div>
+            <strong>Your next big project</strong>
+            <div class="example-url">example.com/projects/something-great</div>
+          </div>
+        </div>
+        <div class="example-body">
+          <span class="example-label">Your link, simplified</span>
+          <strong class="example-short">shortlist/r/launch</strong>
+          <div class="example-foot">
+            <div>
+              <span class="example-label">Clicks · illustrative</span>
+              <strong class="example-count">1,284</strong>
+            </div>
+            <div class="spark" aria-hidden="true">
+              @for (height of spark; track $index) {
+                <span [style.height.px]="height"></span>
+              }
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+
+    <div id="shorten" class="shorten">
+      <p class="mock-banner on-hero">
+        <app-icon name="info" />
+        Preview: the shortening form is connected in the next step (T24). Nothing can be submitted yet.
+      </p>
+      <div class="hero-note">
+        <span>No account needed. Guest links expire after 7 days.</span>
+        <a routerLink="/signup">Want to edit and track your links? Sign up</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="features">
+    <section>
+      <app-icon name="text-cursor" [size]="18" />
+      <div>
+        <h3>A link that sounds like you</h3>
+        <p>Choose a memorable alias when you create an account.</p>
+      </div>
+    </section>
+    <section>
+      <app-icon name="chart" [size]="18" />
+      <div>
+        <h3>Know what gets clicked</h3>
+        <p>See daily activity, countries, devices and referring sites.</p>
+      </div>
+    </section>
+    <section>
+      <app-icon name="sliders" [size]="18" />
+      <div>
+        <h3>Stay in control</h3>
+        <p>Update a destination, set an expiry or disable your link.</p>
+      </div>
+    </section>
+  </div>
+</div>

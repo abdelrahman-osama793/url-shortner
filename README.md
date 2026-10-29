@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T22, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T23, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -98,7 +98,9 @@ Startup order: PostgreSQL becomes healthy → the one-shot `migrate` service app
 npm start -w @shortlist/web
 ```
 
-Open http://localhost:4200.
+Open http://localhost:4200. The Angular dev server forwards `/api`, `/r/` and `/health` to the API on port 3000 (`apps/web/proxy.conf.json`), so the browser uses one origin, exactly as in production. Short links returned by the API (`http://localhost:4200/r/…`) open from there too.
+
+Screens built so far: the public home page (the shortening form is connected in T24), the sign-in layout (forms in T25) and the workspace layout with clearly labelled **sample data** (real links in T26). Placeholder screens say which task builds them.
 
 ### 5. Check it works
 
@@ -124,7 +126,7 @@ Copy the `csrfToken` value from the response, then create a link (replace `PASTE
 curl -s -b cookies.txt -X POST http://localhost:3000/api/v1/links -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_TOKEN' -d '{"destinationUrl":"https://www.wikipedia.org/"}'
 ```
 
-The response contains a `code`. Open `http://localhost:3000/r/<code>` in a browser to be redirected. (The returned `shortUrl` uses port 4200, which only works once the Angular app proxies `/r` in T23.)
+The response contains a `code`. Open `http://localhost:3000/r/<code>` in a browser to be redirected. (With the Angular dev server running, the returned `shortUrl` on port 4200 works as well.)
 
 The third creation within 10 minutes returns `403 CHALLENGE_REQUIRED`. In development, get a mock challenge token and send it as `"challengeToken"` in the body:
 
@@ -254,6 +256,10 @@ Connection settings come from `TEST_DATABASE_URL` / `TEST_REDIS_URL` if set; oth
 
 ```text
 apps/web/                         Angular app (TypeScript)
+  src/styles.css                  design tokens (light/dark via light-dark()), base, buttons, forms
+  src/app/layouts/                public, auth (inside public) and workspace layouts
+  src/app/shared/ui/              icon, logo, status badge, theme switcher
+  src/app/pages/                  screens (placeholders name the task that builds them)
 apps/server/src/
   api.js                          API composition root: creates every service, controller and router
   worker.js                       worker process (email delivery; analytics later)
@@ -351,7 +357,7 @@ Planning follows a 39-task backlog across eight milestones:
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in built, awaiting the real-account check |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
-| E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
+| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23 done (design system, layouts, light/dark); next T24 |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |

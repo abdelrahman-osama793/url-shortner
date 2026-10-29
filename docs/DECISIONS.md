@@ -286,6 +286,19 @@ One server package with two entry points (modular monolith), not separate servic
 - **Measured freshness** (`scripts/measure-analytics-freshness.mjs`, Docker on the development laptop, 29 Oct 2026, polling the real analytics API every 600 ms with 0 rejected polls): 40 clicks at 250 ms → p50 0.33 s, p95 0.59 s, max 0.62 s; 200 clicks at 10 ms → p50 0.32 s, p95 0.59 s, max 0.62 s. All 240 within 10 s; status healthy. The figures are bounded by the 600 ms poll interval. Light load only: not evidence for the 1,000 rps target (T35). A UI polling every 5 s would add up to 5 s.
 - **Measurement pitfall recorded**: a first burst run polled every 100 ms, exceeded the 120/min `memberRead` limit, got 429s and reported a false p95 of 7.34 s. The script now counts rejected polls and defaults to 600 ms.
 
+### UI foundation (T23)
+
+- **Reference**: `ui/product-preview.fragment.html` was read in full; its tokens, spacing, breakpoints (800 px, 600 px), components and copy are reproduced. Exploration controls (the demo banner, demo workspace entry, "Admin demo", simulated flows) are not carried over.
+- **Tokens** live in `apps/web/src/styles.css` as `light-dark()` pairs; the appearance is chosen with `color-scheme` on `<html>` (system by default; `data-theme="light|dark"` when picked). One stylesheet serves both themes. Brand panels (petrol `#183b3e`, citron `#e8efab`) are fixed in both. A missing `--error-soft` pair was added for blocked/owner-suspended badges.
+- **Contrast measured** (WCAG ratio, computed from the tokens): every text/background pair in both themes is ≥ 4.5:1. The lowest is muted on soft in light mode at 4.57; brand pairs range 4.98-12.11.
+- **Fonts and icons are self-hosted**: `@fontsource-variable/manrope` instead of Google Fonts at runtime (no third-party request or visitor IP sent to Google), and `lucide` icon data rendered by a small `Icon` component with `Renderer2` (no `innerHTML`, no sanitizer bypass). `lucide-angular` was rejected because its peer range stops at Angular 21. Only the 29 icons in use are imported.
+- **Layouts**: `PublicLayout` (logo, "Shorten a link" (hidden on phones), Log in, Sign up; footer with Report abuse and the theme switcher) → `AuthLayout` nested inside it (story panel + form; story hidden ≤ 600 px; fills the page height) → `WorkspaceLayout` (sidebar → wrapping link row ≤ 600 px; `isAdmin` input hides Administration; roles are enforced by the server). Each layout has a skip link and a `<main id="main">`.
+- **Accessibility**: global `:focus-visible` ring (citron on dark panels), 44 px minimum targets (measured at 320 px: smallest 44), 16 px inputs on phones and touch screens, reduced-motion respected, the theme switcher is a native radio group with a legend, status is always shown as text, `aria-current` on active navigation.
+- **Previews are labelled**: routes for screens built later render `ComingSoon` (title from route data plus "Preview: built in T2x"); the workspace list uses `SAMPLE_LINKS` under a "Sample data" banner. No control pretends to work.
+- **Dev proxy** (`apps/web/proxy.conf.json`, used by `ng serve`): `/api`, `/health` and `^/r/` → `localhost:3000`. The `/r/` rule is a regular expression so Angular routes such as `/report` are not forwarded (verified).
+- **Angular naming** follows the current Angular style guide used by the CLI (`public-layout.ts`, class `PublicLayout`), unlike the backend's suffix convention.
+- **Theme preference** is a per-browser convenience in `localStorage`, read and written inside try/catch (tested with storage throwing).
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

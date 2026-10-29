@@ -1,0 +1,126 @@
+/* Fills the space between the public header and footer, so no empty band shows below. */
+:host {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  min-height: 640px;
+  background: var(--paper);
+}
+
+.story {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 45px;
+  margin: 22px 0 22px 22px;
+  padding: 38px 30px;
+  border-radius: 14px;
+  background: var(--night);
+  color: #fff;
+}
+
+.story h2 {
+  max-width: 300px;
+  font-size: 37px;
+  font-weight: 600;
+  letter-spacing: -1.1px;
+  line-height: 1.17;
+}
+
+.story h2 span {
+  color: var(--lime);
+}
+
+.story p {
+  max-width: 280px;
+  margin-top: 18px;
+  color: var(--night-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.example {
+  margin-top: 27px;
+  padding: 20px 0;
+  border-block: 1px solid var(--night-line);
+}
+
+.example span,
+.tagline {
+  color: var(--night-muted);
+  font-size: 12px;
+}
+
+.example strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+
+.benefits {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--night-muted);
+  font-size: 13px;
+}
+
+.benefits li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 42px 38px;
+}
+
+.box {
+  width: 100%;
+  max-width: 360px;
+}
+
+@media (max-width: 800px) {
+  .story {
+    padding: 30px 23px;
+  }
+
+  .story h2 {
+    font-size: 31px;
+  }
+
+  .content {
+    padding: 32px 27px;
+  }
+}
+
+@media (max-width: 600px) {
+  .auth {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .story {
+    display: none;
+  }
+
+  .content {
+    align-items: flex-start;
+    padding: 32px 16px 42px;
+  }
+}

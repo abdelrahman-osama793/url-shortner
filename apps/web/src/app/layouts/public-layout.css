@@ -1,0 +1,88 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 30px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* A column, so a routed layout (e.g. the auth screens) can stretch to fill the page height. */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 30px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+@media (max-width: 800px) {
+  .top,
+  .bottom {
+    padding-inline: 24px;
+  }
+}
+
+/* Phones: drop the shortcut, keep both account actions on one line. */
+@media (max-width: 600px) {
+  .top {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .actions .btn {
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  .shortcut {
+    display: none;
+  }
+
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 16px;
+  }
+}
+
+/* The narrowest phones (320px): the arrow is decoration, the label is what matters. */
+@media (max-width: 360px) {
+  .btn-primary app-icon {
+    display: none;
+  }
+}

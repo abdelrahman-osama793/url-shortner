@@ -1,0 +1,108 @@
+.head {
+  margin-bottom: 18px;
+}
+
+.head p {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.mock-banner {
+  margin-bottom: 16px;
+}
+
+.list {
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 70px;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+
+.header {
+  padding-block: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.name {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--accent);
+}
+
+.info {
+  display: grid;
+  min-width: 0;
+}
+
+.info strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.dest {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .symbol {
+    display: none;
+  }
+}
+
+/* Phones: no header row; status sits under the name, clicks on the right. */
+@media (max-width: 600px) {
+  .header {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px;
+  }
+
+  .name {
+    grid-column: 1 / -1;
+  }
+}

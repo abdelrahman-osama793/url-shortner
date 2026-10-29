@@ -1,1 +1,343 @@
-/* You can add global styles to this file, and also import other style files */
+/*
+ * Shortlist design system (UI_HANDOFF.md, "Visual direction"; ui/product-preview.fragment.html).
+ *
+ * One set of tokens serves both appearances: each colour is a CSS light-dark() pair, and the
+ * active appearance is chosen by `color-scheme` on <html> (system by default; ThemeService
+ * sets data-theme="light" or "dark" when the visitor picks one).
+ * Brand colours on dark panels (petrol, citron) are fixed in both appearances.
+ */
+
+@import '@fontsource-variable/manrope';
+
+:root {
+  color-scheme: light dark;
+
+  --page: light-dark(#f6f7f6, #141b1d);
+  --paper: light-dark(#fff, #1e282b);
+  --ink: light-dark(#172e34, #e9eeec);
+  --muted: light-dark(#5f7075, #a8b7bb);
+  --line: light-dark(#dce4e3, #38484b);
+  --soft: light-dark(#edf2f0, #283538);
+  --accent: light-dark(#24594d, #b2d6c7);
+  --accent-soft: light-dark(#e6f1eb, #2a4339);
+  --error: light-dark(#a13635, #ffb8b4);
+  --error-soft: light-dark(#fbe9e8, #4a2726);
+  --warn: light-dark(#855b17, #e5c68b);
+  --warn-soft: light-dark(#fbf1df, #3e3422);
+  --shadow: light-dark(#17332b14, #00000030);
+
+  --night: #183b3e;
+  --night-hover: #254d4e;
+  --night-muted: #b6cdca;
+  --night-line: #406064;
+  --lime: #e8efab;
+  --lime-hover: #f3f6ca;
+
+  --font: 'Manrope Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --heading-xl: 52px;
+
+  --radius-control: 8px;
+  --radius-surface: 12px;
+  --radius-panel: 16px;
+
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--page);
+  -webkit-text-size-adjust: 100%;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--page);
+  color: var(--ink);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  letter-spacing: -1px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 20px;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+img,
+svg {
+  display: block;
+}
+
+::selection {
+  background: var(--lime);
+  color: var(--night);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Visible focus for keyboard users everywhere; on dark brand panels it switches to citron. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.on-dark :focus-visible {
+  outline-color: var(--lime);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link: first focusable element on every page. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--night);
+  color: #fff;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+/* Buttons and button-styled links ------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--soft);
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--night);
+  color: #fff;
+  box-shadow: 0 3px 7px var(--shadow);
+}
+
+.btn-primary:hover {
+  background: var(--night-hover);
+}
+
+.btn-lime {
+  background: var(--lime);
+  color: var(--night);
+  white-space: nowrap;
+}
+
+.btn-lime:hover {
+  background: var(--lime-hover);
+}
+
+.btn-secondary {
+  background: var(--paper);
+  border-color: var(--line);
+}
+
+.btn-link {
+  min-height: 32px;
+  padding: 0 2px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.btn-link:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Forms ------------------------------------------------------------------------------------ */
+
+.field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field-hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  caret-color: var(--accent);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.field-error,
+.form-error {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--error);
+}
+
+.form-stack {
+  display: grid;
+  gap: 18px;
+}
+
+/* Surfaces ---------------------------------------------------------------------------------- */
+
+.surface {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+}
+
+.note {
+  padding: 13px 14px;
+  border-radius: var(--radius-control);
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Marks content that is not connected to real data, so a preview is never mistaken for it. */
+.mock-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px dashed var(--warn);
+  border-radius: var(--radius-control);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Phones: 16px editable text prevents iOS zoom; touch screens get 44px targets everywhere. */
+@media (max-width: 600px) {
+  .input {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .btn-link {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .input {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn {
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+  }
+}
