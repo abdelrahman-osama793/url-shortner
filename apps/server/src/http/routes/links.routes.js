@@ -1,4 +1,5 @@
 import {
+  AnalyticsQuerySchema,
   GUEST_CREATE_CHALLENGE_ACTION,
   GuestCreateLinkRequestSchema,
   ListLinksQuerySchema,
@@ -24,6 +25,7 @@ const anonymousOnly = (req, _res, next) => next(req.session?.userId ? 'route' : 
 //   GET   /api/v1/links          the owner's links, newest first, cursor-paginated
 //   GET   /api/v1/links/:id      one owned link + ETag (others' links are 404)
 //   PATCH /api/v1/links/:id      destination / expiry / enabled; needs If-Match
+//   GET   /api/v1/links/:id/analytics  owner-only aggregates for a UTC date range
 //
 // Every /api/v1/links request loads the session and, for writes, checks CSRF first: a stale or
 // unknown session cookie fails there and is never treated as a guest.
@@ -68,6 +70,14 @@ export function createLinksRouter({ controller, guards, limiter, challengeGuard 
   );
 
   router.get('/api/v1/links/:id', guards.user, rateLimit(limiter, 'memberRead', byUser), controller.getOwnedLink);
+
+  router.get(
+    '/api/v1/links/:id/analytics',
+    guards.user,
+    rateLimit(limiter, 'memberRead', byUser),
+    validateQuery(AnalyticsQuerySchema),
+    controller.getLinkAnalytics,
+  );
 
   router.patch(
     '/api/v1/links/:id',

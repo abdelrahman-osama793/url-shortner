@@ -57,6 +57,9 @@ const EnvSchema = z.object({
   ANALYTICS_QUEUE_CAP: z.coerce.number().int().min(1).max(10_000_000).default(50_000),
   ANALYTICS_PUBLISH_TIMEOUT_MS: z.coerce.number().int().min(1).max(5000).default(20),
 
+  // How long daily aggregates are kept (provisional 12 months; not an approved requirement).
+  AGGREGATE_RETENTION_DAYS: z.coerce.number().int().min(90).max(3650).default(365),
+
   // Header carrying the visitor's country, set by a trusted edge proxy (e.g. cf-ipcountry). Only
   // configure it behind a proxy that overwrites the header; otherwise visitors could forge it.
   TRUSTED_COUNTRY_HEADER: z.preprocess(
@@ -142,6 +145,7 @@ export function loadConfig(env = process.env) {
       queueCap: vars.ANALYTICS_QUEUE_CAP,
       publishTimeoutMs: vars.ANALYTICS_PUBLISH_TIMEOUT_MS,
       countryHeader: vars.TRUSTED_COUNTRY_HEADER ?? null,
+      aggregateRetentionDays: vars.AGGREGATE_RETENTION_DAYS,
     }),
     google: Object.freeze({
       clientId: vars.GOOGLE_CLIENT_ID ?? null,

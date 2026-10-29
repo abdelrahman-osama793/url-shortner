@@ -32,7 +32,8 @@ function idempotencyKeyOf(req) {
   return key;
 }
 
-export function createLinksController({ linkService }) {
+// `analyticsQuery` serves GET /api/v1/links/:id/analytics.
+export function createLinksController({ linkService, analyticsQuery }) {
   // 201 with { code, shortUrl, expiresAt } only: no id, Location or ETag, so guests get no
   // handle to manage the link (decision D04).
   async function createGuestLink(req, res) {
@@ -80,5 +81,15 @@ export function createLinksController({ linkService }) {
     res.set('ETag', etagOf(link)).json(link);
   }
 
-  return { createGuestLink, createOwnedLink, listOwnedLinks, getOwnedLink, updateOwnedLink };
+  async function getLinkAnalytics(req, res) {
+    const analytics = await analyticsQuery.getLinkAnalytics({
+      ownerId: req.user.id,
+      linkId: req.params.id,
+      ...req.validatedQuery,
+    });
+
+    res.json(analytics);
+  }
+
+  return { createGuestLink, createOwnedLink, listOwnedLinks, getOwnedLink, updateOwnedLink, getLinkAnalytics };
 }

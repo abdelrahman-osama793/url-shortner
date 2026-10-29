@@ -268,6 +268,15 @@ One server package with two entry points (modular monolith), not separate servic
 - Known gap (T22): an entry acknowledged but not yet deleted (crash between `XACK` and `XDEL`) stays in the stream unprocessed and unpending; a janitor will trim it.
 - **Local testing lesson**: `docker compose start <service>` also starts a stopped dependency (the worker depends on PostgreSQL), which silently ended a simulated outage. Use `docker compose up -d --no-deps <service>` for outage checks. Also, dev containers run `node --watch` on the mounted source, so editing `worker.js` restarts the running worker immediately.
 
+### Owner analytics API (T21)
+
+- `GET /api/v1/links/:id/analytics?from=&to=` in `links.routes.js` (`user` guard, `memberRead` limit, `AnalyticsQuerySchema`) → `links.controller.getLinkAnalytics` → `analytics-query.service.js` → `analytics.repository.js`.
+- **Range**: UTC dates, `from` inclusive, `to` exclusive. The default is `[today − 29, today + 1)`, i.e. 30 dates including today. Invalid when `from >= to`, the span exceeds 90 days, or `from` is earlier than `today − (AGGREGATE_RETENTION_DAYS − 1)` (provisional 365). "Today" comes from the server clock (injectable for tests).
+- **Snapshot**: ownership check, lifetime total, daily totals and breakdowns are read in one `REPEATABLE READ READ ONLY` transaction, so totals and breakdowns cannot come from different moments. This is the one place this isolation level is used; redirects stay at READ COMMITTED.
+- **Shape**: `rangeClicks` is the sum of the zero-filled `daily` list (dimension `total`). Breakdowns are SQL `sum()` per bucket, sorted by clicks then name; each adds up to `rangeClicks` because the worker increments every dimension once per event. Referrers: top 20 named hosts, then one `other` entry summing the rest **plus** the worker's stored `other` bucket; `direct_or_unknown` is a regular entry. All counters stay strings end to end (PostgreSQL `::text`, `BigInt` sums); tested with 9,007,199,254,740,993.
+- `lastUpdatedAt` = `link_totals.updated_at` (null for a link never clicked). `pipeline` is `{ status: 'unknown', heartbeatAt: null, oldestPendingAt: null }` until T22 supplies real worker health through the injected `getPipelineStatus`. `approximate` is always `true`.
+- Not the owner, a guest link, an unknown id or a malformed id → 404.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

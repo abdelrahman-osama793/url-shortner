@@ -26,6 +26,7 @@ import { onShutdown, runMain } from './lifecycle.js';
 import { createChallengeGuard, createDevChallengeVerifier } from './modules/abuse/challenge.service.js';
 import { createRateLimiter } from './modules/abuse/rate-limit.service.js';
 import { createAccountService } from './modules/accounts/accounts.service.js';
+import { createAnalyticsQueryService } from './modules/analytics/analytics-query.service.js';
 import { createClickCaptureService } from './modules/analytics/click-capture.service.js';
 import { createGoogleAttemptsService } from './modules/accounts/google-attempts.service.js';
 import { createGoogleIdentityService } from './modules/accounts/google-identity.service.js';
@@ -74,6 +75,7 @@ async function main() {
   const limiter = createRateLimiter({ redis, secret: config.rateLimit.secret, policies: config.rateLimit.policies });
   const linkService = createLinkService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger });
   const redirectService = createRedirectService({ pool });
+  const analyticsQuery = createAnalyticsQueryService({ pool, retentionDays: config.analytics.aggregateRetentionDays });
   const clickCapture = createClickCaptureService({
     redis,
     queueCap: config.analytics.queueCap,
@@ -100,7 +102,7 @@ async function main() {
       controller: createRedirectsController({ redirectService, clickCapture, countryHeader: config.analytics.countryHeader }),
     }),
     createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
-    createLinksRouter({ controller: createLinksController({ linkService }), guards, limiter, challengeGuard }),
+    createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
   ];
 
   if (config.google.clientId) {

@@ -838,6 +838,84 @@
         }
       }
     },
+    "/api/v1/links/{id}/analytics": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "from",
+          "in": "query",
+          "required": false,
+          "description": "UTC date, inclusive. Default: 29 days before today.",
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "to",
+          "in": "query",
+          "required": false,
+          "description": "UTC date, exclusive. Default: tomorrow. At most 90 days after from.",
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Owner analytics: lifetime and range totals, zero-filled daily counts, country/device/referrer breakdowns (each adds up to rangeClicks; top 20 referrers plus \"other\"). Counters are decimal strings; counts are approximate.",
+        "responses": {
+          "200": {
+            "description": "Analytics for the range, read from one consistent snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkAnalytics"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: bad date, from not before to, more than 90 days, or older than aggregate retention.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or a guest link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/r/{code}": {
       "get": {
         "summary": "Public redirect (HEAD behaves the same with no body)",
@@ -1494,6 +1572,196 @@
           "effectiveStatus",
           "version",
           "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "LinkAnalytics": {
+        "type": "object",
+        "properties": {
+          "linkId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "UTC"
+          },
+          "totalClicks": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "rangeClicks": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "clicks": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "required": [
+                "date",
+                "clicks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "country": {
+                  "type": "string"
+                },
+                "clicks": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "required": [
+                "country",
+                "clicks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "string"
+                },
+                "clicks": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "required": [
+                "device",
+                "clicks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "referrers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "host": {
+                  "type": "string"
+                },
+                "clicks": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "required": [
+                "host",
+                "clicks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "lastUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pipeline": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "delayed",
+                  "degraded",
+                  "unknown"
+                ]
+              },
+              "heartbeatAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "oldestPendingAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "heartbeatAt",
+              "oldestPendingAt"
+            ],
+            "additionalProperties": false
+          },
+          "approximate": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "linkId",
+          "from",
+          "to",
+          "timezone",
+          "totalClicks",
+          "rangeClicks",
+          "daily",
+          "countries",
+          "devices",
+          "referrers",
+          "lastUpdatedAt",
+          "pipeline",
+          "approximate"
         ],
         "additionalProperties": false
       },

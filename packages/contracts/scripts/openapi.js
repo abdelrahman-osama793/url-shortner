@@ -37,6 +37,7 @@ const COMPONENT_SCHEMAS = {
   GuestCreateLinkResponse: contracts.GuestCreateLinkResponseSchema,
   RegisteredCreateLinkRequest: contracts.RegisteredCreateLinkRequestSchema,
   Link: contracts.LinkSchema,
+  LinkAnalytics: contracts.LinkAnalyticsSchema,
   LinkListResponse: contracts.LinkListResponseSchema,
   UpdateLinkRequest: contracts.UpdateLinkRequestSchema,
 };
@@ -271,6 +272,22 @@ function buildDocument() {
             404: jsonResponse('Not found, or not yours.', 'ErrorEnvelope'),
             412: jsonResponse('PRECONDITION_FAILED: the link changed since that version; reload and retry.', 'ErrorEnvelope'),
             428: jsonResponse('PRECONDITION_REQUIRED: If-Match missing or malformed.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/links/{id}/analytics': {
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'from', in: 'query', required: false, description: 'UTC date, inclusive. Default: 29 days before today.', schema: { type: 'string', format: 'date' } },
+          { name: 'to', in: 'query', required: false, description: 'UTC date, exclusive. Default: tomorrow. At most 90 days after from.', schema: { type: 'string', format: 'date' } },
+        ],
+        get: {
+          summary: 'Owner analytics: lifetime and range totals, zero-filled daily counts, country/device/referrer breakdowns (each adds up to rangeClicks; top 20 referrers plus "other"). Counters are decimal strings; counts are approximate.',
+          responses: {
+            200: jsonResponse('Analytics for the range, read from one consistent snapshot.', 'LinkAnalytics'),
+            400: jsonResponse('VALIDATION_FAILED: bad date, from not before to, more than 90 days, or older than aggregate retention.', 'ErrorEnvelope'),
+            401: jsonResponse('AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            404: jsonResponse('Not found, not yours, or a guest link.', 'ErrorEnvelope'),
           },
         },
       },
