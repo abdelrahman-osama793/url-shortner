@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14 and T17, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links and follow them, people can sign up, verify their email, sign in and reset their password, and signed-in users can manage their own links, all through the API (no web UI yet). The repository currently contains the project scaffold, the local Docker environment, the database schema and the shared API conventions (validation, errors, logging, health checks) the link domain at the service level, Redis-backed rate limits with a development-only challenge, working public redirects (`/r/{code}`), and browser sessions with CSRF protection. guest link creation over HTTP (`POST /api/v1/links`). email/password sign-up with email verification, sign-in and password reset. signed-in users can create, list, edit, disable and re-enable their own links. There is no web UI yet (T23) (tasks T01–T14, T17–T18, verified; T15 awaiting a real Google sign-in). Links, redirects, authentication, analytics and the product UI are designed but **not implemented yet**. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -174,6 +174,8 @@ The response headers include `ETag: "v1"` and the body includes the link's `id`.
 curl -s -b cookies.txt -X PATCH http://localhost:3000/api/v1/links/PASTE_ID -H 'Origin: http://localhost:4200' -H 'Content-Type: application/json' -H 'X-CSRF-Token: PASTE_NEW_TOKEN' -H 'If-Match: "v1"' -d '{"destinationUrl":"https://example.org/"}'
 ```
 
+Add `-H 'Idempotency-Key: <any UUID>'` to the create request to make it safe to retry: repeating it with the same key returns the same link (with `Idempotent-Replayed: true`) instead of creating another; the same key with a different body returns `409`.
+
 `http://localhost:3000/r/my-wiki` now redirects to the new destination. Sending `"v1"` again returns `412` (someone changed it since); leaving out `If-Match` returns `428`. `{"enabled":false}` disables the link (`410` on redirect) and `{"enabled":true}` re-enables it.
 
 Forgot your password? `POST /api/v1/auth/password/forgot` with `{"email":"…"}` sends a "Reset your Shortlist password" email to Mailpit. Then `POST /api/v1/auth/password/reset` with `{"token":"…","newPassword":"…"}`, using the token from that email's link. Every session signed in before the reset stops working.
@@ -259,7 +261,7 @@ apps/server/src/
     routes/<feature>.routes.js    paths + middleware chain + controller method, nothing else
     controllers/<feature>.controller.js   request → service call → response
     middleware/                   reusable checks: session, CSRF, rate limit, validation, errors
-  modules/<feature>/
+  modules/<feature>/             accounts, links, sessions, email, abuse, idempotency
     <name>.service.js             business rules and transactions
     <name>.repository.js          SQL only
     <name>.presenter.js           database row → API response shape
@@ -340,7 +342,7 @@ Planning follows a 39-task backlog across eight milestones:
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
-| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14 and T17 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management); T15 Google sign-in built, awaiting the real-account check |
+| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in built, awaiting the real-account check |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | Not started |
 | E. Angular product UI | Public, auth, workspace and analytics screens | Not started |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |

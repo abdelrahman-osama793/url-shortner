@@ -4,10 +4,10 @@ import { after, before, describe, test } from 'node:test';
 
 import { LinkListResponseSchema, LinkSchema } from '@shortlist/contracts';
 
-import { SESSION_COOKIE } from '../../src/http/middleware/session.js';
 import { startTestApi } from '../support/api.js';
 import { newBrowser } from '../support/browser.js';
 import { createMigratedDatabase } from '../support/database.js';
+import { signedInOwner } from '../support/owners.js';
 import { createTestRedis } from '../support/redis.js';
 
 const HOUR = 60 * 60 * 1000;
@@ -35,27 +35,8 @@ after(async () => {
   await database.drop();
 });
 
-// A signed-in browser for a synthetic account created directly in the database. Only tests do
-// this; real accounts come from sign-up and sign-in.
-async function signedInOwner({ verified = true, server = api.server, sessions = api.sessionService } = {}) {
-  const email = `${randomUUID()}@example.com`;
-
-  const { rows } = await database.pool.query(
-    `INSERT INTO users (email, email_normalized, email_verified_at)
-     VALUES ($1, $1, $2)
-     RETURNING id, role, session_version`,
-    [email, verified ? new Date() : null],
-  );
-
-  const user = { id: rows[0].id, role: rows[0].role, sessionVersion: rows[0].session_version };
-  const { token, session } = await sessions.rotate(null, user);
-  const browser = await newBrowser(server);
-
-  browser.cookie = `${SESSION_COOKIE}=${token}`;
-  browser.csrfToken = session.csrfToken;
-  browser.userId = user.id;
-
-  return browser;
+function newOwner(options = {}) {
+  return signedInOwner({ database, api, ...options });
 }
 
 async function create(browser, body = {}) {
@@ -84,7 +65,7 @@ async function follow(browser, code) {
 
 describe('creating owned links', () => {
   test('a verified user gets the full link, a Location and a version ETag', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const expiresAt = new Date(Date.now() + 24 * HOUR).toISOString();
     const alias = `my-${randomUUID().slice(0, 8)}`;
 
@@ -102,20 +83,20 @@ describe('creating owned links', () => {
   });
 
   test('without an alias the code is generated and the link never expires (D10)', async () => {
-    const { link } = await create(await signedInOwner());
+    const { link } = await create(await newOwner());
 
     assert.match(link.code, /^[0-9A-Za-z]{8}$/);
     assert.equal(link.expiresAt, null);
   });
 
   test('taken and reserved aliases get the same 409', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const alias = `taken-${randomUUID().slice(0, 8)}`;
 
     await create(owner, { customAlias: alias });
 
     for (const customAlias of [alias, 'admin']) {
-      const { response } = await create(await signedInOwner(), { customAlias });
+      const { response } = await create(await newOwner(), { customAlias });
 
       assert.equal(response.status, 409, customAlias);
       assert.equal((await errorOf(response)).code, 'ALIAS_UNAVAILABLE');
@@ -123,7 +104,7 @@ describe('creating owned links', () => {
   });
 
   test('cannot assign an owner, set enabled or use a past expiry', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
 
     for (const extra of [{ ownerId: randomUUID() }, { enabled: false }]) {
       const { response } = await create(owner, extra);
@@ -138,7 +119,7 @@ describe('creating owned links', () => {
   });
 
   test('an unverified account is refused', async () => {
-    const { response } = await create(await signedInOwner({ verified: false }));
+    const { response } = await create(await newOwner({ verified: false }));
 
     assert.equal(response.status, 403);
     assert.equal((await errorOf(response)).code, 'EMAIL_NOT_VERIFIED');
@@ -152,7 +133,7 @@ describe('creating owned links', () => {
     });
 
     try {
-      const owner = await signedInOwner({ server: limited.server, sessions: limited.sessionService });
+      const owner = await signedInOwner({ database, api: limited });
       const statuses = [];
 
       for (let i = 0; i < 3; i += 1) statuses.push((await create(owner)).response.status);
@@ -166,8 +147,8 @@ describe('creating owned links', () => {
 
 describe('listing owned links', () => {
   test('pages through every link exactly once, newest first, and only the owner\'s', async () => {
-    const owner = await signedInOwner();
-    const someoneElse = await signedInOwner();
+    const owner = await newOwner();
+    const someoneElse = await newOwner();
 
     await create(someoneElse);
 
@@ -191,7 +172,7 @@ describe('listing owned links', () => {
   });
 
   test('links created in the same instant are neither skipped nor repeated', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const sameInstant = '2026-10-29 12:00:00.123456+00';
 
     const ids = [];
@@ -221,7 +202,7 @@ describe('listing owned links', () => {
   });
 
   test('cursors cannot be edited or used by another account', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
 
     for (let i = 0; i < 3; i += 1) await create(owner);
 
@@ -231,7 +212,7 @@ describe('listing owned links', () => {
 
     assert.equal((await owner.request(`/api/v1/links?cursor=${encodeURIComponent(tampered)}`)).status, 400);
 
-    const intruder = await signedInOwner();
+    const intruder = await newOwner();
     const reused = await intruder.request(`/api/v1/links?cursor=${encodeURIComponent(nextCursor)}`);
 
     assert.equal(reused.status, 400);
@@ -239,7 +220,7 @@ describe('listing owned links', () => {
   });
 
   test('page size is between 1 and 100', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
 
     assert.equal((await owner.request('/api/v1/links?limit=101')).status, 400);
     assert.equal((await owner.request('/api/v1/links?limit=0')).status, 400);
@@ -255,7 +236,7 @@ describe('listing owned links', () => {
 
 describe('reading one link', () => {
   test('the owner gets it with its ETag; everyone else gets 404', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
     const guestLink = await (await (await newBrowser(api.server)).post('/api/v1/links', { destinationUrl: 'https://example.com' })).json();
 
@@ -267,7 +248,7 @@ describe('reading one link', () => {
     const { rows } = await database.pool.query('SELECT id FROM links WHERE code = $1', [guestLink.code]);
 
     for (const id of [link.id, rows[0].id, randomUUID(), 'not-a-uuid']) {
-      const viewer = id === link.id ? await signedInOwner() : owner;
+      const viewer = id === link.id ? await newOwner() : owner;
 
       assert.equal((await viewer.request(`/api/v1/links/${id}`)).status, 404, id);
     }
@@ -276,7 +257,7 @@ describe('reading one link', () => {
 
 describe('editing owned links', () => {
   test('a destination change applies to the very next redirect (D12) and bumps the version', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     const response = await patch(owner, link.id, { destinationUrl: 'https://example.org/updated' }, '"v1"');
@@ -290,7 +271,7 @@ describe('editing owned links', () => {
   });
 
   test('If-Match is required: missing or malformed is 428', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     for (const ifMatch of [undefined, 'v1', '"1"', 'W/"v1"', '*']) {
@@ -302,7 +283,7 @@ describe('editing owned links', () => {
   });
 
   test('a stale version is 412 and changes nothing', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     await patch(owner, link.id, { destinationUrl: 'https://example.org/first' }, '"v1"');
@@ -315,7 +296,7 @@ describe('editing owned links', () => {
   });
 
   test('concurrent edits from the same version: exactly one wins', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     const responses = await Promise.all(Array.from({ length: 10 }, (_, i) => patch(owner, link.id, { destinationUrl: `https://example.org/${i}` }, '"v1"')));
@@ -326,14 +307,14 @@ describe('editing owned links', () => {
   });
 
   test('someone else\'s link is 404, even with the right version', async () => {
-    const { link } = await create(await signedInOwner());
-    const intruder = await signedInOwner();
+    const { link } = await create(await newOwner());
+    const intruder = await newOwner();
 
     assert.equal((await patch(intruder, link.id, { destinationUrl: 'https://evil.example' }, '"v1"')).status, 404);
   });
 
   test('disable and re-enable take effect on the next redirect', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     const disabled = await (await patch(owner, link.id, { enabled: false }, '"v1"')).json();
@@ -349,7 +330,7 @@ describe('editing owned links', () => {
   });
 
   test('enabling never overrides an admin block or an expiry', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const blocked = (await create(owner)).link;
     const expired = (await create(owner)).link;
 
@@ -371,7 +352,7 @@ describe('editing owned links', () => {
   });
 
   test('expiry must be in the future; destination rules still apply', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     const past = await patch(owner, link.id, { expiresAt: new Date(Date.now() - HOUR).toISOString() }, '"v1"');
@@ -383,7 +364,7 @@ describe('editing owned links', () => {
   });
 
   test('code, alias and owner cannot be edited, and an empty change is refused', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     for (const body of [{ code: 'renamed' }, { customAlias: 'renamed' }, { ownerId: randomUUID() }, {}]) {
@@ -392,7 +373,7 @@ describe('editing owned links', () => {
   });
 
   test('edits need the CSRF token', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     owner.csrfToken = null;
@@ -401,7 +382,7 @@ describe('editing owned links', () => {
   });
 
   test('a suspended owner can no longer list or edit', async () => {
-    const owner = await signedInOwner();
+    const owner = await newOwner();
     const { link } = await create(owner);
 
     await database.pool.query("UPDATE users SET status = 'suspended' WHERE id = $1", [owner.userId]);

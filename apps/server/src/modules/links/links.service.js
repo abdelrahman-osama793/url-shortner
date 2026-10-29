@@ -2,6 +2,7 @@ import { ALIAS_PATTERN, ERROR_CODES, GUEST_LINK_LIFETIME_DAYS } from '@shortlist
 
 import { AppError, notFoundError, validationError } from '../../errors.js';
 import { withTransaction } from '../../infra/postgres.js';
+import { hashRequest, runOnce } from '../idempotency/idempotency.service.js';
 
 import { generateCode as generateRandomCode } from './rules/codes.js';
 import { createCursorCodec } from './rules/cursor.js';
@@ -121,34 +122,75 @@ export function createLinkService({
     return toGuestLinkResource(row, { publicBaseUrl });
   }
 
+  // Validates an owner's request and returns the checked values, before any transaction starts.
+  function checkOwnedRequest({ destinationUrl, customAlias, expiresAt }, now) {
+    return {
+      destination: checkDestination(destinationUrl),
+      alias: checkAlias(customAlias),
+      expiry: checkExpiry(expiresAt, now),
+    };
+  }
+
+  // Allocates the code and inserts the link inside the caller's transaction. Returns the row.
+  async function insertOwnedLink(client, { ownerId, destination, alias, expiry }) {
+    const insert = (code) => repository.insertOwnedLink(client, {
+      ownerId,
+      code,
+      isCustomAlias: alias !== null,
+      destinationUrl: destination,
+      expiresAt: expiry,
+    });
+
+    const linkId = alias !== null
+      ? await allocate(client, alias, insert)
+      : await allocateGeneratedCode(client, insert);
+
+    if (!linkId) throw aliasUnavailable();
+
+    return repository.findLinkById(client, linkId);
+  }
+
   // Registered owners: optional custom alias and optional future expiry (D02, D10).
   // `ownerId` must come from an authenticated session (T11/T17), never from request input.
   async function createOwnedLink({ ownerId, destinationUrl, customAlias, expiresAt }) {
     const now = clock();
-    const destination = checkDestination(destinationUrl);
-    const alias = checkAlias(customAlias);
-    const expiry = checkExpiry(expiresAt, now);
-    const isCustomAlias = alias !== null;
+    const checked = checkOwnedRequest({ destinationUrl, customAlias, expiresAt }, now);
 
-    const row = await withTransaction(pool, async (client) => {
-      const insert = (code) => repository.insertOwnedLink(client, {
-        ownerId,
-        code,
-        isCustomAlias,
-        destinationUrl: destination,
-        expiresAt: expiry,
-      });
-
-      const linkId = isCustomAlias
-        ? await allocate(client, alias, insert)
-        : await allocateGeneratedCode(client, insert);
-
-      if (!linkId) throw aliasUnavailable();
-
-      return repository.findLinkById(client, linkId);
-    }, { logger });
+    const row = await withTransaction(pool, (client) => insertOwnedLink(client, { ownerId, ...checked }), { logger });
 
     return toLinkResource(row, { publicBaseUrl, now });
+  }
+
+  // Like createOwnedLink, but retry-safe when an Idempotency-Key is given (T18): the link and
+  // the record of its 201 response commit together, and a retry with the same key and request
+  // gets that original response back. Returns { response: { status, body, etag }, replayed }.
+  async function createOwnedLinkOnce({ ownerId, idempotencyKey, destinationUrl, customAlias, expiresAt }) {
+    if (!idempotencyKey) {
+      const link = await createOwnedLink({ ownerId, destinationUrl, customAlias, expiresAt });
+
+      return { replayed: false, response: { status: 201, body: link, etag: `"v${link.version}"` } };
+    }
+
+    const now = clock();
+    const checked = checkOwnedRequest({ destinationUrl, customAlias, expiresAt }, now);
+
+    const requestHash = hashRequest({
+      destinationUrl: checked.destination,
+      customAlias: checked.alias,
+      expiresAt: checked.expiry ? checked.expiry.toISOString() : null,
+    });
+
+    return withTransaction(pool, (client) => runOnce(client, {
+      userId: ownerId,
+      key: idempotencyKey,
+      requestHash,
+      execute: async (transaction) => {
+        const row = await insertOwnedLink(transaction, { ownerId, ...checked });
+        const link = toLinkResource(row, { publicBaseUrl, now });
+
+        return { linkId: link.id, response: { status: 201, body: link, etag: `"v${link.version}"` } };
+      },
+    }), { logger });
   }
 
   // Reserves a code (forbidden word or tombstone). Uses the same lock as allocation, so a
@@ -223,5 +265,5 @@ export function createLinkService({
     return toLinkResource(row, { publicBaseUrl, now });
   }
 
-  return { createGuestLink, createOwnedLink, listOwnedLinks, getOwnedLink, updateOwnedLink, reserveCode };
+  return { createGuestLink, createOwnedLink, createOwnedLinkOnce, listOwnedLinks, getOwnedLink, updateOwnedLink, reserveCode };
 }

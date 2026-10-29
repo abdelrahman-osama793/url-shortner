@@ -237,6 +237,15 @@ One server package with two entry points (modular monolith), not separate servic
 - New policies: `linkUpdate` (60/min per user); reads use `memberRead`; creation uses `registeredCreate` (user + network).
 - `validateQuery()` stores the parsed query in `req.validatedQuery` because `req.query` is read-only in Express 5.
 
+### Retry-safe creation (T18)
+
+- Generic module `modules/idempotency/`: `runOnce(client, { userId, key, requestHash, execute })` takes `pg_advisory_xact_lock(1003, hashtext(user:key))`, then replays an unexpired record (same hash) or answers 409 `IDEMPOTENCY_KEY_REUSED` (different hash). Otherwise it deletes an expired record, runs `execute(client)` and inserts the record **in the same transaction** as the link. Concurrent retries queue on the lock and replay the winner's response.
+- The request hash is SHA-256 of canonical JSON of the **validated** request (`destinationUrl`, alias or null, expiry as ISO or null). Property order and explicit nulls do not change it.
+- The stored snapshot (status 201, body, ETag) is replayed even after later edits, with `Idempotent-Replayed: true`; a GET shows current state. Only successes are stored, so a failed attempt is re-executed on retry. Retention is 24 h (`expires_at`); expired rows are replaced on reuse and will be purged by maintenance (T22).
+- Key format: 1-255 visible ASCII characters, otherwise 400 on field `Idempotency-Key`. The primary key `(user_id, key)` keeps accounts apart. Guests' keys are ignored (v1 contract: guest retries may create distinct links).
+- Retries still consume the `registeredCreate` quota, since the rate limit runs before the replay lookup. This is acceptable for normal retry counts and avoids a database read for every throttled request.
+- `links.service.js` split creation into `checkOwnedRequest` (validation, before the transaction) and `insertOwnedLink(client)` (allocation inside the caller's transaction); `createOwnedLinkOnce` wraps it.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

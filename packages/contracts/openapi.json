@@ -568,6 +568,19 @@
     },
     "/api/v1/links": {
       "post": {
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Account holders only (ignored for guests): 1-255 visible ASCII characters, e.g. a UUID. The same key and request within 24 hours returns the original 201 with Idempotent-Replayed: true.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
         "summary": "Create a link. Anonymous (guest) session: generated code, 7-day expiry, body GuestCreateLinkRequest, no management handle. Signed-in verified account: body RegisteredCreateLinkRequest (optional alias and expiry), full Link with Location and ETag. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
         "requestBody": {
           "required": true,
@@ -625,7 +638,7 @@
             }
           },
           "409": {
-            "description": "ALIAS_UNAVAILABLE (taken or reserved; same answer).",
+            "description": "ALIAS_UNAVAILABLE (taken or reserved; same answer), or IDEMPOTENCY_KEY_REUSED (same key, different request).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1293,6 +1306,7 @@
           "METHOD_NOT_ALLOWED",
           "LINK_INACTIVE",
           "ALIAS_UNAVAILABLE",
+          "IDEMPOTENCY_KEY_REUSED",
           "SERVICE_UNAVAILABLE",
           "INTERNAL_ERROR"
         ]

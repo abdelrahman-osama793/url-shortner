@@ -209,6 +209,13 @@ function buildDocument() {
       },
       '/api/v1/links': {
         post: {
+          parameters: [{
+            name: 'Idempotency-Key',
+            in: 'header',
+            required: false,
+            description: 'Account holders only (ignored for guests): 1-255 visible ASCII characters, e.g. a UUID. The same key and request within 24 hours returns the original 201 with Idempotent-Replayed: true.',
+            schema: { type: 'string', minLength: 1, maxLength: 255 },
+          }],
           summary: `Create a link. Anonymous (guest) session: generated code, 7-day expiry, body GuestCreateLinkRequest, no management handle. Signed-in verified account: body RegisteredCreateLinkRequest (optional alias and expiry), full Link with Location and ETag.${CSRF_NOTE}`,
           requestBody: {
             required: true,
@@ -229,7 +236,7 @@ function buildDocument() {
             },
             400: jsonResponse('VALIDATION_FAILED (fields listed; unknown fields rejected; expiry must be in the future), INVALID_JSON.', 'ErrorEnvelope'),
             403: jsonResponse('CSRF_INVALID, ORIGIN_NOT_ALLOWED, CHALLENGE_REQUIRED (guests; retry with challengeToken), EMAIL_NOT_VERIFIED or ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
-            409: jsonResponse('ALIAS_UNAVAILABLE (taken or reserved; same answer).', 'ErrorEnvelope'),
+            409: jsonResponse('ALIAS_UNAVAILABLE (taken or reserved; same answer), or IDEMPOTENCY_KEY_REUSED (same key, different request).', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED; Retry-After is set.', 'ErrorEnvelope'),
             503: jsonResponse('Redis or PostgreSQL unavailable; Retry-After is set.', 'ErrorEnvelope'),
           },
