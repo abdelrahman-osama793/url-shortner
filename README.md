@@ -357,7 +357,7 @@ Planning follows a 39-task backlog across eight milestones:
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **Done**: T11–T18 (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in (verified with a real Google account), T16 explicit Google linking and recent authentication |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
-| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23–T24 done (design system, layouts, light/dark, guest shortening); T25 auth screens (email and Google), T26 link management, T27 analytics, T28 account page (real Google link verified) |
+| E. Angular product UI | Public, auth, workspace and analytics screens | **Done**: T23–T28 (design system, guest shortening, auth screens with email and Google, link management, analytics, account page with a verified real Google link) |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | **In progress**: T29 public reporting done; next T30 admin APIs |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |
