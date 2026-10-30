@@ -42,7 +42,7 @@
   </div>
 } @else if (loadError(); as message) {
   <div class="state unavailable surface" role="alert">
-    <span class="mark warn"><app-icon name="info" /></span>
+    <span class="status-mark warn"><app-icon name="info" /></span>
     <h2>Analytics unavailable</h2>
     <p class="muted">{{ message }}</p>
     <button class="btn btn-secondary" type="button" (click)="refresh()">Try again</button>

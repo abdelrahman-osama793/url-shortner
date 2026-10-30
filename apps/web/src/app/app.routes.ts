@@ -1,22 +1,12 @@
 import { Routes } from '@angular/router';
 
 import { requireUser } from './core/auth/guards';
-import { AuthLayout } from './layouts/auth-layout';
 import { PublicLayout } from './layouts/public-layout';
-import { WorkspaceLayout } from './layouts/workspace-layout';
-import { CheckEmail } from './pages/auth/check-email';
-import { ForgotPassword } from './pages/auth/forgot-password';
-import { Login } from './pages/auth/login';
-import { ResetPassword } from './pages/auth/reset-password';
-import { Signup } from './pages/auth/signup';
-import { VerifyEmail } from './pages/auth/verify-email';
-import { AccountPage } from './pages/account/account';
-import { AnalyticsPage } from './pages/analytics/analytics';
 import { Home } from './pages/home';
-import { LinksPage } from './pages/links/links';
 import { NotFound } from './pages/not-found';
-import { ReportPage } from './pages/report/report';
 
+// Most visitors are guests who only shorten a link, so the first download holds just the public
+// layout and the home page. Sign-in, reporting and the workspace load when first visited.
 export const routes: Routes = [
   {
     path: '',
@@ -25,28 +15,48 @@ export const routes: Routes = [
       { path: '', component: Home, title: 'Shortlist — short links you control' },
       {
         path: '',
-        component: AuthLayout,
+        loadComponent: () => import('./layouts/auth-layout').then((m) => m.AuthLayout),
         children: [
-          { path: 'login', component: Login, title: 'Log in · Shortlist' },
-          { path: 'signup', component: Signup, title: 'Sign up · Shortlist' },
-          { path: 'signup/check-email', component: CheckEmail, title: 'Verify your email · Shortlist' },
-          { path: 'verify-email', component: VerifyEmail, title: 'Confirm your email · Shortlist' },
-          { path: 'forgot-password', component: ForgotPassword, title: 'Forgot password · Shortlist' },
-          { path: 'reset-password', component: ResetPassword, title: 'Choose a new password · Shortlist' },
+          { path: 'login', loadComponent: () => import('./pages/auth/login').then((m) => m.Login), title: 'Log in · Shortlist' },
+          { path: 'signup', loadComponent: () => import('./pages/auth/signup').then((m) => m.Signup), title: 'Sign up · Shortlist' },
+          {
+            path: 'signup/check-email',
+            loadComponent: () => import('./pages/auth/check-email').then((m) => m.CheckEmail),
+            title: 'Verify your email · Shortlist',
+          },
+          {
+            path: 'verify-email',
+            loadComponent: () => import('./pages/auth/verify-email').then((m) => m.VerifyEmail),
+            title: 'Confirm your email · Shortlist',
+          },
+          {
+            path: 'forgot-password',
+            loadComponent: () => import('./pages/auth/forgot-password').then((m) => m.ForgotPassword),
+            title: 'Forgot password · Shortlist',
+          },
+          {
+            path: 'reset-password',
+            loadComponent: () => import('./pages/auth/reset-password').then((m) => m.ResetPassword),
+            title: 'Choose a new password · Shortlist',
+          },
         ],
       },
-      { path: 'report', component: ReportPage, title: 'Report a link · Shortlist' },
+      { path: 'report', loadComponent: () => import('./pages/report/report').then((m) => m.ReportPage), title: 'Report a link · Shortlist' },
     ],
   },
   {
     path: 'app',
-    component: WorkspaceLayout,
+    loadComponent: () => import('./layouts/workspace-layout').then((m) => m.WorkspaceLayout),
     canActivate: [requireUser],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'links' },
-      { path: 'links', component: LinksPage, title: 'Your links · Shortlist' },
-      { path: 'analytics', component: AnalyticsPage, title: 'Analytics · Shortlist' },
-      { path: 'account', component: AccountPage, title: 'Account · Shortlist' },
+      { path: 'links', loadComponent: () => import('./pages/links/links').then((m) => m.LinksPage), title: 'Your links · Shortlist' },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./pages/analytics/analytics').then((m) => m.AnalyticsPage),
+        title: 'Analytics · Shortlist',
+      },
+      { path: 'account', loadComponent: () => import('./pages/account/account').then((m) => m.AccountPage), title: 'Account · Shortlist' },
     ],
   },
   {

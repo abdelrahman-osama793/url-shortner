@@ -38,7 +38,7 @@
           <span class="symbol"><app-icon name="link" /></span>
           <div class="info">
             <strong [id]="'link-' + link.id" tabindex="-1">{{ link.shortUrl }}</strong>
-            <a class="dest" [href]="link.destinationUrl" target="_blank" rel="noopener noreferrer">{{ link.destinationUrl }}</a>
+            <a class="dest" [href]="link.destinationUrl" target="_blank" rel="noopener noreferrer">{{ link.destinationUrl }}<span class="visually-hidden"> (opens in a new tab)</span></a>
             <span class="meta">
               @if (link.expiresAt) {
                 {{ link.effectiveStatus === 'expired' ? 'Expired' : 'Expires' }} {{ link.expiresAt | date: 'd MMM y' }}

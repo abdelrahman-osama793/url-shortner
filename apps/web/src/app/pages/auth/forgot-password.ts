@@ -12,7 +12,7 @@ import { Icon } from '../../shared/ui/icon';
   imports: [RouterLink, Icon],
   template: `
     @if (sent()) {
-      <div class="mark"><app-icon name="mail-check" /></div>
+      <div class="status-mark"><app-icon name="mail-check" /></div>
       <h1>Check your inbox</h1>
       <p class="auth-intro">
         If an account exists for <strong>{{ email().trim() }}</strong>, it will receive a password reset link.

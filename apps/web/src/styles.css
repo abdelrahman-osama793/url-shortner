@@ -32,6 +32,19 @@
   --night-line: #406064;
   --lime: #e8efab;
   --lime-hover: #f3f6ca;
+  --on-night: #fff;
+  --on-night-error: #ffccc7;
+  --night-field: #fff;
+  --night-field-placeholder: #657774;
+
+  /* The sample card in the home hero: an illustration, identical in both appearances. */
+  --sample-paper: #f8fbf5;
+  --sample-ink: #203b3e;
+  --sample-muted: #61706b;
+  --sample-line: #dfe6dc;
+  --sample-bar: #9bbb9e;
+  --sample-bar-strong: #386752;
+  --sample-shadow: #071f2433;
 
   --font: 'Manrope Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --heading-xl: 52px;
@@ -155,7 +168,7 @@ svg {
   padding: 10px 14px;
   border-radius: var(--radius-control);
   background: var(--night);
-  color: #fff;
+  color: var(--on-night);
   font-weight: 600;
 }
 
@@ -197,7 +210,7 @@ svg {
 
 .btn-primary {
   background: var(--night);
-  color: #fff;
+  color: var(--on-night);
   box-shadow: 0 3px 7px var(--shadow);
 }
 
@@ -370,7 +383,9 @@ svg {
   color: var(--muted);
 }
 
-.mark {
+/* Icon tile above a status heading (check your inbox, link expired, report sent). Named apart
+   from the logo's own .mark, which a global .mark would otherwise restyle. */
+.status-mark {
   display: grid;
   place-items: center;
   width: 52px;
@@ -381,7 +396,7 @@ svg {
   color: var(--accent);
 }
 
-.mark.warn {
+.status-mark.warn {
   background: var(--error-soft);
   color: var(--error);
 }
@@ -410,6 +425,14 @@ svg {
   .btn-link {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Standalone text links in the auth forms get the same tap height as buttons. */
+  .form-meta a,
+  .auth-switch a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   .input {

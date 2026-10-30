@@ -6,7 +6,7 @@
   padding: 45px 36px 32px;
   border-radius: var(--radius-panel);
   background: var(--night);
-  color: #fff;
+  color: var(--on-night);
 }
 
 .hero-grid {
@@ -39,9 +39,9 @@
   margin: 0;
   overflow: hidden;
   border-radius: var(--radius-surface);
-  background: #f8fbf5;
-  color: #203b3e;
-  box-shadow: 0 16px 35px #071f2433;
+  background: var(--sample-paper);
+  color: var(--sample-ink);
+  box-shadow: 0 16px 35px var(--sample-shadow);
   transform: rotate(2deg);
 }
 
@@ -50,7 +50,7 @@
   align-items: center;
   gap: 10px;
   padding: 18px 20px;
-  border-bottom: 1px solid #dfe6dc;
+  border-bottom: 1px solid var(--sample-line);
   font-size: 13px;
 }
 
@@ -66,12 +66,12 @@
   height: 34px;
   border-radius: 9px;
   background: var(--lime);
-  color: #29483d;
+  color: var(--sample-ink);
 }
 
 .example-url {
   overflow: hidden;
-  color: #61706b;
+  color: var(--sample-muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -82,7 +82,7 @@
 }
 
 .example-label {
-  color: #61706b;
+  color: var(--sample-muted);
   font-size: 12px;
 }
 
@@ -101,7 +101,7 @@
   justify-content: space-between;
   gap: 10px;
   padding-top: 15px;
-  border-top: 1px solid #dfe6dc;
+  border-top: 1px solid var(--sample-line);
 }
 
 .example-count {
@@ -120,11 +120,18 @@
 .spark span {
   width: 12px;
   border-radius: 3px 3px 0 0;
-  background: #9bbb9e;
+  background: var(--sample-bar);
 }
 
 .spark span:last-child {
-  background: #386752;
+  background: var(--sample-bar-strong);
+}
+
+/* Section headings under the page h1 (h2 for the outline), sized like the system's h3. */
+.features h2 {
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0;
 }
 
 .shorten {

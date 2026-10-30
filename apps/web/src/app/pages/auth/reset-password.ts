@@ -50,25 +50,25 @@ type State = 'form' | 'done' | 'expired' | 'used' | 'invalid';
         </form>
       }
       @case ('done') {
-        <div class="mark"><app-icon name="check" /></div>
+        <div class="status-mark"><app-icon name="check" /></div>
         <h1>Password reset complete</h1>
         <p class="auth-intro">You've been signed out everywhere. Log in with your new password.</p>
         <a class="btn btn-primary btn-block" routerLink="/login">Back to log in <app-icon name="arrow-right" /></a>
       }
       @case ('expired') {
-        <div class="mark warn"><app-icon name="clock" /></div>
+        <div class="status-mark warn"><app-icon name="clock" /></div>
         <h1>This link has expired</h1>
         <p class="auth-intro">Reset links last 30 minutes. Ask for a new one.</p>
         <a class="btn btn-primary btn-block" routerLink="/forgot-password">Request a new link</a>
       }
       @case ('used') {
-        <div class="mark warn"><app-icon name="info" /></div>
+        <div class="status-mark warn"><app-icon name="info" /></div>
         <h1>This link was already used</h1>
         <p class="auth-intro">Each reset link works once. If you didn't finish, ask for a new one.</p>
         <a class="btn btn-primary btn-block" routerLink="/forgot-password">Request a new link</a>
       }
       @default {
-        <div class="mark warn"><app-icon name="x" /></div>
+        <div class="status-mark warn"><app-icon name="x" /></div>
         <h1>This link isn't valid</h1>
         <p class="auth-intro">Make sure you opened the whole link from the email, or ask for a new one.</p>
         <a class="btn btn-primary btn-block" routerLink="/forgot-password">Request a new link</a>

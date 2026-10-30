@@ -13,7 +13,8 @@ import { Icon } from '../shared/ui/icon';
     <div class="auth">
       <aside class="story on-dark" aria-label="About Shortlist">
         <div>
-          <h2>Your links.<br />Your story.<br /><span>All in one place.</span></h2>
+          <!-- Decorative brand copy, not a heading: the form's h1 is the page's first heading. -->
+          <p class="story-title">Your links.<br />Your story.<br /><span>All in one place.</span></p>
           <p>A home for everything you share, from your next project to your everyday work.</p>
           <div class="example">
             <span>One memorable address</span>

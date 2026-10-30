@@ -22,18 +22,20 @@
   padding: 38px 30px;
   border-radius: 14px;
   background: var(--night);
-  color: #fff;
+  color: var(--on-night);
 }
 
-.story h2 {
+.story .story-title {
   max-width: 300px;
+  margin-top: 0;
+  color: inherit;
   font-size: 37px;
   font-weight: 600;
   letter-spacing: -1.1px;
   line-height: 1.17;
 }
 
-.story h2 span {
+.story .story-title span {
   color: var(--lime);
 }
 
@@ -100,7 +102,7 @@
     padding: 30px 23px;
   }
 
-  .story h2 {
+  .story .story-title {
     font-size: 31px;
   }
 

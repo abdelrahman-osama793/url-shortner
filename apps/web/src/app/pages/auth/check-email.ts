@@ -14,7 +14,7 @@ import { Icon } from '../../shared/ui/icon';
   selector: 'app-check-email',
   imports: [RouterLink, Icon],
   template: `
-    <div class="mark"><app-icon name="mail" /></div>
+    <div class="status-mark"><app-icon name="mail" /></div>
     <h1>Verify your email</h1>
     <p class="auth-intro">
       Open the verification link we sent

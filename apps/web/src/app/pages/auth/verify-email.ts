@@ -17,7 +17,7 @@ type State = 'ready' | 'verified' | 'expired' | 'used' | 'invalid';
   template: `
     @switch (state()) {
       @case ('ready') {
-        <div class="mark"><app-icon name="mail-check" /></div>
+        <div class="status-mark"><app-icon name="mail-check" /></div>
         <h1>Confirm your email</h1>
         <p class="auth-intro">One click and your account is ready to create links.</p>
         @if (formError(); as message) {
@@ -28,7 +28,7 @@ type State = 'ready' | 'verified' | 'expired' | 'used' | 'invalid';
         </button>
       }
       @case ('verified') {
-        <div class="mark"><app-icon name="badge-check" /></div>
+        <div class="status-mark"><app-icon name="badge-check" /></div>
         <h1>Email verified</h1>
         @if (session.signedIn()) {
           <p class="auth-intro">You're all set. Create your first link.</p>
@@ -39,19 +39,19 @@ type State = 'ready' | 'verified' | 'expired' | 'used' | 'invalid';
         }
       }
       @case ('expired') {
-        <div class="mark warn"><app-icon name="clock" /></div>
+        <div class="status-mark warn"><app-icon name="clock" /></div>
         <h1>This link has expired</h1>
         <p class="auth-intro">Verification links last 24 hours. Ask for a new one below.</p>
         <a class="btn btn-primary btn-block" routerLink="/signup/check-email">Send a new link</a>
       }
       @case ('used') {
-        <div class="mark warn"><app-icon name="info" /></div>
+        <div class="status-mark warn"><app-icon name="info" /></div>
         <h1>This link was already used</h1>
         <p class="auth-intro">If you verified your email with it, you can log in.</p>
         <a class="btn btn-primary btn-block" routerLink="/login">Log in</a>
       }
       @default {
-        <div class="mark warn"><app-icon name="x" /></div>
+        <div class="status-mark warn"><app-icon name="x" /></div>
         <h1>This link isn't valid</h1>
         <p class="auth-intro">Make sure you opened the whole link from the email, or ask for a new one.</p>
         <a class="btn btn-primary btn-block" routerLink="/signup/check-email">Send a new link</a>
