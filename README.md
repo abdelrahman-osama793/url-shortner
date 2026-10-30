@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links on the home page and follow them. People can sign up, verify their email, log in, reset their password and log out in the web app. Signed-in users can create, edit, copy, disable and re-enable their own links in the workspace, and see each link's click analytics (daily chart, countries, devices, referring sites, live freshness). Tasks T01–T14 and T17–T27 are done and verified, except the real Google sign-in check that T15 and T25 share. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links on the home page and follow them. People can sign up, verify their email, log in, reset their password and log out in the web app. Signed-in users can create, edit, copy, disable and re-enable their own links in the workspace, and see each link's click analytics (daily chart, countries, devices, referring sites, live freshness). People can also sign in with Google. Tasks T01–T15 and T17–T27 are done and verified. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -355,9 +355,9 @@ Planning follows a 39-task backlog across eight milestones:
 |---|---|---|
 | A. Local foundation | Baseline, scaffold, Docker, migrations, API conventions, CI | **Done**: T01–T06 |
 | B. Guest links and redirects | Code allocation, rate limits, guest creation, redirects | **Done**: T07–T10 (guest links can be created and followed) |
-| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in built, awaiting the real-account check |
+| C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **In progress**: T11–T14, T17–T18 done (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in (verified with a real Google account); T16 account linking next in this milestone |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
-| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23–T24 done (design system, layouts, light/dark, guest shortening); T25 auth screens (awaiting the real Google check), T26 link management, T27 analytics; next T28 |
+| E. Angular product UI | Public, auth, workspace and analytics screens | **In progress**: T23–T24 done (design system, layouts, light/dark, guest shortening); T25 auth screens (email and Google), T26 link management, T27 analytics; next T28 |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | Not started |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |
