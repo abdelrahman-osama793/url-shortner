@@ -19,7 +19,9 @@ import { PasswordField } from './password-field';
     <h1>Welcome back.</h1>
     <p class="auth-intro">Log in to pick up where you left off.</p>
 
-    @if (next()) {
+    @if (expired()) {
+      <p class="note" role="status">Your session has ended. Please log in again to continue where you were.</p>
+    } @else if (next()) {
       <p class="note">Please log in to continue.</p>
     }
 
@@ -63,6 +65,8 @@ export class Login {
 
   // ?next= from the workspace guard: where to go after signing in (workspace paths only).
   readonly next = input<string>();
+  // ?expired=1 when a workspace request found the session gone.
+  readonly expired = input<string>();
 
   protected readonly email = signal('');
   protected readonly password = signal('');

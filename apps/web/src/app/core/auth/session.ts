@@ -57,11 +57,16 @@ export class Session {
     return user;
   }
 
+  // The server said the session is gone (expired or revoked elsewhere).
+  forget(): void {
+    this.csrf.clear();
+    this.current.set(null);
+  }
+
   async logOut(): Promise<void> {
     await firstValueFrom(this.http.post('/api/v1/auth/logout', null));
 
-    this.csrf.clear();
-    this.current.set(null);
+    this.forget();
   }
 
   private async fetchUser(): Promise<User | null> {

@@ -1,0 +1,89 @@
+<div class="head">
+  <div>
+    <h1>Your links @if (items().length > 0) {<span class="count">{{ items().length }}{{ nextCursor() ? '+' : '' }}</span>}</h1>
+    <p class="muted">Everything you share, in one place.</p>
+  </div>
+  @if (!editor()) {
+    <button id="create-link" class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="!canCreate()">
+      <app-icon name="plus" /> Create link
+    </button>
+  }
+</div>
+
+<!-- Keyed to the editor state, so editing another link starts a fresh editor. -->
+@for (current of editor() ? [editor()] : []; track current) {
+  <app-link-editor [link]="editingLink()" (saved)="onSaved($event)" (closed)="closeEditor()" />
+}
+
+<p class="visually-hidden" role="status">{{ announcement() }}</p>
+
+@if (loading() === 'first') {
+  <p class="state muted" role="status">Loading your links…</p>
+} @else if (loadError() && items().length === 0) {
+  <div class="state" role="alert">
+    <p>{{ loadError() }}</p>
+    <button class="btn btn-secondary" type="button" (click)="load()">Try again</button>
+  </div>
+} @else if (items().length === 0) {
+  <div class="state empty surface">
+    <span class="symbol"><app-icon name="link" /></span>
+    <h2>No links yet</h2>
+    <p class="muted">Create your first short link to share it and see how people find it.</p>
+  </div>
+} @else {
+  <ul class="list surface" aria-label="Your links">
+    @for (link of items(); track link.id) {
+      <li class="row">
+        <div class="name">
+          <span class="symbol"><app-icon name="link" /></span>
+          <div class="info">
+            <strong [id]="'link-' + link.id" tabindex="-1">{{ link.shortUrl }}</strong>
+            <a class="dest" [href]="link.destinationUrl" target="_blank" rel="noopener noreferrer">{{ link.destinationUrl }}</a>
+            <span class="meta">
+              @if (link.expiresAt) {
+                {{ link.effectiveStatus === 'expired' ? 'Expired' : 'Expires' }} {{ link.expiresAt | date: 'd MMM y' }}
+              } @else {
+                No expiry
+              }
+              · Created {{ link.createdAt | date: 'd MMM y' }}
+            </span>
+            <div class="actions">
+              <button class="btn btn-link" type="button" (click)="copy(link)">
+                {{ copiedId() === link.id ? 'Copied' : 'Copy' }}
+              </button>
+              <button [id]="'edit-' + link.id" class="btn btn-link" type="button" (click)="openEdit(link)">Edit</button>
+              @if (link.effectiveStatus === 'active' || link.effectiveStatus === 'disabled') {
+                <button class="btn btn-link" type="button" (click)="toggle(link)" [disabled]="busyId() === link.id">
+                  {{ link.effectiveStatus === 'active' ? 'Disable' : 'Enable' }}
+                </button>
+              }
+            </div>
+            @if (link.effectiveStatus === 'blocked') {
+              <span class="explain">Blocked by Shortlist moderation. Visitors see an unavailable page.</span>
+            } @else if (link.effectiveStatus === 'ownerSuspended') {
+              <span class="explain">Unavailable while this account is suspended.</span>
+            } @else if (link.effectiveStatus === 'expired') {
+              <span class="explain">Edit the expiration date to make it work again.</span>
+            }
+            @if (rowMessage()?.id === link.id) {
+              <p class="form-error" role="alert">{{ rowMessage()?.text }}</p>
+            }
+          </div>
+        </div>
+        <app-status-badge class="status" [status]="link.effectiveStatus" />
+      </li>
+    }
+  </ul>
+
+  @if (loadError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  @if (nextCursor()) {
+    <button class="btn btn-secondary more" type="button" (click)="loadMore()" [disabled]="loading() === 'more'">
+      {{ loading() === 'more' ? 'Loading…' : 'Show more links' }}
+    </button>
+  }
+}
+
+<p class="info-line"><app-icon name="info" [size]="14" /> Changes to a destination apply to new visits after saving.</p>

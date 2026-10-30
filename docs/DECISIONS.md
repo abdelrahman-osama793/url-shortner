@@ -323,6 +323,18 @@ One server package with two entry points (modular monolith), not separate servic
 - **Contract change**: `POST /auth/google/start` now also returns `clientId` (public), so one web build works with whichever Google client the API is configured for, instead of baking it into the bundle.
 - **Test note**: Angular's TestBed uses a mock platform location by default; the auth specs provide `BrowserPlatformLocation` so they check the real address bar.
 
+### Link management (T26)
+
+- **Real data only**: `/app/links` lists `GET /api/v1/links` (newest first, "Show more links" with the signed cursor, duplicates skipped if pages shift). The sample-data page from T23 is deleted.
+- **Create** sends an `Idempotency-Key` (a fresh UUID per distinct request body; a retry of the same body reuses it, so a lost answer never creates two links). Alias and date are optional; an unverified account cannot open the editor (the server enforces it too).
+- **Edit** sends only changed fields with `If-Match: "v<version>"` taken from the list. On `412` the editor loads the newer version, shows it next to the person's unsaved input, and saves over it only if they press Save again: never a silent overwrite.
+- **Disable / Enable** appear only for `active` and `disabled` links. Blocked (moderation), owner-suspended and expired links get an explanation instead; editing a blocked link says the block stays (verified: still 410 after editing).
+- **Expiry as a date**: the link works until the end of the chosen day in the person's time zone (`expiry.ts`); stored as an exact UTC instant.
+- **Long URLs**: destinations wrap to two lines (`overflow-wrap: anywhere`) and open in a new tab with `rel="noopener noreferrer"`; the full value is in the editor.
+- **Session expiry**: a member request that fails because the session ended (401 on reads, 403 `CSRF_INVALID` on writes) goes to `/login?next=…&expired=1`, which explains what happened.
+- **Bug found and fixed (from T24/T25)**: the CSRF interceptor retried a rejected write after fetching a new token, and fetching a token without a live session starts a new anonymous one. A signed-in `POST /links` was therefore replayed as a guest request (found in the browser: it got 400 only because it had an alias; without one it would have created a 7-day guest link). The interceptor now retries a signed-in request only after `/auth/me` confirms the same user; otherwise the expiry flow runs. Verified: no guest link created.
+- **Phone workspace fix**: the single-column grid stretched the navigation row to half the screen; rows are now `auto 1fr`. Header and Create buttons no longer wrap.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

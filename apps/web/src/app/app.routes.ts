@@ -12,7 +12,7 @@ import { Signup } from './pages/auth/signup';
 import { VerifyEmail } from './pages/auth/verify-email';
 import { ComingSoon } from './pages/coming-soon';
 import { Home } from './pages/home';
-import { LinksPreview } from './pages/links-preview';
+import { LinksPage } from './pages/links/links';
 import { NotFound } from './pages/not-found';
 
 // Screens marked ComingSoon are labelled previews; the task that builds each one is in its data.
@@ -43,7 +43,7 @@ export const routes: Routes = [
     canActivate: [requireUser],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'links' },
-      { path: 'links', component: LinksPreview, title: 'Your links · Shortlist' },
+      { path: 'links', component: LinksPage, title: 'Your links · Shortlist' },
       { path: 'analytics', component: ComingSoon, title: 'Analytics · Shortlist', data: { title: 'Link analytics', description: 'Daily clicks, countries, devices and referring sites.', task: 'T27' } },
       { path: 'account', component: ComingSoon, title: 'Account · Shortlist', data: { title: 'Your account', description: 'Your profile and sign-in methods.', task: 'T28' } },
     ],

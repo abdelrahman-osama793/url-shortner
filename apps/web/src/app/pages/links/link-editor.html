@@ -1,0 +1,105 @@
+<form class="editor surface" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()" aria-labelledby="editor-title">
+  <div class="editor-head">
+    <h2 id="editor-title">{{ editing() ? 'Edit your link' : 'Create a link' }}</h2>
+    <button class="btn close" type="button" aria-label="Close link editor" (click)="closed.emit()">
+      <app-icon name="x" />
+    </button>
+  </div>
+
+  @if (conflict(); as latest) {
+    <div class="conflict" role="alert">
+      <p><strong>This link was changed somewhere else</strong> since you opened it. The latest saved version is:</p>
+      <dl>
+        <dt>Destination</dt>
+        <dd>{{ latest.destinationUrl }}</dd>
+        <dt>Expires</dt>
+        <dd>{{ latest.expiresAt ? (latest.expiresAt | date: 'd MMM y') : 'Never' }}</dd>
+      </dl>
+      <p>Your changes are still below. Save again to replace the latest version, or close to keep it.</p>
+    </div>
+  }
+
+  @if (base()?.effectiveStatus === 'blocked') {
+    <p class="note">This link was blocked by Shortlist moderation. Editing it does not lift the block.</p>
+  }
+
+  <div class="grid">
+    <div class="field wide">
+      <label for="destination">Destination URL</label>
+      <input
+        #destinationField
+        id="destination"
+        class="input"
+        type="url"
+        inputmode="url"
+        autocomplete="url"
+        placeholder="https://example.com/your-next-project"
+        [attr.maxlength]="maxLength"
+        [value]="destination()"
+        (input)="destination.set(destinationField.value)"
+        [attr.aria-invalid]="errors().destinationUrl ? 'true' : null"
+        [attr.aria-describedby]="errors().destinationUrl ? 'destination-error' : null"
+      />
+      @if (errors().destinationUrl; as message) {
+        <p id="destination-error" class="field-error" role="alert">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field">
+      @if (editing()) {
+        <span>Short link</span>
+        <span class="fixed">{{ base()?.shortUrl }}</span>
+        <span class="field-hint">The short link never changes.</span>
+      } @else {
+        <label for="alias">Custom alias <span class="field-hint">Optional</span></label>
+        <input
+          #aliasField
+          id="alias"
+          class="input"
+          placeholder="your-next-project"
+          maxlength="32"
+          autocapitalize="off"
+          spellcheck="false"
+          [value]="alias()"
+          (input)="alias.set(aliasField.value)"
+          [attr.aria-invalid]="errors().customAlias ? 'true' : null"
+          aria-describedby="alias-hint"
+        />
+        <span id="alias-hint" class="field-hint">4–32 letters, numbers, hyphens or underscores. Leave empty for a generated code.</span>
+        @if (errors().customAlias; as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        }
+      }
+    </div>
+
+    <div class="field">
+      <label for="expiry">Expiration date <span class="field-hint">Optional</span></label>
+      <input
+        #expiryField
+        id="expiry"
+        class="input"
+        type="date"
+        [min]="today"
+        [value]="expiry()"
+        (input)="expiry.set(expiryField.value)"
+        [attr.aria-invalid]="errors().expiresAt ? 'true' : null"
+        aria-describedby="expiry-hint"
+      />
+      <span id="expiry-hint" class="field-hint">Works until the end of that day. Leave empty for no expiry.</span>
+      @if (errors().expiresAt; as message) {
+        <p class="field-error" role="alert">{{ message }}</p>
+      }
+    </div>
+  </div>
+
+  @if (formError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="editor-foot">
+    <span class="small">{{ editing() ? 'New visits use the saved destination.' : 'Anyone with this link can open it.' }}</span>
+    <button class="btn btn-primary" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Saving…' : editing() ? 'Save changes' : 'Create link' }}
+    </button>
+  </div>
+</form>

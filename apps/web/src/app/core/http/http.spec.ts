@@ -1,7 +1,10 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import type { User } from '@shortlist/contracts';
 import { firstValueFrom } from 'rxjs';
+
+import { Session } from '../auth/session';
 
 import { describeWait, toApiError } from './api-error';
 import { csrfInterceptor } from './csrf.interceptor';
@@ -62,6 +65,41 @@ describe('csrfInterceptor', () => {
     getRequest.flush({});
     externalRequest.flush({});
     await Promise.all([get, external]);
+  });
+
+  describe('for a signed-in person', () => {
+    const USER: User = { id: '00000000-0000-4000-8000-000000000001', email: 'ada@example.com', emailVerified: true, role: 'user', status: 'active' };
+    const rejected = { error: { code: 'CSRF_INVALID', message: 'x', requestId: 'r' } };
+
+    beforeEach(() => TestBed.inject(Session).start({ user: USER, csrfToken: 'old' }));
+
+    it('never retries once the session is gone, so a member request cannot become a guest request', async () => {
+      const outcome = firstValueFrom(http.post('/api/v1/links', {})).catch((error: unknown) => error);
+
+      await tick();
+      backend.expectOne('/api/v1/links').flush(rejected, { status: 403, statusText: 'Forbidden' });
+      await tick();
+      backend.expectOne('/api/v1/auth/me').flush({ error: {} }, { status: 401, statusText: 'x' });
+      await tick();
+
+      backend.expectNone('/api/v1/auth/csrf');
+      expect(await outcome).toMatchObject({ status: 403 });
+    });
+
+    it('retries once when the same person is still signed in', async () => {
+      const result = firstValueFrom(http.post('/api/v1/links', {}));
+
+      await tick();
+      backend.expectOne('/api/v1/links').flush(rejected, { status: 403, statusText: 'Forbidden' });
+      await tick();
+      backend.expectOne('/api/v1/auth/me').flush({ user: USER });
+      await tick();
+      backend.expectOne('/api/v1/auth/csrf').flush({ csrfToken: 'fresh' });
+      await tick();
+      backend.expectOne('/api/v1/links').flush({});
+
+      await result;
+    });
   });
 
   it('refreshes the token and retries once when the server rejects it', async () => {

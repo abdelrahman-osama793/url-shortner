@@ -31,6 +31,10 @@
   min-width: 0;
 }
 
+.account .btn {
+  white-space: nowrap;
+}
+
 .account .email {
   overflow: hidden;
   max-width: 220px;
@@ -145,8 +149,10 @@
     padding: 10px 16px;
   }
 
+  /* Navigation takes its natural height; the content gets the rest. */
   .frame {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
 
   .sidebar {

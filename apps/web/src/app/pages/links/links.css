@@ -1,0 +1,157 @@
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.head .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.count {
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.head p {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.list {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 16px 18px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+
+.status {
+  padding-top: 2px;
+}
+
+.name {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--accent);
+}
+
+.info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.info strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+/* Long destinations wrap to two lines instead of being cut off at one. */
+.dest {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.dest:hover {
+  text-decoration: underline;
+}
+
+.meta,
+.explain {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.explain {
+  color: var(--ink);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 4px;
+}
+
+.state {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.empty {
+  justify-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.more {
+  margin-top: 16px;
+}
+
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .symbol {
+    display: none;
+  }
+}
+
+/* Phones: the status badge moves above the link so the text gets the full width. */
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .status {
+    grid-row: 1;
+  }
+}
