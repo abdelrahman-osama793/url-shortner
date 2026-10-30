@@ -1162,11 +1162,15 @@
           },
           "nonce": {
             "type": "string"
+          },
+          "clientId": {
+            "type": "string"
           }
         },
         "required": [
           "attemptId",
-          "nonce"
+          "nonce",
+          "clientId"
         ],
         "additionalProperties": false
       },

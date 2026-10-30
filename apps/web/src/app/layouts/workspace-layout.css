@@ -24,6 +24,38 @@
   color: var(--accent);
 }
 
+.account {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account .email {
+  overflow: hidden;
+  max-width: 220px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.verify-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-surface);
+  background: var(--warn-soft);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.verify-banner p:first-child {
+  flex: 1 1 260px;
+}
+
 .frame {
   flex: 1;
   display: grid;
@@ -105,6 +137,10 @@
 
 /* Phones: the sidebar becomes a wrapping row of links above the content. */
 @media (max-width: 600px) {
+  .account .email {
+    display: none;
+  }
+
   .top {
     padding: 10px 16px;
   }

@@ -14,7 +14,7 @@ function toUnavailable(error) {
   return unavailable ? serviceUnavailableError({ cause: error }) : error;
 }
 
-export function createGoogleController({ googleAttempts, googleSignIn, sessionService }) {
+export function createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId }) {
   // Linking and re-authentication act on the signed-in account, so they need a user session.
   // Sign-in only needs the browser's (anonymous) session, which the attempt is bound to.
   async function start(req, res, next) {
@@ -31,7 +31,9 @@ export function createGoogleController({ googleAttempts, googleSignIn, sessionSe
         userId: req.session.userId ?? null,
       });
 
-      res.json(attempt);
+      // The client ID is public (it is in every Google sign-in page); returning it here lets one web
+      // build work with whichever Google client the API is configured for.
+      res.json({ ...attempt, clientId });
     } catch (error) {
       next(toUnavailable(error));
     }

@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 // The CSRF token of this browser's session (api-contracts.md, Conventions). GET /auth/csrf also
 // creates the anonymous session cookie on first use. Concurrent callers share one request.
-// Sign-in and sign-out replace the token (T25) through `set`.
+// Sign-in replaces the token through `set`; sign-out forgets it through `clear`.
 @Injectable({ providedIn: 'root' })
 export class CsrfToken {
   private readonly http = inject(HttpClient);
@@ -34,6 +34,11 @@ export class CsrfToken {
 
   set(token: string): void {
     this.token = token;
+  }
+
+  // After sign-out the old session is gone; the next request fetches a new anonymous token.
+  clear(): void {
+    this.token = null;
   }
 
   private async fetch(): Promise<string> {

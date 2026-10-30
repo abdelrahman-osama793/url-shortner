@@ -317,6 +317,101 @@ svg {
   font-weight: 600;
 }
 
+/* Authentication screens (inside AuthLayout's form column) ------------------------------- */
+
+.auth-intro {
+  margin: 10px 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.google-slot {
+  min-height: 44px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.password {
+  position: relative;
+}
+
+.password .input {
+  padding-right: 50px;
+}
+
+.password .toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.form-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+  font-size: 13px;
+}
+
+.auth-switch {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 20px;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.mark.warn {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.auth-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.status-text {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* Phones: 16px editable text prevents iOS zoom; touch screens get 44px targets everywhere. */
 @media (max-width: 600px) {
   .input {

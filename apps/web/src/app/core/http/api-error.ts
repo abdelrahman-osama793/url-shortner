@@ -55,3 +55,16 @@ export function describeWait(seconds: number): string {
 
   return `about ${Math.round(seconds / 3600)} hours`;
 }
+
+// The message for failures every form handles the same way: limits, outages and network errors.
+// Screens handle their own codes (wrong password, used token, …) before falling back to this.
+export function commonMessage(error: ApiError): string {
+  switch (error.code) {
+    case 'RATE_LIMITED':
+      return `Too many attempts. Please try again in ${describeWait(error.retryAfterSeconds ?? 60)}.`;
+    case 'SERVICE_UNAVAILABLE':
+      return 'Shortlist is briefly unavailable. Please try again in a moment.';
+    default:
+      return error.message;
+  }
+}

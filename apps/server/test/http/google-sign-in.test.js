@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, before, describe, test } from 'node:test';
 
-import { LoginResponseSchema } from '@shortlist/contracts';
+import { GoogleStartResponseSchema, LoginResponseSchema } from '@shortlist/contracts';
 
 import { startTestApi } from '../support/api.js';
 import { newBrowser } from '../support/browser.js';
 import { createMigratedDatabase } from '../support/database.js';
-import { createTestGoogle } from '../support/google.js';
+import { TEST_GOOGLE_CLIENT_ID, createTestGoogle } from '../support/google.js';
 import { createTestRedis } from '../support/redis.js';
 
 // Google ID tokens here are signed with a local test key and checked by the application's real
@@ -63,6 +63,13 @@ async function identityCount(subject) {
 }
 
 describe('signing in with Google', () => {
+  test('starting an attempt returns the configured client ID with the nonce', async () => {
+    const attempt = GoogleStartResponseSchema.parse(await startAttempt(await newBrowser(api.server)));
+
+    assert.equal(attempt.clientId, TEST_GOOGLE_CLIENT_ID);
+    assert.ok(attempt.nonce.length >= 32);
+  });
+
   test('a new Gmail user gets a verified, password-less account and a fresh session', async () => {
     const browser = await newBrowser(api.server);
     const anonymousCookie = browser.cookie;

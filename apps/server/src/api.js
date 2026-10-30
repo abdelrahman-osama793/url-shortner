@@ -123,7 +123,7 @@ async function main() {
     });
 
     routers.push(createGoogleRouter({
-      controller: createGoogleController({ googleAttempts, googleSignIn, sessionService }),
+      controller: createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId: config.google.clientId }),
       guards,
       limiter,
     }));

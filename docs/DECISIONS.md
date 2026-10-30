@@ -310,6 +310,19 @@ One server package with two entry points (modular monolith), not separate servic
 - **Zod-free constants entry**: `@shortlist/contracts/constants` exports plain values (limits, patterns, error codes), so the web bundle does not pull in zod. A value import from the main entry grew the initial bundle from 73 to 159 kB gzipped; with the constants entry it is 82 kB.
 - **Dev-server pitfall**: after adding a package `exports` entry, a running `ng serve` keeps failing with TS7016 until it is restarted.
 
+### Authentication screens (T25)
+
+- **Screens**: `/login`, `/signup`, `/signup/check-email`, `/verify-email`, `/forgot-password`, `/reset-password`, all inside `AuthLayout`. No demo verification, reset or Google shortcuts exist.
+- **Session state** (`core/auth/session.ts`): mirrors `GET /auth/me` (undefined = not checked, null = signed out). Sign-in stores the new CSRF token returned with the rotated session; sign-out forgets it. The cookie stays HttpOnly; the UI never sees it.
+- **Workspace guard** `requireUser` sends signed-out visitors to `/login?next=…`. After sign-in only `/app…` paths are followed (`safeNext`), so `next` cannot redirect off-site. If the session check fails (API down), the guard fails closed to Log in.
+- **Restricted state**: an unverified account signs in (api-contracts), and the workspace shows "Verify your email to create links" with a Resend button. Admin navigation comes from the session role (display only; the server enforces roles).
+- **One-time tokens**: `#token=` is read and removed from the address bar on arrival (`Location.replaceState`). Verification is used only when the person presses Confirm, so link scanners cannot use it up. Expired, used and invalid tokens each have their own screen and a way to get a new link.
+- **No account discovery**: sign-up, resend and forgot-password confirmations read the same for every address; wrong email and wrong password share one message.
+- **Email in navigation state, not the URL**: sign-up passes the address to the check-email screen through `history.state`.
+- **Google** (`core/auth/google.ts`, `GoogleButton`): Google's own rendered button (a custom-styled button cannot obtain an ID token). The page prepares the server attempt before the click because the nonce must be set when Google is initialised. An attempt is reused for 4 minutes across Log in / Sign up (attempts are rate-limited, 20 per 15 min per network) and renewed before its 5-minute expiry. Button language follows `<html lang>`. Hidden when the server has no Google client (404). A `409 ACCOUNT_LINK_REQUIRED` tells the person to log in with their password; linking is T16.
+- **Contract change**: `POST /auth/google/start` now also returns `clientId` (public), so one web build works with whichever Google client the API is configured for, instead of baking it into the bundle.
+- **Test note**: Angular's TestBed uses a mock platform location by default; the auth specs provide `BrowserPlatformLocation` so they check the real address bar.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

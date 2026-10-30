@@ -1,8 +1,15 @@
 import { Routes } from '@angular/router';
 
+import { requireUser } from './core/auth/guards';
 import { AuthLayout } from './layouts/auth-layout';
 import { PublicLayout } from './layouts/public-layout';
 import { WorkspaceLayout } from './layouts/workspace-layout';
+import { CheckEmail } from './pages/auth/check-email';
+import { ForgotPassword } from './pages/auth/forgot-password';
+import { Login } from './pages/auth/login';
+import { ResetPassword } from './pages/auth/reset-password';
+import { Signup } from './pages/auth/signup';
+import { VerifyEmail } from './pages/auth/verify-email';
 import { ComingSoon } from './pages/coming-soon';
 import { Home } from './pages/home';
 import { LinksPreview } from './pages/links-preview';
@@ -19,8 +26,12 @@ export const routes: Routes = [
         path: '',
         component: AuthLayout,
         children: [
-          { path: 'login', component: ComingSoon, title: 'Log in · Shortlist', data: { title: 'Welcome back.', description: 'Log in to pick up where you left off.', task: 'T25' } },
-          { path: 'signup', component: ComingSoon, title: 'Sign up · Shortlist', data: { title: 'Create your account', description: 'A little more control over everything you share.', task: 'T25' } },
+          { path: 'login', component: Login, title: 'Log in · Shortlist' },
+          { path: 'signup', component: Signup, title: 'Sign up · Shortlist' },
+          { path: 'signup/check-email', component: CheckEmail, title: 'Verify your email · Shortlist' },
+          { path: 'verify-email', component: VerifyEmail, title: 'Confirm your email · Shortlist' },
+          { path: 'forgot-password', component: ForgotPassword, title: 'Forgot password · Shortlist' },
+          { path: 'reset-password', component: ResetPassword, title: 'Choose a new password · Shortlist' },
         ],
       },
       { path: 'report', component: ComingSoon, title: 'Report a link · Shortlist', data: { title: 'Report a link', description: 'Help us identify phishing, malware or other harmful content.', task: 'T29' } },
@@ -29,6 +40,7 @@ export const routes: Routes = [
   {
     path: 'app',
     component: WorkspaceLayout,
+    canActivate: [requireUser],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'links' },
       { path: 'links', component: LinksPreview, title: 'Your links · Shortlist' },

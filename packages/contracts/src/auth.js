@@ -36,6 +36,8 @@ export const GoogleStartRequestSchema = z.strictObject({
 export const GoogleStartResponseSchema = z.object({
   attemptId: z.string(),
   nonce: z.string(),
+  // The configured Google OAuth client ID (public), for initialising Google Identity Services.
+  clientId: z.string(),
 });
 
 export const GoogleSignInRequestSchema = z.strictObject({
@@ -73,5 +75,6 @@ export const AcknowledgementSchema = z.object({
 /** @typedef {z.infer<typeof UserSchema>} User */
 /** @typedef {z.infer<typeof MeResponseSchema>} MeResponse */
 /** @typedef {z.infer<typeof LoginResponseSchema>} LoginResponse */
+/** @typedef {z.infer<typeof GoogleStartResponseSchema>} GoogleStartResponse */
 /** @typedef {z.infer<typeof RegisterRequestSchema>} RegisterRequest */
 /** @typedef {z.infer<typeof LoginRequestSchema>} LoginRequest */

@@ -19,10 +19,12 @@ import { createClickCaptureService } from '../../src/modules/analytics/click-cap
 import { createPipelineStatusReader } from '../../src/modules/analytics/pipeline-health.service.js';
 import { createGoogleAttemptsService } from '../../src/modules/accounts/google-attempts.service.js';
 import { createGoogleSignInService } from '../../src/modules/accounts/google-sign-in.service.js';
+
 import { createLinkService } from '../../src/modules/links/links.service.js';
 import { createRedirectService } from '../../src/modules/links/redirects.service.js';
 import { createSessionService } from '../../src/modules/sessions/sessions.service.js';
 
+import { TEST_GOOGLE_CLIENT_ID } from './google.js';
 import { createCapturingLogger, startServer, testConfig } from './http.js';
 
 const SECRET = 'integration-test-secret-32-characters';
@@ -66,7 +68,7 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
       logger,
     });
 
-    routers.push(createGoogleRouter({ controller: createGoogleController({ googleAttempts, googleSignIn, sessionService }), guards, limiter }));
+    routers.push(createGoogleRouter({ controller: createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId: TEST_GOOGLE_CLIENT_ID }), guards, limiter }));
   }
 
   const app = createApp({ config, logger, routers });

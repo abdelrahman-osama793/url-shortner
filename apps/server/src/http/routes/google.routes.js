@@ -8,7 +8,7 @@ const byNetwork = (req) => ({ network: req.clientNetwork });
 
 // Google Identity Services sign-in (api-contracts.md, "Authentication"). Mounted only when
 // GOOGLE_CLIENT_ID is configured.
-//   POST /api/v1/auth/google/start  { purpose }               → { attemptId, nonce }
+//   POST /api/v1/auth/google/start  { purpose }               → { attemptId, nonce, clientId }
 //   POST /api/v1/auth/google        { attemptId, credential } → { user, csrfToken } + new session
 // Account linking and re-authentication endpoints are T16.
 export function createGoogleRouter({ controller, guards, limiter }) {
