@@ -52,7 +52,7 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
 
   const routers = [
     createRedirectRouter({ controller: createRedirectsController({ redirectService, clickCapture, countryHeader: capture.countryHeader }) }),
-    createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
+    createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) }),
   ];

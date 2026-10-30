@@ -16,6 +16,8 @@ type GoogleWindow = Window & { google?: { accounts?: { id?: GoogleIdentity } } }
 
 const SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
+export type GooglePurpose = 'login' | 'link';
+
 // Server attempts last five minutes; a prepared one is reused for four, so moving between
 // Log in and Sign up does not start a new attempt every time (they are rate-limited).
 const REUSE_MS = 4 * 60 * 1000;
@@ -33,13 +35,14 @@ export class GoogleSignIn {
   private script: Promise<GoogleIdentity> | null = null;
 
   // A fresh or recent attempt, or null when Google sign-in is not configured on the server.
-  async prepare(): Promise<GoogleStartResponse | null> {
-    if (this.attempt && Date.now() - this.attempt.at < REUSE_MS) return this.attempt.value;
+  // Only sign-in attempts are reused; a link attempt is started for each Connect.
+  async prepare(purpose: GooglePurpose = 'login'): Promise<GoogleStartResponse | null> {
+    if (purpose === 'login' && this.attempt && Date.now() - this.attempt.at < REUSE_MS) return this.attempt.value;
 
     try {
-      const value = await firstValueFrom(this.http.post<GoogleStartResponse>('/api/v1/auth/google/start', { purpose: 'login' }));
+      const value = await firstValueFrom(this.http.post<GoogleStartResponse>('/api/v1/auth/google/start', { purpose }));
 
-      this.attempt = { value, at: Date.now() };
+      if (purpose === 'login') this.attempt = { value, at: Date.now() };
 
       return value;
     } catch (error) {
@@ -54,6 +57,11 @@ export class GoogleSignIn {
     this.attempt = null;
 
     return firstValueFrom(this.http.post<LoginResponse>('/api/v1/auth/google', { attemptId, credential }));
+  }
+
+  // Links the proven Google account to the signed-in account (needs recent authentication).
+  async link(attemptId: string, credential: string): Promise<void> {
+    await firstValueFrom(this.http.post('/api/v1/auth/google/link', { attemptId, credential }));
   }
 
   // Loads Google's script once. Rejects if it is blocked or offline.

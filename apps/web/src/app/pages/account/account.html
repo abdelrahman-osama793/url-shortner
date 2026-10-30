@@ -1,0 +1,122 @@
+<div class="head">
+  <h1>Your account</h1>
+  <p class="muted">Your profile and sign-in methods.</p>
+</div>
+
+@if (loadError(); as message) {
+  <div class="state" role="alert">
+    <p>{{ message }}</p>
+    <button class="btn btn-secondary" type="button" (click)="load()">Try again</button>
+  </div>
+} @else if (!summary()) {
+  <p class="state muted" role="status">Loading your account…</p>
+} @else {
+  @let account = summary()!;
+
+  @if (notice(); as message) {
+    <p class="notice" role="status">{{ message }}</p>
+  }
+  @if (actionError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <section class="section" aria-labelledby="email-title">
+    <h2 id="email-title">Email address</h2>
+    <div class="row">
+      <div class="text">
+        <strong class="email">{{ account.user.email }}</strong>
+        <p class="muted">Used for sign-in, password resets and important notices.</p>
+      </div>
+      @if (account.user.emailVerified) {
+        <span class="badge verified"><app-icon name="badge-check" [size]="14" /> Verified</span>
+      } @else {
+        <span class="badge pending">Not verified</span>
+      }
+    </div>
+    @if (!account.user.emailVerified) {
+      <div class="row actions">
+        <p class="muted">Verify your email to create links.</p>
+        @if (resendState() === 'sent') {
+          <span class="status-text" role="status">A new link is on its way.</span>
+        } @else {
+          <button class="btn btn-secondary" type="button" (click)="resendVerification()" [disabled]="resendState() === 'sending'">
+            {{ resendState() === 'sending' ? 'Sending…' : 'Resend verification email' }}
+          </button>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section" aria-labelledby="methods-title">
+    <h2 id="methods-title">Sign-in methods</h2>
+
+    <div class="row">
+      <div class="text">
+        <strong>Email and password</strong>
+        @if (account.signInMethods.password) {
+          <p class="muted">To change your password, we'll email you a secure reset link.</p>
+        } @else {
+          <p class="muted">This account signs in with Google. Adding a password isn't available yet.</p>
+        }
+      </div>
+      @if (account.signInMethods.password) {
+        @if (resetState() === 'sent') {
+          <span class="status-text" role="status">Check your inbox for the reset link.</span>
+        } @else {
+          <button class="btn btn-secondary" type="button" (click)="sendReset()" [disabled]="resetState() === 'sending'">
+            {{ resetState() === 'sending' ? 'Sending…' : 'Email me a reset link' }}
+          </button>
+        }
+      }
+    </div>
+
+    <div class="row">
+      <div class="text">
+        <strong>Google</strong>
+        @if (account.signInMethods.google) {
+          <p class="muted">Connected. You can sign in with Google.</p>
+        } @else {
+          <p class="muted">Connect Google to sign in with either method.</p>
+        }
+      </div>
+      @if (account.signInMethods.google) {
+        <span class="badge verified"><app-icon name="check" [size]="14" /> Connected</span>
+      } @else if (step() === 'closed') {
+        <button id="connect-google" class="btn btn-secondary" type="button" (click)="startConnect()">
+          <app-icon name="link-2" [size]="16" /> Connect Google
+        </button>
+      }
+    </div>
+
+    @if (step() === 'confirm') {
+      <form class="connect" (submit)="confirm($event)" novalidate [attr.aria-busy]="busy()" aria-labelledby="confirm-title">
+        <h3 id="confirm-title">First, confirm it's you</h3>
+        <p class="muted">Enter your Shortlist password. Connecting Google needs proof of both accounts.</p>
+        <app-password-field fieldId="confirm-password" label="Current password" autocomplete="current-password" [error]="confirmError()" [(value)]="password" />
+        <div class="connect-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="busy()">{{ busy() ? 'Checking…' : 'Continue' }}</button>
+          <button class="btn" type="button" (click)="cancelConnect()">Cancel</button>
+        </div>
+      </form>
+    } @else if (step() === 'google') {
+      <div class="connect" role="group" aria-labelledby="google-title">
+        <h3 id="google-title">Choose the Google account to connect</h3>
+        <p class="muted">Only this Google account will be able to sign in to your Shortlist account.</p>
+        <app-google-button purpose="link" (linked)="onLinked()" (confirmationNeeded)="confirmAgain()" />
+        <div class="connect-actions">
+          <button class="btn" type="button" (click)="cancelConnect()">Cancel</button>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="section" aria-labelledby="session-title">
+    <h2 id="session-title">Session</h2>
+    <div class="row">
+      <p class="muted text">Log out of Shortlist on this device.</p>
+      <button class="btn btn-secondary" type="button" (click)="logOut()" [disabled]="loggingOut()">
+        Log out <app-icon name="log-out" [size]="16" />
+      </button>
+    </div>
+  </section>
+}

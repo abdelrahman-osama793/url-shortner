@@ -1,13 +1,22 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
 import type { User } from '@shortlist/contracts';
 
-import { GoogleSignIn } from '../../core/auth/google';
+import { type GooglePurpose, GoogleSignIn } from '../../core/auth/google';
 import { Session } from '../../core/auth/session';
 import { commonMessage, toApiError } from '../../core/http/api-error';
 
-// Google's own "Continue with Google" button (Google Identity Services), followed by the
-// "or continue with email" divider. Hidden entirely when the server has no Google client.
-// Each attempt's nonce is prepared before the click, and renewed before it expires.
+// Google's own "Continue with Google" button (Google Identity Services). For sign-in it is
+// followed by the "or continue with email" divider; for linking (account page) it connects the
+// chosen Google account to the signed-in account. Hidden entirely when the server has no Google
+// client. Each attempt's nonce is prepared before the click, and renewed before it expires.
+const GOOGLE_MESSAGES: Record<string, string> = {
+  // Sign-in with Google whose email belongs to a password account: linking needs both proven.
+  ACCOUNT_LINK_REQUIRED:
+    'An account with this email already exists. Log in with your email and password, then connect Google from your account page.',
+  GOOGLE_ACCOUNT_IN_USE: 'That Google account is already connected to a different Shortlist account.',
+  GOOGLE_ALREADY_LINKED: 'A different Google account is already connected to this account.',
+};
+
 @Component({
   selector: 'app-google-button',
   template: `
@@ -20,7 +29,9 @@ import { commonMessage, toApiError } from '../../core/http/api-error';
       @if (error(); as message) {
         <p class="form-error" role="alert">{{ message }}</p>
       }
-      <div class="divider">or continue with email</div>
+      @if (purpose() === 'login') {
+        <div class="divider">or continue with email</div>
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,7 +41,11 @@ export class GoogleButton {
   private readonly session = inject(Session);
 
   readonly text = input<'continue_with' | 'signup_with'>('continue_with');
+  readonly purpose = input<GooglePurpose>('login');
   readonly signedIn = output<User>();
+  readonly linked = output<void>();
+  // Linking was refused because the session is no longer recently authenticated.
+  readonly confirmationNeeded = output<void>();
 
   protected readonly state = signal<'loading' | 'ready' | 'unavailable' | 'failed'>('loading');
   protected readonly error = signal<string | null>(null);
@@ -47,7 +62,7 @@ export class GoogleButton {
     clearTimeout(this.renewal);
 
     try {
-      const attempt = await this.google.prepare();
+      const attempt = await this.google.prepare(this.purpose());
 
       if (!attempt) {
         this.state.set('unavailable');
@@ -86,15 +101,22 @@ export class GoogleButton {
     this.error.set(null);
 
     try {
+      if (this.purpose() === 'link') {
+        await this.google.link(attemptId, credential);
+        this.linked.emit();
+        return;
+      }
+
       this.signedIn.emit(this.session.start(await this.google.signIn(attemptId, credential)));
     } catch (error) {
       const apiError = toApiError(error);
 
-      // Linking Google to an existing account needs proof of both identities (T16), which is not
-      // available yet, so the message only points to the password sign-in.
-      this.error.set(apiError.code === 'ACCOUNT_LINK_REQUIRED'
-        ? 'An account with this email already exists. Log in with your email and password instead.'
-        : commonMessage(apiError));
+      if (apiError.code === 'REAUTHENTICATION_REQUIRED') {
+        this.confirmationNeeded.emit();
+        return;
+      }
+
+      this.error.set(GOOGLE_MESSAGES[apiError.code] ?? commonMessage(apiError));
 
       await this.setUp();
     }

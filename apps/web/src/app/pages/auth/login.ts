@@ -19,7 +19,9 @@ import { PasswordField } from './password-field';
     <h1>Welcome back.</h1>
     <p class="auth-intro">Log in to pick up where you left off.</p>
 
-    @if (expired()) {
+    @if (suspended()) {
+      <p class="note" role="alert">This account is suspended, so you've been signed out. If you think this is a mistake, contact support.</p>
+    } @else if (expired()) {
       <p class="note" role="status">Your session has ended. Please log in again to continue where you were.</p>
     } @else if (next()) {
       <p class="note">Please log in to continue.</p>
@@ -67,6 +69,8 @@ export class Login {
   readonly next = input<string>();
   // ?expired=1 when a workspace request found the session gone.
   readonly expired = input<string>();
+  // ?suspended=1 when the account was suspended while signed in.
+  readonly suspended = input<string>();
 
   protected readonly email = signal('');
   protected readonly password = signal('');

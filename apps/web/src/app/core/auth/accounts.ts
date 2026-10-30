@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import type { MeResponse } from '@shortlist/contracts';
 import { firstValueFrom } from 'rxjs';
 
 // Account emails and one-time tokens (api-contracts.md, "Authentication"). Requests that send
@@ -26,6 +27,16 @@ export class Accounts {
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
     await this.post('/api/v1/auth/password/reset', { token, newPassword });
+  }
+
+  // The signed-in account with its sign-in methods and recent-authentication time.
+  async summary(): Promise<MeResponse> {
+    return firstValueFrom(this.http.get<MeResponse>('/api/v1/auth/me'));
+  }
+
+  // Confirms the signed-in person with their password (recent authentication).
+  async reauthenticate(password: string): Promise<void> {
+    await this.post('/api/v1/auth/reauthenticate', { password });
   }
 
   private async post(url: string, body: object): Promise<void> {

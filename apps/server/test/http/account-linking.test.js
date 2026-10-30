@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { after, before, describe, test } from 'node:test';
 
+import { MeResponseSchema } from '@shortlist/contracts';
+
 import { hashPassword } from '../../src/modules/accounts/rules/passwords.js';
 import { startTestApi } from '../support/api.js';
 import { newBrowser } from '../support/browser.js';
@@ -271,5 +273,35 @@ describe('confirming identity with Google', () => {
     const { proof: loginProof } = await googleProof(browser, 'login');
 
     assert.equal((await browser.post('/api/v1/auth/google/reauthenticate', loginProof)).status, 401);
+  });
+});
+
+describe('the account summary (GET /auth/me)', () => {
+  const me = async (browser) => MeResponseSchema.parse(await (await browser.request('/api/v1/auth/me')).json());
+
+  test('lists the sign-in methods and how long the session counts as recently authenticated', async () => {
+    const browser = await passwordOwner();
+    const fresh = await me(browser);
+
+    assert.deepEqual(fresh.signInMethods, { password: true, google: false });
+    assert.ok(Date.parse(fresh.recentAuthUntil) > Date.now(), 'just signed in');
+
+    await link(browser);
+    await makeAuthOld(browser);
+
+    const later = await me(browser);
+
+    assert.deepEqual(later.signInMethods, { password: true, google: true });
+    assert.equal(later.recentAuthUntil, null);
+  });
+
+  test('a Google-only account has no password method', async () => {
+    const browser = await newBrowser(api.server);
+    const { proof } = await googleProof(browser, 'login');
+    const body = await (await browser.post('/api/v1/auth/google', proof)).json();
+
+    browser.csrfToken = body.csrfToken;
+
+    assert.deepEqual((await me(browser)).signInMethods, { password: false, google: true });
   });
 });

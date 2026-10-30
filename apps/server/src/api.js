@@ -107,7 +107,7 @@ async function main() {
     createRedirectRouter({
       controller: createRedirectsController({ redirectService, clickCapture, countryHeader: config.analytics.countryHeader }),
     }),
-    createAuthRouter({ controller: createAuthController({ sessionService, accountService }), guards, limiter }),
+    createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
   ];
 

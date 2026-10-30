@@ -358,7 +358,7 @@ describe('GoogleButton', () => {
     backend.expectOne('/api/v1/auth/google/start').flush({ attemptId: 'a2', nonce: 'n2', clientId: 'c' });
     await page.refresh();
 
-    expect(page.text()).toContain('Log in with your email and password instead.');
+    expect(page.text()).toContain('then connect Google from your account page');
     expect(google.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ nonce: 'n2' }));
   });
 

@@ -10,6 +10,7 @@ import { Login } from './pages/auth/login';
 import { ResetPassword } from './pages/auth/reset-password';
 import { Signup } from './pages/auth/signup';
 import { VerifyEmail } from './pages/auth/verify-email';
+import { AccountPage } from './pages/account/account';
 import { AnalyticsPage } from './pages/analytics/analytics';
 import { ComingSoon } from './pages/coming-soon';
 import { Home } from './pages/home';
@@ -46,7 +47,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'links' },
       { path: 'links', component: LinksPage, title: 'Your links · Shortlist' },
       { path: 'analytics', component: AnalyticsPage, title: 'Analytics · Shortlist' },
-      { path: 'account', component: ComingSoon, title: 'Account · Shortlist', data: { title: 'Your account', description: 'Your profile and sign-in methods.', task: 'T28' } },
+      { path: 'account', component: AccountPage, title: 'Account · Shortlist' },
     ],
   },
   {

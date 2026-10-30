@@ -85,6 +85,17 @@ export async function resetPasswordAndRevokeSessions(db, userId, passwordHash) {
   return true;
 }
 
+// Which ways this user can sign in.
+export async function findSignInMethods(db, userId) {
+  const { rows } = await db.query(
+    `SELECT EXISTS (SELECT 1 FROM password_credentials WHERE user_id = $1) AS password,
+            EXISTS (SELECT 1 FROM external_identities WHERE user_id = $1 AND provider = 'google') AS google`,
+    [userId],
+  );
+
+  return rows[0];
+}
+
 // The stored password hash of a user, or null for accounts without a password (Google-only).
 export async function findPasswordHash(db, userId) {
   const { rows } = await db.query('SELECT password_hash FROM password_credentials WHERE user_id = $1', [userId]);

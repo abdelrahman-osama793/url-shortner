@@ -140,5 +140,9 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     if (rehash) await repository.updatePasswordHash(pool, userId, rehash);
   }
 
-  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate, reauthenticate };
+  async function signInMethods(userId) {
+    return repository.findSignInMethods(pool, userId);
+  }
+
+  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate, reauthenticate, signInMethods };
 }

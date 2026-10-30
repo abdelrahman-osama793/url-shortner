@@ -37,7 +37,8 @@ function guardTestRouter(guards) {
 
 async function startAuthServer(sessionStore) {
   const guards = createAuthGuards({ sessionService: sessionStore, pool: database.pool });
-  const controller = createAuthController({ sessionService: sessionStore, accountService: {} });
+  const accountService = { signInMethods: async () => ({ password: true, google: false }) };
+  const controller = createAuthController({ sessionService: sessionStore, accountService, recentAuthMs: 10 * 60 * 1000 });
   const { logger } = createCapturingLogger();
   const app = createApp({
     config: testConfig(),

@@ -25,7 +25,7 @@ export async function recordRecentAuth(sessionService, req, res) {
   res.status(204).end();
 }
 
-export function createAuthController({ sessionService, accountService }) {
+export function createAuthController({ sessionService, accountService, recentAuthMs }) {
   // Returns the session's CSRF token, creating an anonymous session first if needed.
   async function csrf(req, res, next) {
     if (req.sessionState === 'valid') {
@@ -92,8 +92,15 @@ export function createAuthController({ sessionService, accountService }) {
     }
   }
 
-  function me(req, res) {
-    res.json({ user: toUserResource(req.user) });
+  async function me(req, res) {
+    const signInMethods = await accountService.signInMethods(req.user.id);
+    const recentUntil = (req.session.recentAuthAt ?? 0) + recentAuthMs;
+
+    res.json({
+      user: toUserResource(req.user),
+      signInMethods,
+      recentAuthUntil: recentUntil > Date.now() ? new Date(recentUntil).toISOString() : null,
+    });
   }
 
   // Succeeds only once the server-side session is really gone; a failed delete is a 503,

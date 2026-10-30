@@ -355,6 +355,14 @@ One server package with two entry points (modular monolith), not separate servic
 - **Out of scope (unchanged)**: unlinking, email changes, password enrollment for Google-only accounts (they are told to confirm with Google), MFA.
 - **Contact email is unaffected by linking**: linking does not change or verify the account email.
 
+### Account screen (T28)
+
+- **`GET /auth/me` grew two fields** (additive contract change): `signInMethods { password, google }` and `recentAuthUntil` (when the session stops counting as recently authenticated, or null). The page uses them to show only the actions that exist and to skip the password step right after sign-in.
+- **What the page offers**: email and its verification (resend if needed); password accounts get "Email me a reset link" (the existing reset flow, sent to their own address); Google-only accounts are told adding a password isn't available yet; a linked Google account shows Connected with no unlink control; Log out. Unlinking, email change and password enrollment remain out of scope (api-contracts).
+- **Connect Google**: step 1 confirms the password (`/auth/reauthenticate`) unless the session was authenticated within the window; step 2 is Google's own button with a link-purpose attempt, then `/auth/google/link`. If the window ran out between the steps, the server's `REAUTHENTICATION_REQUIRED` sends the person back to step 1 with a note. Account-in-use and already-linked answers get plain messages. `GoogleButton` gained a `purpose` input; link attempts are never reused.
+- **Suspension**: a member request answered `403 ACCOUNT_SUSPENDED` signs the person out locally and goes to `/login?suspended=1`, which explains it. (The server already discards the session.)
+- **Sign-in collision copy updated**: the Google sign-in 409 now points to "log in with your password, then connect Google from your account page".
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

@@ -64,6 +64,11 @@ export const UserSchema = z.object({
 
 export const MeResponseSchema = z.object({
   user: UserSchema,
+  // How this account can sign in. Google-only accounts have no password (and cannot add one
+  // yet); an account has at most one linked Google account.
+  signInMethods: z.object({ password: z.boolean(), google: z.boolean() }),
+  // Until when this session counts as recently authenticated (linking needs it), or null.
+  recentAuthUntil: z.iso.datetime().nullable(),
 });
 
 export const LoginResponseSchema = z.object({
