@@ -228,6 +228,17 @@ svg {
   background: var(--lime-hover);
 }
 
+/* Actions that take something offline (block a link, suspend an account). */
+.btn-danger {
+  background: var(--error);
+  color: var(--paper);
+}
+
+.btn-danger:hover {
+  background: var(--error);
+  filter: brightness(0.92);
+}
+
 .btn-secondary {
   background: var(--paper);
   border-color: var(--line);

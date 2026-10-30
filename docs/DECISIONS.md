@@ -385,6 +385,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **Role assignment stays operator-only**: `src/cli/set-role.js <email> <admin|user>` (run in the API container: `docker compose exec api node src/cli/set-role.js …`). It refuses to demote the last active admin and bumps `session_version` so the person signs in again with the right session lifetime. It is not audited in `admin_audit` (no acting user); the operator's shell history is the record.
 - **Shared helpers**: `If-Match` parsing moved to `http/versions.js` (owners and admins); the signed cursor codec takes a purpose so report and audit cursors cannot be replayed across lists or filters.
 
+### Admin workspace (T31)
+
+- **Route** `/app/admin` ("Administration" in the workspace nav, admins only; `requireAdmin` sends others to their links). Hiding is a convenience: every admin API call is checked by role on the server. The page is a lazy chunk (7.7 kB gzipped), so it never downloads for other users.
+- **Layout**: report queue with Open / Reviewing / Resolved / Dismissed filters on the left, the selected report and its link on the right (owner id and status, block reason, owner settings, open reports), a combined history for the report, link and owner, and a "Recent moderation" feed below. An exact-code lookup (a full short URL also works) inspects any link without a report.
+- **Separate actions**: report status buttons (reviewing, resolve, dismiss, reopen) only change the report, and say so; Block/Unblock link and Suspend/Reactivate owner are separate buttons below. Guest links offer no account action.
+- **Every change** opens an inline form with a required reason ("kept in the audit trail, owners never see it") and an explicit confirm button; destructive ones are styled as danger. If the server answers `REAUTHENTICATION_REQUIRED`, a "Confirm it's you" step offers the account's own methods (password and/or its linked Google account, via the new Google `reauthenticate` purpose) and the same change is resent once confirmed. A stale link version (412) reloads the link and shows the server's explanation; `SELF_MODERATION` and `LAST_ACTIVE_ADMIN` are shown as the server words them. A failed reload after a successful change is reported as such, never as a failed change.
+- **Effective status after unblocking** always comes from the API (it may be disabled, expired or owner-suspended rather than active).
+- **No demo shortcuts**: the preview's "Admin demo" badge and sample reports are not carried over.
+- **Bundle note**: the initial download went from 87.85 to 89.67 kB gzipped with this task (shared code the bundler placed in the initial chunk); the admin page itself is lazy.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

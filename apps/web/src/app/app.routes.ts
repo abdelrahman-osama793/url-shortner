@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { requireUser } from './core/auth/guards';
+import { requireAdmin, requireUser } from './core/auth/guards';
 import { PublicLayout } from './layouts/public-layout';
 import { Home } from './pages/home';
 import { NotFound } from './pages/not-found';
@@ -57,6 +57,12 @@ export const routes: Routes = [
         title: 'Analytics · Shortlist',
       },
       { path: 'account', loadComponent: () => import('./pages/account/account').then((m) => m.AccountPage), title: 'Account · Shortlist' },
+      {
+        path: 'admin',
+        canActivate: [requireAdmin],
+        loadComponent: () => import('./pages/admin/admin').then((m) => m.AdminPage),
+        title: 'Moderation · Shortlist',
+      },
     ],
   },
   {

@@ -16,7 +16,7 @@ type GoogleWindow = Window & { google?: { accounts?: { id?: GoogleIdentity } } }
 
 const SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
-export type GooglePurpose = 'login' | 'link';
+export type GooglePurpose = 'login' | 'link' | 'reauthenticate';
 
 // Server attempts last five minutes; a prepared one is reused for four, so moving between
 // Log in and Sign up does not start a new attempt every time (they are rate-limited).
@@ -62,6 +62,11 @@ export class GoogleSignIn {
   // Links the proven Google account to the signed-in account (needs recent authentication).
   async link(attemptId: string, credential: string): Promise<void> {
     await firstValueFrom(this.http.post('/api/v1/auth/google/link', { attemptId, credential }));
+  }
+
+  // Confirms the signed-in person with the Google account already linked to them.
+  async reauthenticate(attemptId: string, credential: string): Promise<void> {
+    await firstValueFrom(this.http.post('/api/v1/auth/google/reauthenticate', { attemptId, credential }));
   }
 
   // Loads Google's script once. Rejects if it is blocked or offline.

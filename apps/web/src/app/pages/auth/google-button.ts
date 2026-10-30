@@ -44,6 +44,7 @@ export class GoogleButton {
   readonly purpose = input<GooglePurpose>('login');
   readonly signedIn = output<User>();
   readonly linked = output<void>();
+  readonly reauthenticated = output<void>();
   // Linking was refused because the session is no longer recently authenticated.
   readonly confirmationNeeded = output<void>();
 
@@ -107,6 +108,12 @@ export class GoogleButton {
         return;
       }
 
+      if (this.purpose() === 'reauthenticate') {
+        await this.google.reauthenticate(attemptId, credential);
+        this.reauthenticated.emit();
+        return;
+      }
+
       this.signedIn.emit(this.session.start(await this.google.signIn(attemptId, credential)));
     } catch (error) {
       const apiError = toApiError(error);
@@ -116,7 +123,12 @@ export class GoogleButton {
         return;
       }
 
-      this.error.set(GOOGLE_MESSAGES[apiError.code] ?? commonMessage(apiError));
+      // Re-authentication accepts only the Google account already linked to this account.
+      const wrongAccount = this.purpose() === 'reauthenticate' && apiError.code === 'GOOGLE_SIGN_IN_FAILED';
+
+      this.error.set(wrongAccount
+        ? "That isn't the Google account connected to this account. Choose the connected one."
+        : GOOGLE_MESSAGES[apiError.code] ?? commonMessage(apiError));
 
       await this.setUp();
     }

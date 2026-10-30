@@ -1,0 +1,257 @@
+<div class="head">
+  <div>
+    <h1>Moderation</h1>
+    <p class="muted">Review reports and keep harmful links offline. Every change needs a reason and is recorded.</p>
+  </div>
+  <form class="lookup" (submit)="lookUp($event)" role="search" aria-label="Look up a link">
+    <label class="visually-hidden" for="lookup-code">Short link or code</label>
+    <input
+      #lookupField
+      id="lookup-code"
+      class="input"
+      placeholder="Look up a code, e.g. Abc123"
+      autocapitalize="off"
+      spellcheck="false"
+      maxlength="2048"
+      [value]="lookupCode()"
+      (input)="lookupCode.set(lookupField.value)"
+    />
+    <button class="btn btn-secondary" type="submit">Look up</button>
+  </form>
+</div>
+
+<div class="layout">
+  <section class="queue" aria-labelledby="queue-title">
+    <div class="queue-head">
+      <h2 id="queue-title">Reports</h2>
+      <div class="tabs" role="group" aria-label="Report status">
+        @for (option of statuses; track option.value) {
+          <button class="tab" type="button" [attr.aria-pressed]="status() === option.value" (click)="chooseStatus(option.value)">
+            {{ option.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (queueError(); as message) {
+      <div class="state" role="alert">
+        <p>{{ message }}</p>
+        <button class="btn btn-secondary" type="button" (click)="loadQueue()">Try again</button>
+      </div>
+    } @else if (queueLoading() && reports().length === 0) {
+      <p class="state muted" role="status">Loading reports…</p>
+    } @else if (reports().length === 0) {
+      <p class="state muted">No {{ status() }} reports.</p>
+    } @else {
+      <ul class="report-list">
+        @for (item of reports(); track item.id) {
+          <li>
+            <button class="report-item" type="button" [attr.aria-current]="report()?.id === item.id ? 'true' : null" (click)="selectReport(item)">
+              <span class="report-top">
+                <strong>/r/{{ item.code }}</strong>
+                <span class="category">{{ categoryLabel(item.category) }}</span>
+              </span>
+              @if (item.details) {
+                <span class="details">{{ item.details }}</span>
+              }
+              <span class="meta">{{ item.createdAt | date: 'd MMM y, HH:mm' }} · {{ item.reporterId ? 'signed-in reporter' : 'anonymous' }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+      @if (nextCursor()) {
+        <button class="btn btn-secondary more" type="button" (click)="loadQueue(true)" [disabled]="queueLoading()">
+          {{ queueLoading() ? 'Loading…' : 'Show more reports' }}
+        </button>
+      }
+    }
+  </section>
+
+  <section class="detail surface" aria-labelledby="detail-title" aria-live="polite">
+    @if (detailLoading()) {
+      <p class="muted" role="status">Loading the link…</p>
+    } @else if (detailError(); as message) {
+      <h2 id="detail-title">Link not found</h2>
+      <p class="form-error" role="alert">{{ message }}</p>
+    } @else if (link(); as current) {
+      <div class="detail-head">
+        <h2 id="detail-title">{{ current.shortUrl }}</h2>
+        <button class="btn close" type="button" aria-label="Close details" (click)="close()"><app-icon name="x" /></button>
+      </div>
+
+      @if (notice(); as message) {
+        <p class="notice" role="status">{{ message }}</p>
+      }
+
+      @if (report(); as selected) {
+        <div class="block">
+          <h3>Report</h3>
+          <dl class="facts">
+            <dt>Category</dt>
+            <dd>{{ categoryLabel(selected.category) }}</dd>
+            <dt>Status</dt>
+            <dd class="report-status" [attr.data-status]="selected.status">{{ selected.status }}</dd>
+            <dt>Received</dt>
+            <dd>{{ selected.createdAt | date: 'd MMM y, HH:mm' }}</dd>
+            @if (selected.details) {
+              <dt>Details</dt>
+              <dd class="quote">{{ selected.details }}</dd>
+            }
+          </dl>
+          @if (!action()) {
+            <div class="actions">
+              @for (option of reportActions(); track option.status) {
+                <button class="btn btn-secondary" type="button" (click)="start({ kind: 'report', status: option.status })">{{ option.label }}</button>
+              }
+            </div>
+            <p class="hint muted">Changing a report's status never blocks or unblocks the link. Do that below.</p>
+          }
+        </div>
+      }
+
+      <div class="block">
+        <h3>Link</h3>
+        <dl class="facts">
+          <dt>Status</dt>
+          <dd><app-status-badge [status]="current.effectiveStatus" /></dd>
+          <dt>Destination</dt>
+          <dd class="url">{{ current.destinationUrl }}</dd>
+          @if (current.blockedAt) {
+            <dt>Blocked</dt>
+            <dd>{{ current.blockedAt | date: 'd MMM y, HH:mm' }}: {{ current.blockReason }}</dd>
+          }
+          <dt>Owner</dt>
+          <dd>
+            @if (current.ownerId) {
+              <code>{{ current.ownerId }}</code> · {{ current.ownerStatus === 'suspended' ? 'suspended' : 'active' }}
+            } @else {
+              Guest link (no account)
+            }
+          </dd>
+          <dt>Owner settings</dt>
+          <dd>{{ current.enabled ? 'Enabled' : 'Disabled by the owner' }}{{ current.expiresAt ? ' · expires ' + (current.expiresAt | date: 'd MMM y') : '' }}</dd>
+          <dt>Open reports</dt>
+          <dd>{{ current.openReports }}</dd>
+        </dl>
+
+        @if (!action()) {
+          <div class="actions">
+            @if (current.blockedAt) {
+              <button class="btn btn-secondary" type="button" (click)="start({ kind: 'unblock' })">Unblock link</button>
+            } @else {
+              <button class="btn btn-danger" type="button" (click)="start({ kind: 'block' })">Block link</button>
+            }
+            @if (current.ownerId) {
+              @if (current.ownerStatus === 'suspended') {
+                <button class="btn btn-secondary" type="button" (click)="start({ kind: 'reactivate' })">Reactivate owner</button>
+              } @else {
+                <button class="btn btn-secondary" type="button" (click)="start({ kind: 'suspend' })">Suspend owner</button>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      @switch (action()?.kind) {
+        @case ('report') {
+          <app-moderation-action
+            heading="Change the report's status"
+            explanation="Only the report changes; the link stays as it is."
+            reasonLabel="Note"
+            [confirmLabel]="'Save status: ' + $any(action()).status"
+            [run]="runReportStatus"
+            (done)="finishAction()"
+            (cancelled)="action.set(null)"
+          />
+        }
+        @case ('block') {
+          <app-moderation-action
+            heading="Block this link"
+            explanation="Visitors will see an unavailable page. The owner sees that it is blocked, but not why, and cannot lift the block."
+            confirmLabel="Block link"
+            [danger]="true"
+            [run]="runLinkBlock"
+            (done)="finishAction()"
+            (cancelled)="action.set(null)"
+          />
+        }
+        @case ('unblock') {
+          <app-moderation-action
+            heading="Unblock this link"
+            explanation="The link works again unless its owner disabled it, it expired or the owner is suspended."
+            confirmLabel="Unblock link"
+            [run]="runLinkBlock"
+            (done)="finishAction()"
+            (cancelled)="action.set(null)"
+          />
+        }
+        @case ('suspend') {
+          <app-moderation-action
+            heading="Suspend the owner's account"
+            explanation="All of the account's links stop working and it is signed out everywhere. Individual link blocks stay as they are."
+            confirmLabel="Suspend account"
+            [danger]="true"
+            [run]="runOwnerSuspension"
+            (done)="finishAction()"
+            (cancelled)="action.set(null)"
+          />
+        }
+        @case ('reactivate') {
+          <app-moderation-action
+            heading="Reactivate the owner's account"
+            explanation="The account can sign in again and its links work again, except links blocked individually."
+            confirmLabel="Reactivate account"
+            [run]="runOwnerSuspension"
+            (done)="finishAction()"
+            (cancelled)="action.set(null)"
+          />
+        }
+      }
+
+      <div class="block">
+        <h3>History</h3>
+        @if (history().length === 0) {
+          <p class="muted">No moderation recorded for this link, its owner or this report.</p>
+        } @else {
+          <ol class="history">
+            @for (entry of history(); track entry.id) {
+              <li>
+                <strong>{{ actionLabel(entry.action) }}</strong>
+                <span class="meta">{{ entry.createdAt | date: 'd MMM y, HH:mm' }} · by <code>{{ entry.actorUserId.slice(0, 8) }}</code></span>
+                <span class="quote">{{ entry.reason }}</span>
+              </li>
+            }
+          </ol>
+        }
+      </div>
+    } @else {
+      <h2 id="detail-title" class="visually-hidden">Details</h2>
+      <div class="empty">
+        <app-icon name="shield-check" [size]="22" />
+        <p>Choose a report, or look up a link by its code.</p>
+      </div>
+    }
+  </section>
+</div>
+
+<section class="activity" aria-labelledby="activity-title">
+  <h2 id="activity-title">Recent moderation</h2>
+  @if (activityError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  } @else if (activity().length === 0) {
+    <p class="muted">Nothing recorded yet.</p>
+  } @else {
+    <ol class="history">
+      @for (entry of activity(); track entry.id) {
+        <li>
+          <strong>{{ actionLabel(entry.action) }}</strong>
+          <span class="meta">{{ entry.createdAt | date: 'd MMM y, HH:mm' }} · {{ entry.targetType }} <code>{{ entry.targetId.slice(0, 8) }}</code> · by <code>{{ entry.actorUserId.slice(0, 8) }}</code></span>
+          <span class="quote">{{ entry.reason }}</span>
+        </li>
+      }
+    </ol>
+    @if (activityCursor()) {
+      <button class="btn btn-secondary more" type="button" (click)="loadActivity(true)">Show older</button>
+    }
+  }
+</section>

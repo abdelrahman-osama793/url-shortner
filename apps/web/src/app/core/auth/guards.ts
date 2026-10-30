@@ -13,6 +13,15 @@ export const requireUser: CanActivateFn = async (_route, state) => {
   return user ? true : router.createUrlTree(['/login'], { queryParams: { next: state.url } });
 };
 
+// Administration is shown only to admins. This is a convenience: the API checks the role on every
+// request, so a non-admin who reaches the page could not load or change anything anyway.
+export const requireAdmin: CanActivateFn = async () => {
+  const router = inject(Router);
+  const user = await inject(Session).load().catch(() => null);
+
+  return user?.role === 'admin' ? true : router.createUrlTree(['/app/links']);
+};
+
 // Only paths inside the workspace are followed after sign-in, so a crafted ?next= cannot send
 // someone to another site or an unexpected page.
 export function safeNext(next: string | null | undefined): string {
