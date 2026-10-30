@@ -4,7 +4,7 @@ A URL shortener built as a deliberate **system-design and implementation exercis
 
 [![CI](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml/badge.svg)](https://github.com/abdelrahman-osama793/url-shortner/actions/workflows/ci.yml)
 
-> **Status: early development.** Guests can create short links on the home page and follow them. People can sign up, verify their email, log in, reset their password and log out in the web app. Signed-in users can create, edit, copy, disable and re-enable their own links in the workspace, and see each link's click analytics (daily chart, countries, devices, referring sites, live freshness). People can also sign in with Google. The account page shows sign-in methods, sends password-reset links and connects Google after confirming the password. Anyone can report a harmful link at /report. Tasks T01–T29 are done and verified, including a real Google account linked through the account page. Nothing is deployed. See [Progress](#progress).
+> **Status: early development.** Guests can create short links on the home page and follow them. People can sign up, verify their email, log in, reset their password and log out in the web app. Signed-in users can create, edit, copy, disable and re-enable their own links in the workspace, and see each link's click analytics (daily chart, countries, devices, referring sites, live freshness). People can also sign in with Google. The account page shows sign-in methods, sends password-reset links and connects Google after confirming the password. Anyone can report a harmful link at /report. Administrators can review reports, block links, suspend accounts and read the audit trail through the API (screens in T31). Tasks T01–T30 are done and verified, including a real Google account linked through the account page. Nothing is deployed. See [Progress](#progress).
 
 ## Why this project exists
 
@@ -101,6 +101,16 @@ npm start -w @shortlist/web
 Open http://localhost:4200. The Angular dev server forwards `/api`, `/r/` and `/health` to the API on port 3000 (`apps/web/proxy.conf.json`), so the browser uses one origin, exactly as in production. Short links returned by the API (`http://localhost:4200/r/…`) open from there too.
 
 Screens built so far: the public home page, whose shortening form is connected to the real API (in development, the verification step uses a labelled mock challenge); Log in, Sign up, email verification and password reset, all connected to the real API (verification and reset emails arrive in Mailpit at http://localhost:8025); and the workspace (signed-in only) with your email, Log out, a verify-your-email banner for unverified accounts, and your real links with create, edit, copy, disable and enable. Placeholder screens say which task builds them.
+
+### Make an account an administrator (operator only)
+
+Roles are never granted through the app. On the machine running the stack:
+
+```bash
+docker compose exec api node src/cli/set-role.js you@example.com admin
+```
+
+The account is signed out everywhere and signs in again as an admin. Use `user` instead of `admin` to remove the role (the last active admin cannot be removed).
 
 ### 5. Check it works
 
@@ -358,7 +368,7 @@ Planning follows a 39-task backlog across eight milestones:
 | C. Authentication and owned links | Sessions/CSRF, email flows, Google sign-in, account linking, link management | **Done**: T11–T18 (sessions, CSRF, email, sign-up, sign-in, reset, owned link management, retry-safe creation); T15 Google sign-in (verified with a real Google account), T16 explicit Google linking and recent authentication |
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
 | E. Angular product UI | Public, auth, workspace and analytics screens | **Done**: T23–T28 (design system, guest shortening, auth screens with email and Google, link management, analytics, account page with a verified real Google link) |
-| F. Reporting and moderation | Abuse reports, admin APIs and workspace | **In progress**: T29 public reporting done; next T30 admin APIs |
+| F. Reporting and moderation | Abuse reports, admin APIs and workspace | **In progress**: T29 public reporting and T30 admin APIs done; next T31 admin workspace |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | Not started |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |
 

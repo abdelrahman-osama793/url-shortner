@@ -54,6 +54,11 @@ export const DEFAULT_POLICIES = Object.freeze({
     { subject: 'user', limit: 60, windowSeconds: MINUTE },
   ],
 
+  // Administrators' moderation changes.
+  adminWrite: [
+    { subject: 'user', limit: 60, windowSeconds: MINUTE },
+  ],
+
   // Dashboard and analytics reads (tuned against normal polling).
   memberRead: [
     { subject: 'user', limit: 120, windowSeconds: MINUTE },

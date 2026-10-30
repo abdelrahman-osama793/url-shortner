@@ -125,14 +125,16 @@ export function createAuthGuards({ sessionService, pool }) {
       return next(serviceUnavailableError({ cause: error }));
     }
 
+    // Suspension is checked first: suspending also revokes sessions (session_version), and the
+    // person should be told why they were signed out, not just that their session ended.
+    if (row?.status === 'suspended') {
+      await discardRejectedSession(req, res);
+      return next(new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is suspended.'));
+    }
+
     if (!row || row.session_version !== req.session.sessionVersion) {
       await discardRejectedSession(req, res);
       return next(authenticationRequired());
-    }
-
-    if (row.status !== 'active') {
-      await discardRejectedSession(req, res);
-      return next(new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is suspended.'));
     }
 
     req.user = row;

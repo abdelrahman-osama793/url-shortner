@@ -1,23 +1,10 @@
-import { ERROR_CODES } from '@shortlist/contracts';
-
-import { AppError, validationError } from '../../errors.js';
+import { validationError } from '../../errors.js';
 import { isValidIdempotencyKey } from '../../modules/idempotency/idempotency.service.js';
+import { etagOf, expectedVersion } from '../versions.js';
 
 // Link endpoints: read the validated request, call the link service, send the result.
-// Owned links carry their version as a strong ETag ("v3"); edits must send it back in If-Match.
-
-const etagOf = (link) => `"v${link.version}"`;
-
-// Returns the version number from `If-Match: "v3"`, or throws 428 when it is missing or malformed.
-function expectedVersion(req) {
-  const match = /^"v([1-9][0-9]{0,9})"$/.exec(req.get('If-Match') ?? '');
-
-  if (!match) {
-    throw new AppError(428, ERROR_CODES.PRECONDITION_REQUIRED, 'Send the If-Match header with the version you are editing.');
-  }
-
-  return Number(match[1]);
-}
+// Owned links carry their version as a strong ETag ("v3"); edits must send it back in If-Match
+// (see ../versions.js).
 
 // Returns the Idempotency-Key header, null when absent, or throws 400 when malformed.
 function idempotencyKeyOf(req) {

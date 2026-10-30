@@ -1,4 +1,5 @@
 import { createApp } from '../../src/http/app.js';
+import { createAdminController } from '../../src/http/controllers/admin.controller.js';
 import { createAuthController } from '../../src/http/controllers/auth.controller.js';
 import { createDevChallengeController } from '../../src/http/controllers/dev-challenge.controller.js';
 import { createGoogleController } from '../../src/http/controllers/google.controller.js';
@@ -8,6 +9,7 @@ import { createRedirectsController } from '../../src/http/controllers/redirects.
 import { createAuthGuards } from '../../src/http/middleware/session.js';
 import { createAuthRouter } from '../../src/http/routes/auth.routes.js';
 import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.routes.js';
+import { createAdminRouter } from '../../src/http/routes/admin.routes.js';
 import { createGoogleRouter } from '../../src/http/routes/google.routes.js';
 import { createReportsRouter } from '../../src/http/routes/reports.routes.js';
 import { createLinksRouter } from '../../src/http/routes/links.routes.js';
@@ -24,6 +26,7 @@ import { createGoogleSignInService } from '../../src/modules/accounts/google-sig
 
 import { createLinkService } from '../../src/modules/links/links.service.js';
 import { createRedirectService } from '../../src/modules/links/redirects.service.js';
+import { createModerationService } from '../../src/modules/moderation/moderation.service.js';
 import { createReportService } from '../../src/modules/reports/reports.service.js';
 import { createSessionService } from '../../src/modules/sessions/sessions.service.js';
 
@@ -58,6 +61,14 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
+    createAdminRouter({
+      controller: createAdminController({
+        moderationService: createModerationService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: SECRET, logger }),
+      }),
+      guards,
+      limiter,
+      recentAuthMs: config.recentAuthMs,
+    }),
     createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) }),
   ];
 

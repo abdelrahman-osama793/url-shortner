@@ -373,6 +373,18 @@ One server package with two entry points (modular monolith), not separate servic
 - **Placeholder removed**: no route uses the "coming soon" preview any more, so `ComingSoon` and the `.mock-banner` style were deleted.
 - **Dev-server pitfall (again)**: after adding exports to `@shortlist/contracts/constants`, Vite's pre-bundled copy went stale and the app rendered blank (`does not provide an export named …`). Fix: stop `ng serve`, delete `apps/web/.angular/cache`, start again.
 
+### Admin moderation APIs (T30)
+
+- **Endpoints** (`/api/v1/admin/…`): report queue (`GET reports`, per status, oldest first) and status changes (`PATCH reports/:id { status, note }`); exact-code link inspection (`GET links?code=`, with owner id, block reason, open reports, ETag); link block/unblock (`PATCH links/:id/moderation { blocked, reason }` + If-Match); account suspend/reactivate (`PATCH users/:id/moderation { suspended, reason }`); audit history (`GET audit`, newest first, optionally per target).
+- **Authorisation**: `guards.admin` reads the role from the current users row on every request. Reads need an admin session; changes also need CSRF, recent authentication (`RECENT_AUTH_MINUTES`) and a reason (1–2000 characters). Admin reads share the `memberRead` limit; changes have their own `adminWrite` limit (60/min per admin).
+- **Atomic audit**: each change and its `admin_audit` row are written in one transaction with the request id. A test makes the audit insert fail (temporary trigger) and checks the change rolled back; a mutation moving the writes out of the transaction fails that test.
+- **Separate actions**: changing a report's status never touches the link; blocking never resolves reports. Reopening a report clears `resolved_at/by` (a database check keeps them consistent).
+- **Link versions**: admin blocks use and bump the same version as owner edits, so a stale owner edit gets 412 after a block and a stale admin action gets 412 after an owner edit. Enabling a link never lifts a block; owners never see the block reason.
+- **Accounts**: all status changes take one advisory lock (namespace 1005). An admin cannot suspend themself (`409 SELF_MODERATION`); the last active admin can never be suspended (`409 LAST_ACTIVE_ADMIN`), proven by a test that holds the lock until two admins' mutual suspensions are both queued (a mutation without the rule fails it; the first, timing-based version of the test did not, and was replaced). Suspension increments `session_version`, so old sessions stay invalid after reactivation; a no-op change records nothing.
+- **Guard order changed**: the session guard now checks suspension before the session version, so a suspended person gets `403 ACCOUNT_SUSPENDED` (and the T28 message) rather than a generic "session ended".
+- **Role assignment stays operator-only**: `src/cli/set-role.js <email> <admin|user>` (run in the API container: `docker compose exec api node src/cli/set-role.js …`). It refuses to demote the last active admin and bumps `session_version` so the person signs in again with the right session lifetime. It is not audited in `admin_audit` (no acting user); the operator's shell history is the record.
+- **Shared helpers**: `If-Match` parsing moved to `http/versions.js` (owners and admins); the signed cursor codec takes a purpose so report and audit cursors cannot be replayed across lists or filters.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

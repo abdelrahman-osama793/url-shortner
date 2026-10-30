@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 
 import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
+import { createAdminController } from './http/controllers/admin.controller.js';
 import { createAuthController } from './http/controllers/auth.controller.js';
 import { createDevChallengeController } from './http/controllers/dev-challenge.controller.js';
 import { createGoogleController } from './http/controllers/google.controller.js';
@@ -14,6 +15,7 @@ import { createLinksController } from './http/controllers/links.controller.js';
 import { createRedirectsController } from './http/controllers/redirects.controller.js';
 import { createReportsController } from './http/controllers/reports.controller.js';
 import { createAuthGuards } from './http/middleware/session.js';
+import { createAdminRouter } from './http/routes/admin.routes.js';
 import { createAuthRouter } from './http/routes/auth.routes.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.routes.js';
 import { createGoogleRouter } from './http/routes/google.routes.js';
@@ -36,6 +38,7 @@ import { createGoogleIdentityService } from './modules/accounts/google-identity.
 import { createGoogleSignInService } from './modules/accounts/google-sign-in.service.js';
 import { createLinkService } from './modules/links/links.service.js';
 import { createRedirectService } from './modules/links/redirects.service.js';
+import { createModerationService } from './modules/moderation/moderation.service.js';
 import { createReportService } from './modules/reports/reports.service.js';
 import { createSessionService } from './modules/sessions/sessions.service.js';
 
@@ -113,6 +116,14 @@ async function main() {
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
+    createAdminRouter({
+      controller: createAdminController({
+        moderationService: createModerationService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger }),
+      }),
+      guards,
+      limiter,
+      recentAuthMs: config.recentAuthMs,
+    }),
   ];
 
   if (config.google.clientId) {

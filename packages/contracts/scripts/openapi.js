@@ -17,6 +17,14 @@ const OUTPUT = fileURLToPath(new URL('../openapi.json', import.meta.url));
 const COMPONENT_SCHEMAS = {
   Acknowledgement: contracts.AcknowledgementSchema,
   ReportRequest: contracts.ReportRequestSchema,
+  ReportQueueResponse: contracts.ReportQueueResponseSchema,
+  AdminReport: contracts.AdminReportSchema,
+  UpdateReportRequest: contracts.UpdateReportRequestSchema,
+  AdminLink: contracts.AdminLinkSchema,
+  LinkModerationRequest: contracts.LinkModerationRequestSchema,
+  UserModerationRequest: contracts.UserModerationRequestSchema,
+  AdminUser: contracts.AdminUserSchema,
+  AuditListResponse: contracts.AuditListResponseSchema,
   RegisterRequest: contracts.RegisterRequestSchema,
   LoginRequest: contracts.LoginRequestSchema,
   LoginResponse: contracts.LoginResponseSchema,
@@ -254,6 +262,73 @@ function buildDocument() {
             400: jsonResponse('VALIDATION_FAILED: category, code (1-64) or details (at most 2000 characters, no NUL).', 'ErrorEnvelope'),
             403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED (per network; invalid attempts count).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/reports': {
+        get: {
+          summary: 'Admin: report queue for one status (default open), oldest first. Query: status, cursor, limit (1-100, default 20).',
+          responses: {
+            200: jsonResponse('A page of reports.', 'ReportQueueResponse'),
+            400: jsonResponse('VALIDATION_FAILED, including a cursor from another status.', 'ErrorEnvelope'),
+            401: jsonResponse('AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('FORBIDDEN (not an admin) or ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/reports/{id}': {
+        patch: {
+          summary: `Admin: set a report's status with a note (audited in the same transaction). Never changes the link. Needs recent authentication.${CSRF_NOTE}`,
+          requestBody: jsonBody('UpdateReportRequest'),
+          responses: {
+            200: jsonResponse('Updated report.', 'AdminReport'),
+            403: jsonResponse('FORBIDDEN, REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            404: jsonResponse('No such report.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/links': {
+        get: {
+          summary: 'Admin: inspect one link by exact, case-sensitive code (query: code). Includes owner id, block reason and open reports; ETag is the link version.',
+          responses: {
+            200: jsonResponse('The link.', 'AdminLink'),
+            403: jsonResponse('FORBIDDEN.', 'ErrorEnvelope'),
+            404: jsonResponse('No link with that code.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/links/{id}/moderation': {
+        patch: {
+          summary: `Admin: block or unblock a link with a reason. Needs If-Match with the link version and recent authentication; bumps the version owners use; audited in the same transaction.${CSRF_NOTE}`,
+          requestBody: jsonBody('LinkModerationRequest'),
+          responses: {
+            200: jsonResponse('Updated link; ETag is the new version.', 'AdminLink'),
+            403: jsonResponse('FORBIDDEN, REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            404: jsonResponse('No such link.', 'ErrorEnvelope'),
+            412: jsonResponse('PRECONDITION_FAILED: the link changed since that version.', 'ErrorEnvelope'),
+            428: jsonResponse('PRECONDITION_REQUIRED: If-Match missing.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/users/{id}/moderation': {
+        patch: {
+          summary: `Admin: suspend or reactivate an account with a reason. Suspension signs the account out everywhere and stops its links on the next request; serialised; audited in the same transaction. No change, no audit entry. Needs recent authentication.${CSRF_NOTE}`,
+          requestBody: jsonBody('UserModerationRequest'),
+          responses: {
+            200: jsonResponse('The account.', 'AdminUser'),
+            403: jsonResponse('FORBIDDEN, REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            404: jsonResponse('No such account.', 'ErrorEnvelope'),
+            409: jsonResponse('SELF_MODERATION or LAST_ACTIVE_ADMIN.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/audit': {
+        get: {
+          summary: 'Admin: audit history, newest first; optionally for one target (targetType and targetId together). Query: targetType, targetId, cursor, limit.',
+          responses: {
+            200: jsonResponse('A page of audit entries.', 'AuditListResponse'),
+            400: jsonResponse('VALIDATION_FAILED, including a cursor from another filter.', 'ErrorEnvelope'),
+            403: jsonResponse('FORBIDDEN.', 'ErrorEnvelope'),
           },
         },
       },

@@ -1,13 +1,14 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-// Opaque, signed pagination cursors for an owner's link list (api-contracts.md, Conventions).
-// A cursor holds the last row's (created_at, id) and the owner it was issued to, and is signed
-// with a server key, so it cannot be edited, forged or replayed by another account.
+// Opaque, signed pagination cursors (api-contracts.md, Conventions). A cursor holds the last
+// row's (created_at, id) and the scope it was issued for (an owner id, or a list and filter for
+// admin queries), and is signed with a key derived for one purpose, so it cannot be edited,
+// forged, or replayed against another account, list or filter.
 // created_at is kept as PostgreSQL text with microseconds: a JavaScript Date keeps only
 // milliseconds, which would make pages skip or repeat links created in the same millisecond.
 
-export function createCursorCodec(secret) {
-  const key = createHmac('sha256', secret).update('links-cursor-v1').digest();
+export function createCursorCodec(secret, purpose = 'links-cursor-v1') {
+  const key = createHmac('sha256', secret).update(purpose).digest();
 
   const sign = (payload) => createHmac('sha256', key).update(payload).digest('base64url');
 
