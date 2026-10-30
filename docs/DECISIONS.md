@@ -345,6 +345,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **Bounded polling**: every 15 s while the tab is visible (resumes on return), at most 40 polls (10 minutes), then "Automatic updates paused" with Refresh. Late answers for a previous link/range are ignored. Well inside the 120/min read limit.
 - **Verified honesty of `unknown`**: with the worker stopped the API reports `unknown` (no heartbeat for 30 s outranks delayed), and the page says it cannot confirm counting is running while keeping the last total.
 
+### Account linking and recent authentication (T16)
+
+- **Endpoints**: `POST /auth/reauthenticate { password }`, `POST /auth/google/reauthenticate` and `POST /auth/google/link` (both `{ attemptId, credential }`), each answering 204. Every one needs a signed-in, active, current session plus CSRF.
+- **Recent authentication**: a session counts as recently authenticated for `RECENT_AUTH_MINUTES` (default 10, provisional) after sign-in, `/auth/reauthenticate`, Google re-authentication or a successful link. Stored as `recentAuthAt` in the Redis session; the `recentAuth` guard checks it. Password confirmation shares the sign-in rate limits (per account and network).
+- **Both identities proven**: linking requires the recent-auth guard (proves the Shortlist account) and a fresh Google ID token for a link-purpose attempt (proves the Google account). Matching emails never link anything; the T15 `409 ACCOUNT_LINK_REQUIRED` is resolved only by this explicit flow (tested end to end).
+- **No swapping or replay**: attempts carry purpose, browser-session binding and the starting user; link/reauthenticate verify all three, and attempts are single-use (GETDEL).
+- **The Google subject never silently changes**: an account has at most one Google identity, enforced by migration `0006` (`UNIQUE (user_id, provider)`) and checked in code with clear 409s: `GOOGLE_ACCOUNT_IN_USE` (that Google account belongs to another Shortlist account) and `GOOGLE_ALREADY_LINKED` (this account already has a different one). A race between two links hits the index and gets the same 409. Linking the already-linked account again is a no-op 204. Google re-authentication accepts only the linked subject.
+- **Out of scope (unchanged)**: unlinking, email changes, password enrollment for Google-only accounts (they are told to confirm with Google), MFA.
+- **Contact email is unaffected by linking**: linking does not change or verify the account email.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

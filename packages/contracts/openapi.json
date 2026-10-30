@@ -489,6 +489,146 @@
         }
       }
     },
+    "/api/v1/auth/reauthenticate": {
+      "post": {
+        "summary": "Confirm the signed-in person with their current password; the session counts as recently authenticated for RECENT_AUTH_MINUTES (default 10). Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReauthenticateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Confirmed."
+          },
+          "401": {
+            "description": "INVALID_CREDENTIALS (wrong password, or a Google-only account), or AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (shares the sign-in limits).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google/link": {
+      "post": {
+        "summary": "Link the Google account from a link-purpose attempt (started by this signed-in user) to the account. Requires recent authentication. One Google account per Shortlist account. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Linked (or already linked to this account). Also counts as recent authentication."
+          },
+          "401": {
+            "description": "GOOGLE_SIGN_IN_FAILED (attempt of another purpose, user or browser; reused; invalid token) or AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "REAUTHENTICATION_REQUIRED, ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "GOOGLE_ACCOUNT_IN_USE (linked to another account) or GOOGLE_ALREADY_LINKED (this account has a different Google account).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google/reauthenticate": {
+      "post": {
+        "summary": "Confirm the signed-in person with the Google account already linked to them (reauthenticate-purpose attempt). Never changes the linked identity. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Confirmed."
+          },
+          "401": {
+            "description": "GOOGLE_SIGN_IN_FAILED (not the linked Google account, wrong attempt, invalid token) or AUTHENTICATION_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/me": {
       "get": {
         "summary": "The signed-in user",
@@ -1214,6 +1354,20 @@
         ],
         "additionalProperties": false
       },
+      "ReauthenticateRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "additionalProperties": false
+      },
       "CsrfResponse": {
         "type": "object",
         "properties": {
@@ -1372,6 +1526,8 @@
           "INVALID_CREDENTIALS",
           "GOOGLE_SIGN_IN_FAILED",
           "ACCOUNT_LINK_REQUIRED",
+          "GOOGLE_ACCOUNT_IN_USE",
+          "GOOGLE_ALREADY_LINKED",
           "TOKEN_INVALID",
           "TOKEN_EXPIRED",
           "TOKEN_USED",

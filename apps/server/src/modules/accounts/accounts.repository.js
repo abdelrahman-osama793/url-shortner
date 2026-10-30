@@ -85,6 +85,20 @@ export async function resetPasswordAndRevokeSessions(db, userId, passwordHash) {
   return true;
 }
 
+// The stored password hash of a user, or null for accounts without a password (Google-only).
+export async function findPasswordHash(db, userId) {
+  const { rows } = await db.query('SELECT password_hash FROM password_credentials WHERE user_id = $1', [userId]);
+
+  return rows[0]?.password_hash ?? null;
+}
+
+// The subject of the user's identity at this provider, or null when none is linked.
+export async function findIdentitySubject(db, { userId, provider }) {
+  const { rows } = await db.query('SELECT subject FROM external_identities WHERE user_id = $1 AND provider = $2', [userId, provider]);
+
+  return rows[0]?.subject ?? null;
+}
+
 // The user linked to an external identity (e.g. a Google subject), or null.
 export async function findUserByIdentity(db, { provider, subject }) {
   const { rows } = await db.query(

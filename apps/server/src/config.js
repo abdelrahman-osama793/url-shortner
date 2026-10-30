@@ -78,6 +78,8 @@ const EnvSchema = z.object({
   // One-time token lifetimes (provisional, technical-design §4).
   VERIFICATION_TOKEN_HOURS: z.coerce.number().int().positive().default(24),
   RESET_TOKEN_MINUTES: z.coerce.number().int().positive().default(30),
+  // How long a password or Google confirmation counts as recent for linking and moderation.
+  RECENT_AUTH_MINUTES: z.coerce.number().int().positive().default(10),
 });
 
 const MINUTE_MS = 60 * 1000;
@@ -137,6 +139,7 @@ export function loadConfig(env = process.env) {
       from: vars.MAIL_FROM,
       outboxKey: parseOutboxKey(vars.EMAIL_OUTBOX_KEY),
     }),
+    recentAuthMs: vars.RECENT_AUTH_MINUTES * MINUTE_MS,
     tokenLifetimes: Object.freeze({
       verificationMs: vars.VERIFICATION_TOKEN_HOURS * HOUR_MS,
       resetMs: vars.RESET_TOKEN_MINUTES * MINUTE_MS,

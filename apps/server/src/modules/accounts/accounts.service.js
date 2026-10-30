@@ -124,5 +124,21 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     return user;
   }
 
-  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate };
+  // Recent authentication with the current password, for a signed-in user (T16). Same Argon2
+  // check as sign-in; a Google-only account has no password to confirm with.
+  async function reauthenticate({ userId, password }) {
+    const passwordHash = await repository.findPasswordHash(pool, userId);
+
+    if (!passwordHash) {
+      throw new AppError(401, ERROR_CODES.INVALID_CREDENTIALS, 'This account has no password. Confirm with Google instead.');
+    }
+
+    const { valid, rehash } = await verifyPassword(passwordHash, password);
+
+    if (!valid) throw new AppError(401, ERROR_CODES.INVALID_CREDENTIALS, 'The password is incorrect.');
+
+    if (rehash) await repository.updatePasswordHash(pool, userId, rehash);
+  }
+
+  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate, reauthenticate };
 }

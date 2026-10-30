@@ -20,9 +20,19 @@ import { issueTokenWithEmail, TOKEN_PURPOSES } from './tokens.service.js';
 //      verified only where Google is authoritative for it (gmail.com, googlemail.com, or a
 //      Workspace domain, signalled by the hd claim); otherwise the account is restricted until
 //      the contact email is verified through our own email link.
+//
+// Linking and re-authentication (T16) act on the signed-in account only. Their attempts carry
+// a purpose and the user who started them, so a sign-in attempt cannot be used to link, a link
+// attempt cannot be used by another user, and none can be replayed (attempts are single-use).
+// An account has at most one Google identity, and re-authentication accepts only that one: the
+// Google subject of an account never changes silently.
 
 const GOOGLE = 'google';
 const GOOGLE_MAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com']);
+
+const UNIQUE_VIOLATION = '23505';
+
+const alreadyLinked = () => new AppError(409, ERROR_CODES.GOOGLE_ALREADY_LINKED, 'A different Google account is already connected to this account.');
 
 const signInFailed = () => new AppError(401, ERROR_CODES.GOOGLE_SIGN_IN_FAILED, 'Google sign-in failed. Please try again.');
 
@@ -123,5 +133,55 @@ export function createGoogleSignInService({ pool, attempts, identity, outboxKey,
     return user;
   }
 
-  return { signIn, verifyAttempt };
+  // Verifies a link or reauthenticate attempt that the same signed-in user started.
+  async function verifyUserAttempt({ attemptId, credential, sessionToken, purpose, userId }) {
+    const { attempt, profile } = await verifyAttempt({ attemptId, credential, sessionToken, purpose });
+
+    if (attempt.userId !== userId) throw signInFailed();
+
+    return profile;
+  }
+
+  // Adds this Google account to the signed-in account. Requires recent authentication (checked
+  // by the route), so both identities have been proven: the account just now, Google here.
+  // Linking the already-linked Google account again changes nothing.
+  async function link({ attemptId, credential, sessionToken, userId }) {
+    const profile = await verifyUserAttempt({ attemptId, credential, sessionToken, purpose: 'link', userId });
+
+    await withTransaction(pool, async (client) => {
+      await accountsRepository.lockIdentity(client, { provider: GOOGLE, subject: profile.subject });
+
+      const owner = await accountsRepository.findUserByIdentity(client, { provider: GOOGLE, subject: profile.subject });
+
+      if (owner?.id === userId) return;
+
+      if (owner) {
+        throw new AppError(409, ERROR_CODES.GOOGLE_ACCOUNT_IN_USE, 'This Google account is already connected to a different Shortlist account.');
+      }
+
+      if (await accountsRepository.findIdentitySubject(client, { userId, provider: GOOGLE })) throw alreadyLinked();
+
+      try {
+        await accountsRepository.insertIdentity(client, { userId, provider: GOOGLE, subject: profile.subject });
+      } catch (error) {
+        // Two links of different Google accounts at the same moment: the one-per-account index
+        // (migration 0006) lets only one in.
+        if (error?.code === UNIQUE_VIOLATION) throw alreadyLinked();
+
+        throw error;
+      }
+    }, { logger });
+
+    logger?.info('google identity linked');
+  }
+
+  // Confirms the signed-in person with the Google account already linked to them.
+  async function reauthenticate({ attemptId, credential, sessionToken, userId }) {
+    const profile = await verifyUserAttempt({ attemptId, credential, sessionToken, purpose: 'reauthenticate', userId });
+    const linked = await accountsRepository.findIdentitySubject(pool, { userId, provider: GOOGLE });
+
+    if (linked !== profile.subject) throw signInFailed();
+  }
+
+  return { signIn, link, reauthenticate, verifyAttempt };
 }

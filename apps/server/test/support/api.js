@@ -68,7 +68,12 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
       logger,
     });
 
-    routers.push(createGoogleRouter({ controller: createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId: TEST_GOOGLE_CLIENT_ID }), guards, limiter }));
+    routers.push(createGoogleRouter({
+      controller: createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId: TEST_GOOGLE_CLIENT_ID }),
+      guards,
+      limiter,
+      recentAuthMs: config.recentAuthMs,
+    }));
   }
 
   const app = createApp({ config, logger, routers });

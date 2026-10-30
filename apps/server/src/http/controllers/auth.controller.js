@@ -1,4 +1,6 @@
-import { serviceUnavailableError } from '../../errors.js';
+import { ERROR_CODES } from '@shortlist/contracts';
+
+import { AppError, serviceUnavailableError } from '../../errors.js';
 import { toUserResource } from '../../modules/accounts/accounts.presenter.js';
 import { SessionUnavailableError } from '../../modules/sessions/sessions.service.js';
 import { clearSessionCookie, setSessionCookie } from '../middleware/session.js';
@@ -11,6 +13,16 @@ const ACCEPTED = Object.freeze({ status: 'accepted' });
 
 function toSessionUnavailable(error) {
   return error instanceof SessionUnavailableError ? serviceUnavailableError({ cause: error }) : error;
+}
+
+// Records a fresh identity proof on the current session. Returns 401 if the session vanished
+// meanwhile (logout elsewhere), so a confirmation never lands on a session that no longer exists.
+export async function recordRecentAuth(sessionService, req, res) {
+  const recorded = await sessionService.markRecentAuth(req.sessionToken, req.session);
+
+  if (!recorded) throw new AppError(401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Please sign in to continue.');
+
+  res.status(204).end();
 }
 
 export function createAuthController({ sessionService, accountService }) {
@@ -97,5 +109,17 @@ export function createAuthController({ sessionService, accountService }) {
     res.status(204).end();
   }
 
-  return { csrf, register, verifyEmail, resendVerification, forgotPassword, resetPassword, login, me, logout };
+  // Confirms the signed-in person with their password; the session then counts as recently
+  // authenticated for the configured window.
+  async function reauthenticate(req, res, next) {
+    await accountService.reauthenticate({ userId: req.user.id, password: req.body.password });
+
+    try {
+      await recordRecentAuth(sessionService, req, res);
+    } catch (error) {
+      next(toSessionUnavailable(error));
+    }
+  }
+
+  return { csrf, register, verifyEmail, resendVerification, forgotPassword, resetPassword, login, me, logout, reauthenticate };
 }

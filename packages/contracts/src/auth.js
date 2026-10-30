@@ -29,6 +29,9 @@ export const ForgotPasswordRequestSchema = z.strictObject({ email });
 
 export const ResetPasswordRequestSchema = z.strictObject({ token: oneTimeToken, newPassword });
 
+// Confirms the signed-in person's identity with their current password (recent authentication).
+export const ReauthenticateRequestSchema = z.strictObject({ password: anyPassword });
+
 export const GoogleStartRequestSchema = z.strictObject({
   purpose: z.enum(GOOGLE_PURPOSES),
 });
@@ -40,6 +43,8 @@ export const GoogleStartResponseSchema = z.object({
   clientId: z.string(),
 });
 
+// Also the body of /auth/google/link and /auth/google/reauthenticate: a Google ID token for an
+// attempt started with the matching purpose.
 export const GoogleSignInRequestSchema = z.strictObject({
   attemptId: z.string().min(1).max(128),
   credential: z.string().min(1).max(4096),

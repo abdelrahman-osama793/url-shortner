@@ -26,6 +26,7 @@ const COMPONENT_SCHEMAS = {
   GoogleStartResponse: contracts.GoogleStartResponseSchema,
   GoogleSignInRequest: contracts.GoogleSignInRequestSchema,
   ResetPasswordRequest: contracts.ResetPasswordRequestSchema,
+  ReauthenticateRequest: contracts.ReauthenticateRequestSchema,
   CsrfResponse: contracts.CsrfResponseSchema,
   MeResponse: contracts.MeResponseSchema,
   User: contracts.UserSchema,
@@ -184,6 +185,41 @@ function buildDocument() {
             403: jsonResponse('ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             409: jsonResponse('ACCOUNT_LINK_REQUIRED: a password account already uses this email; sign in to it and link Google.', 'ErrorEnvelope'),
             503: jsonResponse("Google's signing keys or session storage unavailable.", 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/reauthenticate': {
+        post: {
+          summary: `Confirm the signed-in person with their current password; the session counts as recently authenticated for RECENT_AUTH_MINUTES (default 10).${CSRF_NOTE}`,
+          requestBody: jsonBody('ReauthenticateRequest'),
+          responses: {
+            204: { description: 'Confirmed.' },
+            401: jsonResponse('INVALID_CREDENTIALS (wrong password, or a Google-only account), or AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED (shares the sign-in limits).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/google/link': {
+        post: {
+          summary: `Link the Google account from a link-purpose attempt (started by this signed-in user) to the account. Requires recent authentication. One Google account per Shortlist account.${CSRF_NOTE}`,
+          requestBody: jsonBody('GoogleSignInRequest'),
+          responses: {
+            204: { description: 'Linked (or already linked to this account). Also counts as recent authentication.' },
+            401: jsonResponse('GOOGLE_SIGN_IN_FAILED (attempt of another purpose, user or browser; reused; invalid token) or AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('REAUTHENTICATION_REQUIRED, ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            409: jsonResponse('GOOGLE_ACCOUNT_IN_USE (linked to another account) or GOOGLE_ALREADY_LINKED (this account has a different Google account).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/auth/google/reauthenticate': {
+        post: {
+          summary: `Confirm the signed-in person with the Google account already linked to them (reauthenticate-purpose attempt). Never changes the linked identity.${CSRF_NOTE}`,
+          requestBody: jsonBody('GoogleSignInRequest'),
+          responses: {
+            204: { description: 'Confirmed.' },
+            401: jsonResponse('GOOGLE_SIGN_IN_FAILED (not the linked Google account, wrong attempt, invalid token) or AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('ACCOUNT_SUSPENDED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
           },
         },
       },

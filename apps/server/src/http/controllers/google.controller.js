@@ -6,6 +6,8 @@ import { GoogleAttemptsUnavailableError } from '../../modules/accounts/google-at
 import { SessionUnavailableError } from '../../modules/sessions/sessions.service.js';
 import { setSessionCookie } from '../middleware/session.js';
 
+import { recordRecentAuth } from './auth.controller.js';
+
 // Google sign-in endpoints: start an attempt, then exchange Google's credential for a session.
 
 function toUnavailable(error) {
@@ -57,5 +59,27 @@ export function createGoogleController({ googleAttempts, googleSignIn, sessionSe
     }
   }
 
-  return { start, signIn };
+  // Both prove the person controls the Google account right now, so the session also counts
+  // as recently authenticated afterwards.
+  async function link(req, res, next) {
+    await googleSignIn.link({ ...req.body, sessionToken: req.sessionToken, userId: req.user.id });
+
+    try {
+      await recordRecentAuth(sessionService, req, res);
+    } catch (error) {
+      next(toUnavailable(error));
+    }
+  }
+
+  async function reauthenticate(req, res, next) {
+    await googleSignIn.reauthenticate({ ...req.body, sessionToken: req.sessionToken, userId: req.user.id });
+
+    try {
+      await recordRecentAuth(sessionService, req, res);
+    } catch (error) {
+      next(toUnavailable(error));
+    }
+  }
+
+  return { start, signIn, link, reauthenticate };
 }

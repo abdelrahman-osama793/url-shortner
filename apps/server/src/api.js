@@ -126,6 +126,7 @@ async function main() {
       controller: createGoogleController({ googleAttempts, googleSignIn, sessionService, clientId: config.google.clientId }),
       guards,
       limiter,
+      recentAuthMs: config.recentAuthMs,
     }));
   } else {
     logger.warn('GOOGLE_CLIENT_ID not set: Google sign-in is disabled');

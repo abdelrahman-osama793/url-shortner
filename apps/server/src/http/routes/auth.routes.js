@@ -3,6 +3,7 @@ import {
   LoginRequestSchema,
   RegisterRequestSchema,
   ResendVerificationRequestSchema,
+  ReauthenticateRequestSchema,
   ResetPasswordRequestSchema,
   VerifyEmailRequestSchema,
 } from '@shortlist/contracts';
@@ -23,11 +24,13 @@ import { validateBody } from '../middleware/validate.js';
 //   POST /api/v1/auth/password/reset   204; signs out every existing session of the account
 //   POST /api/v1/auth/login            200 { user, csrfToken } with a new session; generic 401
 //   GET  /api/v1/auth/me               the signed-in user
+//   POST /api/v1/auth/reauthenticate   204 after the current password; starts the recent-auth window
 //   POST /api/v1/auth/logout           204 once the server session is deleted
 //
 // Rate limits run after validation here because the per-account bucket needs the email.
 
 const byAccountAndNetwork = (req) => ({ account: normalizeEmail(req.body.email), network: req.clientNetwork });
+const bySignedInAccount = (req) => ({ account: normalizeEmail(req.user.email), network: req.clientNetwork });
 
 export function createAuthRouter({ controller, guards, limiter }) {
   const router = Router();
@@ -50,6 +53,16 @@ export function createAuthRouter({ controller, guards, limiter }) {
     validateBody(LoginRequestSchema),
     rateLimit(limiter, 'login', byAccountAndNetwork),
     controller.login,
+  );
+
+  // Password guesses here count against the same sign-in limits as /auth/login.
+  router.post(
+    '/api/v1/auth/reauthenticate',
+    ...preLogin,
+    guards.user,
+    validateBody(ReauthenticateRequestSchema),
+    rateLimit(limiter, 'login', bySignedInAccount),
+    controller.reauthenticate,
   );
 
   router.get('/api/v1/auth/me', guards.session, guards.user, controller.me);

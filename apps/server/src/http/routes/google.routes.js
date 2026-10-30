@@ -10,8 +10,9 @@ const byNetwork = (req) => ({ network: req.clientNetwork });
 // GOOGLE_CLIENT_ID is configured.
 //   POST /api/v1/auth/google/start  { purpose }               → { attemptId, nonce, clientId }
 //   POST /api/v1/auth/google        { attemptId, credential } → { user, csrfToken } + new session
-// Account linking and re-authentication endpoints are T16.
-export function createGoogleRouter({ controller, guards, limiter }) {
+//   POST /api/v1/auth/google/link   { attemptId, credential } → 204; signed in + recent auth
+//   POST /api/v1/auth/google/reauthenticate                    → 204; the account's own Google only
+export function createGoogleRouter({ controller, guards, limiter, recentAuthMs }) {
   const router = Router();
 
   const preLogin = [guards.session, guards.csrf];
@@ -25,6 +26,25 @@ export function createGoogleRouter({ controller, guards, limiter }) {
   );
 
   router.post('/api/v1/auth/google', ...preLogin, validateBody(GoogleSignInRequestSchema), controller.signIn);
+
+  // Linking changes how the account can be entered, so the account itself must have been proven
+  // recently (password or Google sign-in, or /auth/reauthenticate) as well as the Google account.
+  router.post(
+    '/api/v1/auth/google/link',
+    ...preLogin,
+    guards.user,
+    guards.recentAuth(recentAuthMs),
+    validateBody(GoogleSignInRequestSchema),
+    controller.link,
+  );
+
+  router.post(
+    '/api/v1/auth/google/reauthenticate',
+    ...preLogin,
+    guards.user,
+    validateBody(GoogleSignInRequestSchema),
+    controller.reauthenticate,
+  );
 
   return router;
 }
