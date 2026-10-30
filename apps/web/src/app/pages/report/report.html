@@ -1,0 +1,85 @@
+<div class="report surface">
+  @if (sent()) {
+    <div class="done">
+      <div class="mark"><app-icon name="check" /></div>
+      <h1 #doneHeading tabindex="-1">Thanks for your report</h1>
+      <p class="muted">
+        If the link exists, our team will review it. We don't share whether a link was found or what happens next, to protect everyone's privacy.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" routerLink="/">Back to the home page</a>
+        <button class="btn" type="button" (click)="reportAnother()">Report another link</button>
+      </div>
+    </div>
+  } @else {
+    <h1>Report a link</h1>
+    <p class="muted intro">Help us find phishing, malware and other harmful links. Reports go to a person for review; nothing is removed automatically.</p>
+
+    <form class="form-stack" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()">
+      <div class="field">
+        <label for="report-link">Short link or code</label>
+        <input
+          #linkField
+          id="report-link"
+          class="input"
+          placeholder="e.g. https://shortlist.example/r/Abc123 or Abc123"
+          maxlength="2048"
+          autocapitalize="off"
+          spellcheck="false"
+          [value]="link()"
+          (input)="link.set(linkField.value)"
+          [attr.aria-invalid]="errors().link ? 'true' : null"
+          [attr.aria-describedby]="errors().link ? 'report-link-error' : 'report-link-hint'"
+        />
+        <span id="report-link-hint" class="field-hint">Codes are case-sensitive.</span>
+        @if (errors().link; as message) {
+          <p id="report-link-error" class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <fieldset class="categories" [attr.aria-describedby]="errors().category ? 'category-error' : null">
+        <legend>What's wrong with it?</legend>
+        @for (option of categories; track option.value) {
+          <label class="option" [class.selected]="category() === option.value">
+            <input type="radio" name="category" [value]="option.value" [checked]="category() === option.value" (change)="category.set(option.value)" />
+            <span>
+              <strong>{{ option.label }}</strong>
+              <span class="muted">{{ option.hint }}</span>
+            </span>
+          </label>
+        }
+        @if (errors().category; as message) {
+          <p id="category-error" class="field-error" role="alert">{{ message }}</p>
+        }
+      </fieldset>
+
+      <div class="field">
+        <label for="report-details">Details <span class="field-hint">Optional</span></label>
+        <textarea
+          #detailsField
+          id="report-details"
+          class="input"
+          rows="5"
+          [attr.maxlength]="maxDetails"
+          placeholder="Where did you find it, and what does it do?"
+          [value]="details()"
+          (input)="details.set(detailsField.value)"
+          [attr.aria-invalid]="errors().details ? 'true' : null"
+          aria-describedby="report-details-count"
+        ></textarea>
+        <span id="report-details-count" class="field-hint">{{ details().length }} / {{ maxDetails }} characters. Please don't include passwords or personal information.</span>
+        @if (errors().details; as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      @if (formError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+
+      <button class="btn btn-primary" type="submit" [disabled]="busy()">
+        {{ busy() ? 'Sending…' : 'Send report' }} <app-icon name="flag" [size]="16" />
+      </button>
+    </form>
+  }
+</div>

@@ -2,12 +2,14 @@ import { createApp } from '../../src/http/app.js';
 import { createAuthController } from '../../src/http/controllers/auth.controller.js';
 import { createDevChallengeController } from '../../src/http/controllers/dev-challenge.controller.js';
 import { createGoogleController } from '../../src/http/controllers/google.controller.js';
+import { createReportsController } from '../../src/http/controllers/reports.controller.js';
 import { createLinksController } from '../../src/http/controllers/links.controller.js';
 import { createRedirectsController } from '../../src/http/controllers/redirects.controller.js';
 import { createAuthGuards } from '../../src/http/middleware/session.js';
 import { createAuthRouter } from '../../src/http/routes/auth.routes.js';
 import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.routes.js';
 import { createGoogleRouter } from '../../src/http/routes/google.routes.js';
+import { createReportsRouter } from '../../src/http/routes/reports.routes.js';
 import { createLinksRouter } from '../../src/http/routes/links.routes.js';
 import { createRedirectRouter } from '../../src/http/routes/redirects.routes.js';
 import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modules/abuse/challenge.service.js';
@@ -22,6 +24,7 @@ import { createGoogleSignInService } from '../../src/modules/accounts/google-sig
 
 import { createLinkService } from '../../src/modules/links/links.service.js';
 import { createRedirectService } from '../../src/modules/links/redirects.service.js';
+import { createReportService } from '../../src/modules/reports/reports.service.js';
 import { createSessionService } from '../../src/modules/sessions/sessions.service.js';
 
 import { TEST_GOOGLE_CLIENT_ID } from './google.js';
@@ -54,6 +57,7 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
     createRedirectRouter({ controller: createRedirectsController({ redirectService, clickCapture, countryHeader: capture.countryHeader }) }),
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
+    createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
     createDevChallengeRouter({ controller: createDevChallengeController({ verifier }) }),
   ];
 

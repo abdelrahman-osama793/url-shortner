@@ -34,6 +34,10 @@ export const ANALYTICS_MAX_RANGE_DAYS = 90;
 export const ANALYTICS_DEFAULT_RANGE_DAYS = 30;
 export const ANALYTICS_TOP_REFERRERS = 20;
 
+// Abuse reports (api-contracts.md, "Reports and moderation"). Details match the database limit.
+export const REPORT_CATEGORIES = Object.freeze(['phishing', 'malware', 'spam', 'other']);
+export const REPORT_DETAILS_MAX_LENGTH = 2000;
+
 // Error codes the API can return. Each task adds the codes it introduces here,
 // so the UI and the OpenAPI document stay in sync with the server.
 export const ERROR_CODES = Object.freeze({

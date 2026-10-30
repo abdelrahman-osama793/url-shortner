@@ -706,6 +706,63 @@
         }
       }
     },
+    "/api/v1/reports": {
+      "post": {
+        "summary": "Report a short link for abuse. Same 202 for every code: unknown codes are not stored. Queued for admin review; never blocks a link by itself. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Acknowledgement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: category, code (1-64) or details (at most 2000 characters, no NUL).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (per network; invalid attempts count).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/links": {
       "post": {
         "parameters": [
@@ -1141,6 +1198,34 @@
         },
         "required": [
           "status"
+        ],
+        "additionalProperties": false
+      },
+      "ReportRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "phishing",
+              "malware",
+              "spam",
+              "other"
+            ]
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "code",
+          "category"
         ],
         "additionalProperties": false
       },

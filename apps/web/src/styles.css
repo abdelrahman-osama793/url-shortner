@@ -303,20 +303,6 @@ svg {
   line-height: 1.7;
 }
 
-/* Marks content that is not connected to real data, so a preview is never mistaken for it. */
-.mock-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 14px;
-  border: 1px dashed var(--warn);
-  border-radius: var(--radius-control);
-  background: var(--warn-soft);
-  color: var(--warn);
-  font-size: 13px;
-  font-weight: 600;
-}
-
 /* Authentication screens (inside AuthLayout's form column) ------------------------------- */
 
 .auth-intro {

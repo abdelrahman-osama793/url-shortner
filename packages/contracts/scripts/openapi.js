@@ -16,6 +16,7 @@ const OUTPUT = fileURLToPath(new URL('../openapi.json', import.meta.url));
 
 const COMPONENT_SCHEMAS = {
   Acknowledgement: contracts.AcknowledgementSchema,
+  ReportRequest: contracts.ReportRequestSchema,
   RegisterRequest: contracts.RegisterRequestSchema,
   LoginRequest: contracts.LoginRequestSchema,
   LoginResponse: contracts.LoginResponseSchema,
@@ -241,6 +242,18 @@ function buildDocument() {
             204: { description: 'Server session deleted and cookie cleared.' },
             403: jsonResponse('Missing or wrong CSRF token, or foreign Origin.', 'ErrorEnvelope'),
             503: jsonResponse('Session storage unavailable; the session was not deleted.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/reports': {
+        post: {
+          summary: `Report a short link for abuse. Same 202 for every code: unknown codes are not stored. Queued for admin review; never blocks a link by itself.${CSRF_NOTE}`,
+          requestBody: jsonBody('ReportRequest'),
+          responses: {
+            202: jsonResponse('Accepted.', 'Acknowledgement'),
+            400: jsonResponse('VALIDATION_FAILED: category, code (1-64) or details (at most 2000 characters, no NUL).', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED (per network; invalid attempts count).', 'ErrorEnvelope'),
           },
         },
       },

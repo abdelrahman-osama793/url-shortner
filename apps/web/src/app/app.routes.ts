@@ -12,12 +12,11 @@ import { Signup } from './pages/auth/signup';
 import { VerifyEmail } from './pages/auth/verify-email';
 import { AccountPage } from './pages/account/account';
 import { AnalyticsPage } from './pages/analytics/analytics';
-import { ComingSoon } from './pages/coming-soon';
 import { Home } from './pages/home';
 import { LinksPage } from './pages/links/links';
 import { NotFound } from './pages/not-found';
+import { ReportPage } from './pages/report/report';
 
-// Screens marked ComingSoon are labelled previews; the task that builds each one is in its data.
 export const routes: Routes = [
   {
     path: '',
@@ -36,7 +35,7 @@ export const routes: Routes = [
           { path: 'reset-password', component: ResetPassword, title: 'Choose a new password · Shortlist' },
         ],
       },
-      { path: 'report', component: ComingSoon, title: 'Report a link · Shortlist', data: { title: 'Report a link', description: 'Help us identify phishing, malware or other harmful content.', task: 'T29' } },
+      { path: 'report', component: ReportPage, title: 'Report a link · Shortlist' },
     ],
   },
   {

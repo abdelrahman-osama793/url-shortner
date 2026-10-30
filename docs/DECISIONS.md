@@ -363,6 +363,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **Suspension**: a member request answered `403 ACCOUNT_SUSPENDED` signs the person out locally and goes to `/login?suspended=1`, which explains it. (The server already discards the session.)
 - **Sign-in collision copy updated**: the Google sign-in 409 now points to "log in with your password, then connect Google from your account page".
 
+### Public abuse reporting (T29)
+
+- **API**: `POST /api/v1/reports { code, category, details? }` answers `202 { status: "accepted" }` for every code. The row is written by one `INSERT … SELECT … FROM links WHERE code = $1`, so an unknown code stores nothing (no orphaned rows, no separate existence check). Malformed codes never reach the database. Exact, case-sensitive match. Reports never block a link by themselves; admins decide (T30–T31).
+- **Protection**: session + CSRF (guests use their anonymous session), per-network `report` quota (5/hour default) counted before validation, strict schema (no `status`, `linkId` or other fields), details trimmed, at most 2000 characters (matches the database check), NUL characters rejected (PostgreSQL text cannot store them; would otherwise be a 500).
+- **Challenge**: the contract lists an optional `challengeToken`; reports do not use one yet (the quota applies, and the real challenge provider is T37). The strict schema therefore rejects the field for now; it will be added with the provider.
+- **Reporter**: a signed-in reporter's account id is stored; guests are anonymous.
+- **Form** (`/report`, footer "Report abuse", `?code=` prefill): accepts a full short link or a code (case kept, `/r/` extracted), category as a native radio group with descriptions, optional details with a counter and a privacy hint. The confirmation is identical for every link and never says whether it was found; focus moves to its heading. Inputs are kept on every error; 429 shows the wait.
+- **Placeholder removed**: no route uses the "coming soon" preview any more, so `ComingSoon` and the `.mock-banner` style were deleted.
+- **Dev-server pitfall (again)**: after adding exports to `@shortlist/contracts/constants`, Vite's pre-bundled copy went stale and the app rendered blank (`does not provide an export named …`). Fix: stop `ng serve`, delete `apps/web/.angular/cache`, start again.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

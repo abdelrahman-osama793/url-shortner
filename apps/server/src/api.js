@@ -12,6 +12,7 @@ import { createGoogleController } from './http/controllers/google.controller.js'
 import { createHealthController } from './http/controllers/health.controller.js';
 import { createLinksController } from './http/controllers/links.controller.js';
 import { createRedirectsController } from './http/controllers/redirects.controller.js';
+import { createReportsController } from './http/controllers/reports.controller.js';
 import { createAuthGuards } from './http/middleware/session.js';
 import { createAuthRouter } from './http/routes/auth.routes.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.routes.js';
@@ -19,6 +20,7 @@ import { createGoogleRouter } from './http/routes/google.routes.js';
 import { createHealthRouter } from './http/routes/health.routes.js';
 import { createLinksRouter } from './http/routes/links.routes.js';
 import { createRedirectRouter } from './http/routes/redirects.routes.js';
+import { createReportsRouter } from './http/routes/reports.routes.js';
 import { createLogger } from './infra/logger.js';
 import { createPool, isDatabaseReachable } from './infra/postgres.js';
 import { connectInBackground, createRedisClient } from './infra/redis.js';
@@ -34,6 +36,7 @@ import { createGoogleIdentityService } from './modules/accounts/google-identity.
 import { createGoogleSignInService } from './modules/accounts/google-sign-in.service.js';
 import { createLinkService } from './modules/links/links.service.js';
 import { createRedirectService } from './modules/links/redirects.service.js';
+import { createReportService } from './modules/reports/reports.service.js';
 import { createSessionService } from './modules/sessions/sessions.service.js';
 
 // Created before configuration so that configuration errors are logged too.
@@ -109,6 +112,7 @@ async function main() {
     }),
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
+    createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
   ];
 
   if (config.google.clientId) {
