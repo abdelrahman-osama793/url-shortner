@@ -10,8 +10,11 @@ import { firstValueFrom } from 'rxjs';
 export class Links {
   private readonly http = inject(HttpClient);
 
-  async list(cursor: string | null = null): Promise<LinkListResponse> {
-    const params: Record<string, string> = cursor ? { cursor } : {};
+  async list(cursor: string | null = null, limit?: number): Promise<LinkListResponse> {
+    const params: Record<string, string> = {
+      ...(cursor ? { cursor } : {}),
+      ...(limit ? { limit: String(limit) } : {}),
+    };
 
     return firstValueFrom(this.http.get<LinkListResponse>('/api/v1/links', { params }));
   }

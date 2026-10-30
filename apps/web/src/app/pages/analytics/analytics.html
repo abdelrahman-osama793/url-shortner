@@ -1,0 +1,157 @@
+<div class="head">
+  <div class="title">
+    <h1>Link analytics</h1>
+    @if (selected(); as link) {
+      <p class="muted url">{{ link.shortUrl }} → {{ link.destinationUrl }}</p>
+    }
+  </div>
+
+  @if (ownLinks()?.length) {
+    <div class="controls">
+      <div class="field">
+        <label for="link-select">Link</label>
+        <select id="link-select" class="input" [value]="selectedId()" (change)="choose({ link: $any($event.target).value })">
+          @for (link of ownLinks(); track link.id) {
+            <option [value]="link.id" [selected]="link.id === selectedId()">/r/{{ link.code }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="range-select">Period</label>
+        <select id="range-select" class="input" (change)="choose({ range: +$any($event.target).value })">
+          @for (option of ranges; track option) {
+            <option [value]="option" [selected]="option === days()">Last {{ option }} days</option>
+          }
+        </select>
+      </div>
+    </div>
+  }
+</div>
+
+@if (ownLinks() === null) {
+  <p class="state muted" role="status">Loading your links…</p>
+} @else if (ownLinks()!.length === 0) {
+  <div class="state empty surface">
+    @if (linksError(); as message) {
+      <p role="alert">{{ message }}</p>
+    } @else {
+      <h2>No links yet</h2>
+      <p class="muted">Create a link first; its clicks appear here.</p>
+      <a class="btn btn-primary" routerLink="/app/links">Go to your links</a>
+    }
+  </div>
+} @else if (loadError(); as message) {
+  <div class="state unavailable surface" role="alert">
+    <span class="mark warn"><app-icon name="info" /></span>
+    <h2>Analytics unavailable</h2>
+    <p class="muted">{{ message }}</p>
+    <button class="btn btn-secondary" type="button" (click)="refresh()">Try again</button>
+  </div>
+} @else if (!data()) {
+  <p class="state muted" role="status">Loading clicks…</p>
+} @else {
+  @let stats = data()!;
+
+  <div class="freshness" [attr.data-status]="stats.pipeline.status" role="status">
+    <app-icon [name]="stats.pipeline.status === 'healthy' ? 'clock' : 'info'" [size]="16" />
+    @switch (stats.pipeline.status) {
+      @case ('healthy') {
+        <span>Live. New clicks usually appear within seconds{{ updated() ? '; last click counted ' + updated() : '' }}.</span>
+      }
+      @case ('delayed') {
+        <span><strong>Updates are running behind.</strong> Clicks from the last few minutes may not be counted yet.</span>
+      }
+      @case ('degraded') {
+        <span><strong>Click counting is having problems.</strong> Some recent clicks may be missing or arrive late.</span>
+      }
+      @default {
+        <span><strong>Update status unknown.</strong> We can't confirm click counting is running, so numbers may be out of date.</span>
+      }
+    }
+    @if (refreshFailed()) {
+      <span class="refresh-note">Couldn't refresh; showing the last numbers.</span>
+      <button class="btn btn-link" type="button" (click)="refresh()">Refresh</button>
+    } @else if (paused()) {
+      <span class="refresh-note">Automatic updates paused.</span>
+      <button class="btn btn-link" type="button" (click)="refresh()">Refresh</button>
+    }
+  </div>
+
+  <section class="chart surface" aria-labelledby="chart-title">
+    <div class="chart-top">
+      <div>
+        <span class="small" id="chart-title">Clicks in this period</span>
+        <div class="total">{{ format(stats.rangeClicks) }}</div>
+        <span class="small">{{ format(stats.totalClicks) }} since the link was created</span>
+      </div>
+      <div class="chart-date">{{ rangeLabel() }}<br />Daily clicks · UTC</div>
+    </div>
+
+    @if (stats.totalClicks === '0') {
+      <div class="zero">
+        <h2>No clicks yet</h2>
+        <p class="muted">Share {{ selected()?.shortUrl }}; clicks show up here within seconds of someone opening it.</p>
+      </div>
+    } @else {
+      <div class="plot">
+        <div class="axis" aria-hidden="true">
+          <span>{{ format(chart().scale.toString()) }}</span>
+          <span>0</span>
+        </div>
+        <div
+          class="bars"
+          role="img"
+          [attr.aria-label]="'Daily clicks, ' + rangeLabel() + '. ' + (chart().busiest ? 'Busiest day ' + shortDay(chart().busiest!.date) + ' with ' + format(chart().busiest!.clicks) + ' clicks.' : 'No clicks in this period.') + ' Each day is listed in the table below.'"
+        >
+          @for (bar of chart().bars; track bar.date) {
+            <span class="bar" [style.height.%]="bar.height" [class.no-clicks]="bar.clicks === '0'"></span>
+          }
+        </div>
+        <div class="days" aria-hidden="true">
+          @for (label of chart().labels; track $index) {
+            <span>{{ shortDay(label.date) }}</span>
+          }
+        </div>
+      </div>
+
+      <details class="table">
+        <summary>Daily numbers</summary>
+        <table>
+          <caption class="visually-hidden">Clicks per day, UTC</caption>
+          <thead><tr><th scope="col">Date (UTC)</th><th scope="col">Clicks</th></tr></thead>
+          <tbody>
+            @for (day of stats.daily; track day.date) {
+              <tr><th scope="row">{{ shortDay(day.date) }}</th><td>{{ format(day.clicks) }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </details>
+    }
+  </section>
+
+  @if (stats.rangeClicks !== '0') {
+    <div class="dimensions">
+      @for (group of breakdowns(); track group.title) {
+        <section class="dimension">
+          <h3>{{ group.title }}</h3>
+          <ul>
+            @for (row of group.rows; track row.label) {
+              <li>
+                <span class="label">{{ row.label }}</span>
+                <span class="value">{{ format(row.clicks) }} · {{ row.share * 100 | number: '1.0-0' }}%</span>
+                <span class="meter" aria-hidden="true"><span [style.width.%]="row.share * 100"></span></span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  } @else if (stats.totalClicks !== '0') {
+    <p class="muted">No clicks in this period. Try a longer period.</p>
+  }
+
+  <p class="info-line">
+    <app-icon name="info" [size]="14" />
+    Counts are approximate: they include repeat visits and bots, are not unique visitors, and a click does not confirm the destination loaded. Country and device are estimates.
+  </p>
+}

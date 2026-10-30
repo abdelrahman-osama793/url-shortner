@@ -335,6 +335,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **Bug found and fixed (from T24/T25)**: the CSRF interceptor retried a rejected write after fetching a new token, and fetching a token without a live session starts a new anonymous one. A signed-in `POST /links` was therefore replayed as a guest request (found in the browser: it got 400 only because it had an alias; without one it would have created a 7-day guest link). The interceptor now retries a signed-in request only after `/auth/me` confirms the same user; otherwise the expiry flow runs. Verified: no guest link created.
 - **Phone workspace fix**: the single-column grid stretched the navigation row to half the screen; rows are now `auto 1fr`. Header and Create buttons no longer wrap.
 
+### Analytics views (T27)
+
+- **Route** `/app/analytics?link=<id>&range=7|30|90`; each link row has an "Analytics" action. The selector lists up to 100 links (a `?link=` beyond them is fetched and added). Other `range` values fall back to 30.
+- **Explicit UTC ranges**: the page sends `from`/`to` itself (last N UTC dates including today, `to` exclusive), so labels and requests always agree; 90 days is exactly the API maximum. All dates are labelled UTC.
+- **Numbers**: counters stay decimal strings and are formatted as `BigInt` (exact above 2^53). "Clicks in this period" (`rangeClicks`) and "since the link was created" (`totalClicks`) are separate. Copy never says visitors; a note states counts include repeat visits and bots, are not unique visitors and do not confirm the destination loaded.
+- **Chart without a library**: CSS bars with a 1/2/5 scale, first/middle/last date labels, `role="img"` with a summary (busiest day), and a "Daily numbers" table listing every day for screen readers and exact values. Breakdowns show count and share with a meter; `unknown`, `direct_or_unknown` and `other` get plain labels; countries via `Intl.DisplayNames`.
+- **Distinct states**: loading; no links; analytics unavailable (5xx/network, with Try again); no clicks yet (lifetime zero); no clicks in this period; and the pipeline banner: healthy (Live, last counted …), delayed, degraded, unknown. A failed refresh keeps the last numbers and says so.
+- **Bounded polling**: every 15 s while the tab is visible (resumes on return), at most 40 polls (10 minutes), then "Automatic updates paused" with Refresh. Late answers for a previous link/range are ignored. Well inside the 120/min read limit.
+- **Verified honesty of `unknown`**: with the worker stopped the API reports `unknown` (no heartbeat for 30 s outranks delayed), and the page says it cannot confirm counting is running while keeping the last total.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

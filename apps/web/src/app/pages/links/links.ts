@@ -1,5 +1,6 @@
 import { DOCUMENT, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Injector, afterNextRender, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { Link } from '@shortlist/contracts';
 
 import { Links } from '../../core/api/links';
@@ -17,7 +18,7 @@ type Editor = { mode: 'create' } | { mode: 'edit'; link: Link };
 // (moderation), owner-suspended and expired links are not, and enabling never lifts them.
 @Component({
   selector: 'app-links',
-  imports: [DatePipe, Icon, StatusBadge, LinkEditor],
+  imports: [DatePipe, RouterLink, Icon, StatusBadge, LinkEditor],
   templateUrl: './links.html',
   styleUrl: './links.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

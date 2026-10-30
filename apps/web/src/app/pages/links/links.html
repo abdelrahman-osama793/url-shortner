@@ -52,6 +52,7 @@
                 {{ copiedId() === link.id ? 'Copied' : 'Copy' }}
               </button>
               <button [id]="'edit-' + link.id" class="btn btn-link" type="button" (click)="openEdit(link)">Edit</button>
+              <a class="btn btn-link" routerLink="/app/analytics" [queryParams]="{ link: link.id }">Analytics</a>
               @if (link.effectiveStatus === 'active' || link.effectiveStatus === 'disabled') {
                 <button class="btn btn-link" type="button" (click)="toggle(link)" [disabled]="busyId() === link.id">
                   {{ link.effectiveStatus === 'active' ? 'Disable' : 'Enable' }}

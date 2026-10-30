@@ -145,6 +145,14 @@
     display: none;
   }
 
+  .account {
+    gap: 0;
+  }
+
+  .account .btn {
+    padding-inline: 8px;
+  }
+
   .top {
     padding: 10px 16px;
   }
