@@ -18,3 +18,7 @@ graphify-out/cost.json
 graphify-out/.graphify_python
 graphify-out/.graphify_root
 bench-results/
+graphify-out/20*/
+graphify-out/.graphify_build_state.json
+graphify-out/.graphify_labels.json.sig
+graphify-out/.graphify_labels.pending.json
