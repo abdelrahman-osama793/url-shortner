@@ -369,11 +369,12 @@ Planning follows a 39-task backlog across eight milestones:
 | D. Analytics pipeline | Click capture, worker, queries, retention and health | **Done**: T19–T22 (capture, worker, owner analytics API, retention, pipeline health; measured visibility ≤ 0.62 s at light load) |
 | E. Angular product UI | Public, auth, workspace and analytics screens | **Done**: T23–T28 (design system, guest shortening, auth screens with email and Google, link management, analytics, account page with a verified real Google link) |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | **Done**: T29 public reporting, T30 admin APIs, T31 admin workspace, T32 redirect failure pages |
-| G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | **In progress**: T33 browser journeys ([evidence](docs/verification/T33.md)) and T34 concurrency and failure drills ([evidence](docs/verification/T34.md)) done; next T35 capacity benchmark |
+| G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | **Done**: T33 browser journeys ([evidence](docs/verification/T33.md)), T34 concurrency and failure drills ([evidence](docs/verification/T34.md)), T35 capacity benchmark: 1,000 redirects/s over 1M links met on the development laptop, server p95 1.2 ms, no errors or lost clicks ([report](docs/verification/T35.md)) |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |
 
 ## Known limitations and open decisions
 
-- **Hosting:** free tiers only. Sleeping services and quotas will limit the public demo. The capacity benchmark is a separate, documented experiment, not a claim about the free deployment.
+- **Hosting:** free tiers only. Sleeping services and quotas will limit the public demo. The capacity benchmark ([T35](docs/verification/T35.md)) is a laptop experiment, not a claim about the free deployment.
+- **Analytics above 1,000 clicks/s:** one worker counts about 1,200–1,400 clicks/s; beyond that, clicks are dropped (counted, redirects unaffected) until bulk inserts or more consumers are added.
 - **Not configured yet:** Google OAuth client, email provider, human-verification challenge provider, GeoIP source. Until they exist, those features are not claimed to work.
 - **Dev server audit warning:** `npm audit` reports an advisory in the Vite version used by Angular's dev server. It affects only local development, not production bundles.

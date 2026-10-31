@@ -416,8 +416,17 @@ One server package with two entry points (modular monolith), not separate servic
 
 - **Two kinds of evidence**: deterministic integration tests pin each rule; real-stack drills (a second API process beside the Docker one, real container outages, SIGKILL of the worker) show the same rules between separately running processes. The map and results are in `docs/verification/T34.md`.
 - **Readiness checks PostgreSQL only**, on purpose: during a Redis outage redirects still work, while sign-in and creation fail closed with 503. Redis health belongs in T37 monitoring.
-- **Capacity limit found, fix planned (T35)**: one process with a 10-connection pool starts shedding redirects between 50 and 100 concurrent requests, and shed requests can wait up to the 2 s pool budget. T35 will tune the pool, a shorter redirect wait budget and the queue limit on the benchmark setup.
+- **Capacity limit found (resolved in T35)**: one process with a 10-connection pool starts shedding redirects between 50 and 100 *concurrent* requests, and shed requests can wait up to the 2 s pool budget. T35 showed this burst case does not arise at the target arrival rate (see below), so no pool change was made.
 - **Drill hygiene**: stopping a host process with `pkill -f` also matched the Docker API's process (same user) and the shell itself; stop drill processes by PID instead.
+
+### Capacity benchmark (T35)
+
+- **Target met on the development laptop**: 1,000,000 links, 1,000 redirects/s for 15 minutes (broad and mixed) and 5 minutes (hot), 2 API processes with pool 10 each and 1 worker. Server p95 1.1–1.2 ms, 0 unexpected errors, every click counted, freshness p95 0.6 s under load. Evidence and method: `docs/verification/T35.md`; tools in `apps/server/scripts/bench/`.
+- **Open-model generator, separate process on its own CPUs**: requests follow a fixed schedule and latency counts from the scheduled time, so a slow server cannot hide its queueing (no coordinated omission). Same machine as the servers: a method limit, stated in the report.
+- **Separate benchmark database** (`shortlist_bench`, Redis database 1): a million synthetic links never mix with development data.
+- **No pool, wait-budget or queue-limit change**: at 1,000/s about one redirect is in flight at a time; the T34 burst does not happen at this arrival rate. The real per-process limit is CPU (one process collapses at about 3,000/s), which is solved with more processes, not a bigger pool. Production runs at least two API processes (T37).
+- **First bottleneck above the target: the single analytics worker** (about 1,200–1,400 clicks/s). Above it, capture drops events at the 50,000-entry stream cap (`queue_full`), as designed; redirects are unaffected. Follow-up before claiming more than 1,000/s: bulk inserts or several consumers.
+- **Thresholds stay proposals** (p95 < 100 ms, errors < 0.1 %, visibility p95 < 10 s): they were met, but the owner has not selected them as requirements.
 
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
