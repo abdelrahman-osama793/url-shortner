@@ -11,3 +11,9 @@ url-shortener-handoff/
 # Local editor/assistant launch settings.
 .claude/
 .playwright-mcp/
+
+# graphify: share the graph, keep machine-local state out
+graphify-out/cache/
+graphify-out/cost.json
+graphify-out/.graphify_python
+graphify-out/.graphify_root
