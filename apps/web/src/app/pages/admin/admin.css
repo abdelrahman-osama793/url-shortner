@@ -280,6 +280,12 @@ code {
   border-top: 1px solid var(--line);
 }
 
+@media (pointer: coarse) {
+  .tab {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;

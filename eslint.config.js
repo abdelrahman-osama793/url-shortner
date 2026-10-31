@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 
 export default defineConfig([
-  globalIgnores(['**/node_modules/', '**/dist/', 'apps/web/']),
+  globalIgnores(['**/node_modules/', '**/dist/', 'apps/web/', '.playwright-mcp/']),
 
   {
     files: ['**/*.js'],
@@ -39,5 +39,11 @@ export default defineConfig([
   {
     files: ['packages/contracts/scripts/**/*.js', 'apps/server/scripts/**/*.mjs', 'apps/server/src/cli/**/*.js'],
     rules: { 'no-console': 'off' },
+  },
+
+  // Browser journeys (Playwright): parts of each script run inside the page.
+  {
+    files: ['docs/verification/scripts/**/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
 ]);

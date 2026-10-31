@@ -336,8 +336,13 @@ svg {
   line-height: 1.7;
 }
 
+/* Google's button iframe adds ~17px of transparent padding on each side of the width we ask for;
+   centring and clipping only that padding keeps the button inside 320px screens. */
 .google-slot {
+  display: flex;
+  justify-content: center;
   min-height: 44px;
+  overflow: hidden;
 }
 
 .divider {
@@ -378,6 +383,13 @@ svg {
   background: none;
   color: var(--muted);
   cursor: pointer;
+}
+
+.form-meta a,
+.auth-switch a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .form-meta {

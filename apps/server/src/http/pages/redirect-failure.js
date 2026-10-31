@@ -116,7 +116,8 @@ export function renderRedirectFailure(status, code) {
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      margin-bottom: 28px;
+      min-height: 44px;
+      margin-bottom: 18px;
       color: var(--ink);
       font-weight: 800;
       font-size: 19px;

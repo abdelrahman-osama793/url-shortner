@@ -405,6 +405,13 @@ One server package with two entry points (modular monolith), not separate servic
 - **429 caveat**: the application does not rate-limit redirects (that belongs at the edge proxy, technical-design §6), so the "limited" page is only reached if a future limiter raises 429; an edge proxy shows its own page.
 - **Dev-server fix**: `@shortlist/contracts` is now excluded from Vite pre-bundling (`angular.json` → `serve.options.prebundle.exclude`). Its pre-bundled copy went stale three times after contract changes and blanked the app; excluding it makes the dev server read the package source directly.
 
+### Browser verification (T33)
+
+- **Evidence over claims**: end-to-end journeys and a visual/accessibility matrix ran in Chromium against the real local stack; results and the manual/provider split are in `docs/verification/T33.md`, and the scripts that produced them are committed beside it.
+- **Scripts take a Playwright `page`** and return their checks, so they run under any Playwright runner (the MCP tool was used). No Playwright dependency was added to the project; making them a CI job is a T34+ decision.
+- **No credentials in the repository**: admin journeys use placeholders filled in an uncommitted copy; lint ignores `.playwright-mcp/`, where those copies live.
+- **Open question recorded, not changed**: a challenged guest spends two of the five hourly attempts per link (the rejected request and the verified retry both count).
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

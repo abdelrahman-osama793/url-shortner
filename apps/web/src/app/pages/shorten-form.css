@@ -58,6 +58,9 @@
 }
 
 .note-row a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: var(--lime);
 }
 
