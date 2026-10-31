@@ -7,7 +7,6 @@ coverage/
 
 # Planning handoff is kept locally, not versioned.
 url-shortener-handoff/
-docs/
 
 # Local editor/assistant launch settings.
 .claude/
