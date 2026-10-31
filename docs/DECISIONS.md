@@ -412,6 +412,13 @@ One server package with two entry points (modular monolith), not separate servic
 - **No credentials in the repository**: admin journeys use placeholders filled in an uncommitted copy; lint ignores `.playwright-mcp/`, where those copies live.
 - **Open question recorded, not changed**: a challenged guest spends two of the five hourly attempts per link (the rejected request and the verified retry both count).
 
+### Concurrency and failure verification (T34)
+
+- **Two kinds of evidence**: deterministic integration tests pin each rule; real-stack drills (a second API process beside the Docker one, real container outages, SIGKILL of the worker) show the same rules between separately running processes. The map and results are in `docs/verification/T34.md`.
+- **Readiness checks PostgreSQL only**, on purpose: during a Redis outage redirects still work, while sign-in and creation fail closed with 503. Redis health belongs in T37 monitoring.
+- **Capacity limit found, fix planned (T35)**: one process with a 10-connection pool starts shedding redirects between 50 and 100 concurrent requests, and shed requests can wait up to the 2 s pool budget. T35 will tune the pool, a shorter redirect wait budget and the queue limit on the benchmark setup.
+- **Drill hygiene**: stopping a host process with `pkill -f` also matched the Docker API's process (same user) and the shell itself; stop drill processes by PID instead.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |
