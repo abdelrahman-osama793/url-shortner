@@ -2,6 +2,7 @@ import { ERROR_CODES } from '@shortlist/contracts';
 
 import { AppError, notFoundError, serviceUnavailableError } from '../../errors.js';
 import { isDatabaseUnavailable } from '../../infra/postgres.js';
+import { PAGE_HEADERS, codeFromPath, hasFailurePage, renderRedirectFailure } from '../pages/redirect-failure.js';
 
 // Errors raised by express.json() before any route runs, identified by their `type`.
 const BODY_PARSER_ERRORS = {
@@ -29,10 +30,21 @@ function toAppError(error) {
   return null;
 }
 
+// A person opening a short link in a browser gets a readable page instead of JSON. API clients
+// (and anything that does not prefer HTML, such as curl's Accept: */*) keep the JSON envelope.
+function wantsFailurePage(req, appError) {
+  return (req.path === '/r' || req.path.startsWith('/r/')) && hasFailurePage(appError.status) && req.accepts(['json', 'html']) === 'html';
+}
+
 function sendError(req, res, appError) {
   res.status(appError.status);
 
   if (appError.headers) res.set(appError.headers);
+
+  if (wantsFailurePage(req, appError)) {
+    res.set(PAGE_HEADERS).type('html').send(renderRedirectFailure(appError.status, codeFromPath(req.path)));
+    return;
+  }
 
   res.json({
     error: {

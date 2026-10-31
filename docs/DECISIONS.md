@@ -395,6 +395,16 @@ One server package with two entry points (modular monolith), not separate servic
 - **No demo shortcuts**: the preview's "Admin demo" badge and sample reports are not carried over.
 - **Bundle note**: the initial download went from 87.85 to 89.67 kB gzipped with this task (shared code the bundler placed in the initial chunk); the admin page itself is lazy.
 
+### Redirect failure pages (T32)
+
+- **Who gets a page**: requests to `/r/…` that prefer HTML (browsers) and fail with 400/404 (missing), 410 (inactive), 429 (limited), 500/503 (unavailable) get a small HTML page from the API's error handler, with the same status code. Everything else, including `Accept: */*` (curl, scripts, the existing tests), keeps the JSON envelope. Active links still answer 302 directly; Angular is never involved.
+- **One page for every inactive reason**: disabled, expired, blocked and owner-suspended links get byte-identical pages ("may have expired or been turned off"). No destination, owner, block reason or moderation wording appears; a test compares the four pages and searches for the internal values.
+- **Useful next steps**: home, and "Report this link" (prefilled `/report?code=…`) on inactive and unavailable pages; "Try again" on unavailable pages (with `Retry-After`). Missing codes offer no report (there is nothing to report).
+- **Safe by construction**: the code is echoed only when it matches the alias pattern (letters, digits, `-`, `_`), so nothing needs escaping; anything else is not shown. The page has no scripts, fonts or external requests: `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'`, plus `nosniff`, `Referrer-Policy: no-referrer`, `noindex`, and the global `no-store`.
+- **Accessible and light**: `lang`, one `h1`, a labelled navigation, 44px buttons, visible focus, light and dark from `prefers-color-scheme`, inline logo SVG; about 4 kB.
+- **429 caveat**: the application does not rate-limit redirects (that belongs at the edge proxy, technical-design §6), so the "limited" page is only reached if a future limiter raises 429; an edge proxy shows its own page.
+- **Dev-server fix**: `@shortlist/contracts` is now excluded from Vite pre-bundling (`angular.json` → `serve.options.prebundle.exclude`). Its pre-bundled copy went stale three times after contract changes and blanked the app; excluding it makes the dev server read the package source directly.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |
