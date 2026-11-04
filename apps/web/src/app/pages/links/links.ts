@@ -6,10 +6,10 @@ import type { Link } from '@shortlist/contracts';
 import { Links } from '../../core/api/links';
 import { Session } from '../../core/auth/session';
 import { commonMessage, toApiError } from '../../core/http/api-error';
-import { Icon } from '../../shared/ui/icon';
-import { StatusBadge } from '../../shared/ui/status-badge';
+import { Icon } from '../../shared/ui/icon/icon';
+import { StatusBadge } from '../../shared/ui/status-badge/status-badge';
 
-import { LinkEditor } from './link-editor';
+import { LinkEditor } from './link-editor/link-editor';
 
 type Editor = { mode: 'create' } | { mode: 'edit'; link: Link };
 

@@ -1,0 +1,43 @@
+<h1>Create your account</h1>
+<p class="auth-intro">A little more control over everything you share.</p>
+
+<app-google-button text="signup_with" (signedIn)="enterWorkspace()" />
+
+<form class="form-stack" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()">
+  <div class="field">
+    <label for="email">Email address</label>
+    <input
+      #emailField
+      id="email"
+      class="input"
+      type="email"
+      autocomplete="email"
+      maxlength="254"
+      [value]="email()"
+      (input)="email.set(emailField.value); emailError.set(null)"
+      [attr.aria-invalid]="emailError() ? 'true' : null"
+      [attr.aria-describedby]="emailError() ? 'email-error' : null"
+    />
+    @if (emailError(); as message) {
+      <p id="email-error" class="field-error" role="alert">{{ message }}</p>
+    }
+  </div>
+
+  <app-password-field
+    fieldId="password"
+    autocomplete="new-password"
+    [hint]="'At least ' + minLength + ' characters.'"
+    [error]="passwordError()"
+    [(value)]="password"
+  />
+
+  @if (formError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+    {{ busy() ? 'Creating account…' : 'Create account' }} <app-icon name="arrow-right" />
+  </button>
+</form>
+
+<p class="auth-switch">Already have an account? <a routerLink="/login">Log in</a></p>

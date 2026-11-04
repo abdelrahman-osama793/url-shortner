@@ -1,0 +1,13 @@
+@if (state() !== 'unavailable') {
+  @if (state() === 'failed') {
+    <p class="note">Google sign-in couldn't load here. You can use your email instead.</p>
+  } @else {
+    <div #host class="google-slot" [attr.aria-busy]="state() === 'loading'"></div>
+  }
+  @if (error(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+  @if (purpose() === 'login') {
+    <div class="divider">or continue with email</div>
+  }
+}

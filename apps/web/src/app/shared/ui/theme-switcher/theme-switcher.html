@@ -1,0 +1,17 @@
+<fieldset class="switcher">
+  <legend class="visually-hidden">Appearance</legend>
+  @for (option of options; track option.value) {
+    <label class="option" [class.selected]="theme.preference() === option.value">
+      <input
+        class="visually-hidden"
+        type="radio"
+        name="theme"
+        [value]="option.value"
+        [checked]="theme.preference() === option.value"
+        (change)="theme.set(option.value)"
+      />
+      <app-icon [name]="option.icon" [size]="15" />
+      <span class="visually-hidden">{{ option.label }}</span>
+    </label>
+  }
+</fieldset>

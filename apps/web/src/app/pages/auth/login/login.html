@@ -1,0 +1,42 @@
+<h1>Welcome back.</h1>
+<p class="auth-intro">Log in to pick up where you left off.</p>
+
+@if (suspended()) {
+  <p class="note" role="alert">This account is suspended, so you've been signed out. If you think this is a mistake, contact support.</p>
+} @else if (expired()) {
+  <p class="note" role="status">Your session has ended. Please log in again to continue where you were.</p>
+} @else if (next()) {
+  <p class="note">Please log in to continue.</p>
+}
+
+<app-google-button (signedIn)="enter()" />
+
+<form class="form-stack" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()">
+  <div class="field">
+    <label for="email">Email address</label>
+    <input
+      #emailField
+      id="email"
+      class="input"
+      type="email"
+      autocomplete="email"
+      maxlength="254"
+      [value]="email()"
+      (input)="email.set(emailField.value)"
+    />
+  </div>
+
+  <app-password-field fieldId="password" autocomplete="current-password" [(value)]="password" />
+
+  <div class="form-meta"><a routerLink="/forgot-password">Forgot password?</a></div>
+
+  @if (formError(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+    {{ busy() ? 'Logging in…' : 'Log in' }} <app-icon name="arrow-right" />
+  </button>
+</form>
+
+<p class="auth-switch">New to Shortlist? <a routerLink="/signup">Sign up</a></p>

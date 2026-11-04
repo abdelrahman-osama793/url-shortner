@@ -5,7 +5,7 @@ import { REPORT_DETAILS_MAX_LENGTH } from '@shortlist/contracts/constants';
 import { firstValueFrom } from 'rxjs';
 
 import { commonMessage, toApiError } from '../../core/http/api-error';
-import { Icon } from '../../shared/ui/icon';
+import { Icon } from '../../shared/ui/icon/icon';
 
 const CATEGORIES = [
   { value: 'phishing', label: 'Phishing', hint: 'Pretends to be someone else to collect passwords, payment or personal details.' },

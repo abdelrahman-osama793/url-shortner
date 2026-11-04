@@ -6,7 +6,7 @@ import type { Link, LinkAnalytics } from '@shortlist/contracts';
 import { Analytics } from '../../core/api/analytics';
 import { Links } from '../../core/api/links';
 import { type ApiError, commonMessage, toApiError } from '../../core/http/api-error';
-import { Icon } from '../../shared/ui/icon';
+import { Icon } from '../../shared/ui/icon/icon';
 
 import {
   RANGES,

@@ -6,8 +6,8 @@ import type { User } from '@shortlist/contracts';
 
 import { Session } from '../core/auth/session';
 
-import { PublicLayout } from './public-layout';
-import { WorkspaceLayout } from './workspace-layout';
+import { PublicLayout } from './public-layout/public-layout';
+import { WorkspaceLayout } from './workspace-layout/workspace-layout';
 
 function linkTexts(element: HTMLElement): string[] {
   return [...element.querySelectorAll('a')].map((link) => link.textContent?.trim() ?? '');

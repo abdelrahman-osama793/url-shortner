@@ -2,8 +2,8 @@ import { Component, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EffectiveStatus } from '@shortlist/contracts';
 
-import { Icon } from './icon';
-import { StatusBadge } from './status-badge';
+import { Icon } from './icon/icon';
+import { StatusBadge } from './status-badge/status-badge';
 
 describe('StatusBadge', () => {
   const cases: [EffectiveStatus, string][] = [

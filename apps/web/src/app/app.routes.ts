@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
 
 import { requireAdmin, requireUser } from './core/auth/guards';
-import { PublicLayout } from './layouts/public-layout';
-import { Home } from './pages/home';
-import { NotFound } from './pages/not-found';
+import { PublicLayout } from './layouts/public-layout/public-layout';
+import { Home } from './pages/home/home';
+import { NotFound } from './pages/not-found/not-found';
 
 // Most visitors are guests who only shorten a link, so the first download holds just the public
 // layout and the home page. Sign-in, reporting and the workspace load when first visited.
@@ -15,28 +15,28 @@ export const routes: Routes = [
       { path: '', component: Home, title: 'Shortlist — short links you control' },
       {
         path: '',
-        loadComponent: () => import('./layouts/auth-layout').then((m) => m.AuthLayout),
+        loadComponent: () => import('./layouts/auth-layout/auth-layout').then((m) => m.AuthLayout),
         children: [
-          { path: 'login', loadComponent: () => import('./pages/auth/login').then((m) => m.Login), title: 'Log in · Shortlist' },
-          { path: 'signup', loadComponent: () => import('./pages/auth/signup').then((m) => m.Signup), title: 'Sign up · Shortlist' },
+          { path: 'login', loadComponent: () => import('./pages/auth/login/login').then((m) => m.Login), title: 'Log in · Shortlist' },
+          { path: 'signup', loadComponent: () => import('./pages/auth/signup/signup').then((m) => m.Signup), title: 'Sign up · Shortlist' },
           {
             path: 'signup/check-email',
-            loadComponent: () => import('./pages/auth/check-email').then((m) => m.CheckEmail),
+            loadComponent: () => import('./pages/auth/check-email/check-email').then((m) => m.CheckEmail),
             title: 'Verify your email · Shortlist',
           },
           {
             path: 'verify-email',
-            loadComponent: () => import('./pages/auth/verify-email').then((m) => m.VerifyEmail),
+            loadComponent: () => import('./pages/auth/verify-email/verify-email').then((m) => m.VerifyEmail),
             title: 'Confirm your email · Shortlist',
           },
           {
             path: 'forgot-password',
-            loadComponent: () => import('./pages/auth/forgot-password').then((m) => m.ForgotPassword),
+            loadComponent: () => import('./pages/auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
             title: 'Forgot password · Shortlist',
           },
           {
             path: 'reset-password',
-            loadComponent: () => import('./pages/auth/reset-password').then((m) => m.ResetPassword),
+            loadComponent: () => import('./pages/auth/reset-password/reset-password').then((m) => m.ResetPassword),
             title: 'Choose a new password · Shortlist',
           },
         ],
@@ -46,7 +46,7 @@ export const routes: Routes = [
   },
   {
     path: 'app',
-    loadComponent: () => import('./layouts/workspace-layout').then((m) => m.WorkspaceLayout),
+    loadComponent: () => import('./layouts/workspace-layout/workspace-layout').then((m) => m.WorkspaceLayout),
     canActivate: [requireUser],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'links' },

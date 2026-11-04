@@ -9,11 +9,11 @@ import type { User } from '@shortlist/contracts';
 import { requireUser, safeNext } from '../../core/auth/guards';
 import { Session } from '../../core/auth/session';
 
-import { GoogleButton } from './google-button';
-import { Login } from './login';
-import { ResetPassword } from './reset-password';
-import { Signup } from './signup';
-import { VerifyEmail } from './verify-email';
+import { GoogleButton } from './google-button/google-button';
+import { Login } from './login/login';
+import { ResetPassword } from './reset-password/reset-password';
+import { Signup } from './signup/signup';
+import { VerifyEmail } from './verify-email/verify-email';
 
 const USER: User = { id: '00000000-0000-4000-8000-000000000001', email: 'ada@example.com', emailVerified: true, role: 'user', status: 'active' };
 

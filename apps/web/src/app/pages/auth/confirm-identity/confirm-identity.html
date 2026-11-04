@@ -1,0 +1,23 @@
+<div class="confirm" role="group" aria-labelledby="confirm-identity-title">
+  <h3 id="confirm-identity-title">Confirm it's you</h3>
+  <p class="muted">For your protection, this needs a recent confirmation.</p>
+
+  @if (methods(); as account) {
+    @if (account.signInMethods.password) {
+      <form class="form-stack" (submit)="confirmPassword($event)" novalidate [attr.aria-busy]="busy()">
+        <app-password-field fieldId="confirm-identity-password" label="Your password" autocomplete="current-password" [error]="error()" [(value)]="password" />
+        <button class="btn btn-primary" type="submit" [disabled]="busy()">{{ busy() ? 'Checking…' : 'Confirm' }}</button>
+      </form>
+    }
+    @if (account.signInMethods.google) {
+      @if (account.signInMethods.password) {
+        <div class="divider">or</div>
+      }
+      <app-google-button purpose="reauthenticate" (reauthenticated)="confirmed.emit()" />
+    }
+  } @else if (error(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  } @else {
+    <p class="muted" role="status">Loading…</p>
+  }
+</div>

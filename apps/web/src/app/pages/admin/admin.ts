@@ -4,10 +4,10 @@ import type { AdminLink, AdminReport, AuditEntry } from '@shortlist/contracts';
 
 import { AdminApi, type AuditTarget, type ReportStatus } from '../../core/api/admin';
 import { commonMessage, toApiError } from '../../core/http/api-error';
-import { Icon } from '../../shared/ui/icon';
-import { StatusBadge } from '../../shared/ui/status-badge';
+import { Icon } from '../../shared/ui/icon/icon';
+import { StatusBadge } from '../../shared/ui/status-badge/status-badge';
 
-import { ModerationAction } from './moderation-action';
+import { ModerationAction } from './moderation-action/moderation-action';
 
 type Action =
   | { kind: 'report'; status: ReportStatus }

@@ -1,0 +1,17 @@
+.confirm {
+  display: grid;
+  gap: 12px;
+  max-width: 380px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--paper);
+}
+
+.confirm p {
+  font-size: 13px;
+}
+
+.divider {
+  margin: 4px 0;
+}

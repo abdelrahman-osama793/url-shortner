@@ -6,9 +6,9 @@ import type { MeResponse } from '@shortlist/contracts';
 import { Accounts } from '../../core/auth/accounts';
 import { Session } from '../../core/auth/session';
 import { commonMessage, toApiError } from '../../core/http/api-error';
-import { Icon } from '../../shared/ui/icon';
-import { GoogleButton } from '../auth/google-button';
-import { PasswordField } from '../auth/password-field';
+import { Icon } from '../../shared/ui/icon/icon';
+import { GoogleButton } from '../auth/google-button/google-button';
+import { PasswordField } from '../auth/password-field/password-field';
 
 // Connect Google: confirm the Shortlist account first (unless it was confirmed recently), then
 // prove the Google account. Both identities must be proven; matching emails link nothing.

@@ -1,0 +1,26 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="top">
+  <app-logo />
+  <nav class="actions" aria-label="Account">
+    <a class="btn shortcut" routerLink="/" fragment="shorten">Shorten a link</a>
+    @if (session.signedIn()) {
+      <a class="btn btn-primary" routerLink="/app/links">Your links <app-icon name="arrow-right" /></a>
+    } @else {
+      <a class="btn" routerLink="/login">Log in</a>
+      <a class="btn btn-primary" routerLink="/signup">Sign up <app-icon name="arrow-right" /></a>
+    }
+  </nav>
+</header>
+
+<main id="main" tabindex="-1">
+  <router-outlet />
+</main>
+
+<footer class="bottom">
+  <span>shortlist · A considered home for your links.</span>
+  <div class="bottom-actions">
+    <a class="btn btn-link" routerLink="/report">Report abuse <app-icon name="flag" [size]="14" /></a>
+    <app-theme-switcher />
+  </div>
+</footer>

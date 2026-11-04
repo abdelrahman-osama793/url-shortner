@@ -1,0 +1,8 @@
+.wrap {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 64px 20px;
+}

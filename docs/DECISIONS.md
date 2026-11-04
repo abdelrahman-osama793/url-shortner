@@ -428,6 +428,11 @@ One server package with two entry points (modular monolith), not separate servic
 - **First bottleneck above the target: the single analytics worker** (about 1,200–1,400 clicks/s). Above it, capture drops events at the 50,000-entry stream cap (`queue_full`), as designed; redirects are unaffected. Follow-up before claiming more than 1,000/s: bulk inserts or several consumers.
 - **Thresholds stay proposals** (p95 < 100 ms, errors < 0.1 %, visibility p95 < 10 s): they were met, but the owner has not selected them as requirements.
 
+### Angular component files (T40)
+
+- **One folder per component**: `name.ts`, `name.html`, `name.css` (only when the component has its own styles) and `name.spec.ts` when it has its own tests. No inline templates or styles. File names follow the current Angular style guide (no `.component` suffix). Area-wide specs (`auth.spec.ts`, `layouts.spec.ts`, `ui.spec.ts`) stay in the area's folder because they test flows across several components.
+- **Why**: earlier tasks mixed inline templates (small components) and separate files (large pages), which made the code harder to navigate.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

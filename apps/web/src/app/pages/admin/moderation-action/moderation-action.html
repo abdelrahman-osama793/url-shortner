@@ -1,0 +1,35 @@
+<form class="action" [class.danger]="danger()" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()" aria-labelledby="action-title">
+  <h3 id="action-title">{{ heading() }}</h3>
+  <p class="muted">{{ explanation() }}</p>
+
+  <div class="field">
+    <label for="action-reason">{{ reasonLabel() }}</label>
+    <textarea
+      #reasonField
+      id="action-reason"
+      class="input"
+      rows="3"
+      [attr.maxlength]="reasonMax"
+      [value]="reason()"
+      (input)="reason.set(reasonField.value); error.set(null)"
+      [attr.aria-invalid]="error() && !reason().trim() ? 'true' : null"
+      aria-describedby="action-reason-hint"
+    ></textarea>
+    <span id="action-reason-hint" class="field-hint">Kept in the audit trail with your name. Owners never see it.</span>
+  </div>
+
+  @if (needsConfirmation()) {
+    <app-confirm-identity (confirmed)="retryAfterConfirmation()" />
+  }
+
+  @if (error(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="buttons">
+    <button class="btn" [class.btn-danger]="danger()" [class.btn-primary]="!danger()" type="submit" [disabled]="busy() || needsConfirmation()">
+      {{ busy() ? 'Saving…' : confirmLabel() }}
+    </button>
+    <button class="btn" type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>
