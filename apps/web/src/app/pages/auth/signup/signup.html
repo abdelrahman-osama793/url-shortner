@@ -31,6 +31,14 @@
     [(value)]="password"
   />
 
+  <app-password-field
+    fieldId="confirm-password"
+    label="Confirm password"
+    autocomplete="new-password"
+    [error]="confirmError()"
+    [(value)]="confirmation"
+  />
+
   @if (formError(); as message) {
     <p class="form-error" role="alert">{{ message }}</p>
   }

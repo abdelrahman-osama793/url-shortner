@@ -10,7 +10,11 @@
           {{ copyState() === 'copied' ? 'Copied' : 'Copy link' }}
         </button>
       </div>
-      <p class="result-meta">Guest link · expires {{ expiry() }}. It can't be edited or tracked.</p>
+      @if (signedIn()) {
+        <p class="result-meta">Saved to your links, where you can edit it and see its clicks.</p>
+      } @else {
+        <p class="result-meta">Guest link · expires {{ expiry() }}. It can't be edited or tracked.</p>
+      }
       @if (copyState() === 'failed') {
         <p class="copy-help" role="alert">Copying isn't available here. The link is selected: press Ctrl+C (⌘C on a Mac), or long-press to copy.</p>
       }
@@ -19,7 +23,11 @@
       }
       <div class="result-actions">
         <button class="btn btn-link light" type="button" (click)="startOver()">Shorten another link</button>
-        <a class="btn btn-link light" routerLink="/signup">Sign up to edit links and see clicks</a>
+        @if (signedIn()) {
+          <a class="btn btn-link light" routerLink="/app/links">Go to your links</a>
+        } @else {
+          <a class="btn btn-link light" routerLink="/signup">Sign up to edit links and see clicks</a>
+        }
       </div>
     </div>
   }
@@ -73,8 +81,13 @@
       }
 
       <div id="destination-note" class="note-row">
-        <span>No account needed. Guest links expire after 7 days.</span>
-        <a routerLink="/signup">Want to edit and track your links? Sign up</a>
+        @if (signedIn()) {
+          <span>Links you shorten here are saved to your account.</span>
+          <a routerLink="/app/links">Go to your links</a>
+        } @else {
+          <span>No account needed. Guest links expire after 7 days.</span>
+          <a routerLink="/signup">Want to edit and track your links? Sign up</a>
+        }
       </div>
     </form>
   }

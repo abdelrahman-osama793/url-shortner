@@ -9,6 +9,8 @@ import { Session } from '../core/auth/session';
 import { PublicLayout } from './public-layout/public-layout';
 import { WorkspaceLayout } from './workspace-layout/workspace-layout';
 
+const USER: User = { id: '00000000-0000-4000-8000-000000000001', email: 'ada@example.com', emailVerified: true, role: 'user', status: 'active' };
+
 function linkTexts(element: HTMLElement): string[] {
   return [...element.querySelectorAll('a')].map((link) => link.textContent?.trim() ?? '');
 }
@@ -28,9 +30,21 @@ describe('PublicLayout', () => {
     expect(texts).toContain('Skip to content');
     expect(texts.some((text) => text.startsWith('Report abuse'))).toBe(true);
   });
-});
 
-const USER: User = { id: '00000000-0000-4000-8000-000000000001', email: 'ada@example.com', emailVerified: true, role: 'user', status: 'active' };
+  it('sends the logo to the landing page for visitors and to the workspace when signed in', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
+
+    const fixture = TestBed.createComponent(PublicLayout);
+    const logo = () => (fixture.nativeElement as HTMLElement).querySelector('.logo')!.getAttribute('href');
+
+    fixture.detectChanges();
+    expect(logo()).toBe('/');
+
+    TestBed.inject(Session).start({ user: USER, csrfToken: 'csrf' });
+    fixture.detectChanges();
+    expect(logo()).toBe('/app/links');
+  });
+});
 
 function setUp(user: User) {
   TestBed.resetTestingModule();

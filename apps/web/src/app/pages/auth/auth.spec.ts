@@ -188,12 +188,27 @@ describe('Signup', () => {
     backend.expectNone('/api/v1/auth/register');
   });
 
+  it('refuses mismatched passwords before sending', async () => {
+    const page = render(Signup);
+
+    ignoreGoogle();
+    page.type('#email', 'ada@example.com');
+    page.type('#password', 'a long enough password');
+    page.type('#confirm-password', 'a long enough passw0rd');
+    await page.submit();
+    await page.refresh();
+
+    expect(page.text()).toContain("The passwords don't match.");
+    backend.expectNone('/api/v1/auth/register');
+  });
+
   it('registers and moves to the check-your-inbox screen without putting the email in the URL', async () => {
     const page = render(Signup);
 
     ignoreGoogle();
     page.type('#email', 'ada@example.com');
     page.type('#password', 'a long enough password');
+    page.type('#confirm-password', 'a long enough password');
     await page.submit();
     backend.expectOne('/api/v1/auth/register').flush({ status: 'accepted' }, { status: 202, statusText: 'Accepted' });
     await settle();

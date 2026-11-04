@@ -26,9 +26,11 @@ export class Signup {
 
   protected readonly email = signal('');
   protected readonly password = signal('');
+  protected readonly confirmation = signal('');
   protected readonly busy = signal(false);
   protected readonly emailError = signal<string | null>(null);
   protected readonly passwordError = signal<string | null>(null);
+  protected readonly confirmError = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
 
   protected async submit(event: Event): Promise<void> {
@@ -40,9 +42,10 @@ export class Signup {
 
     this.emailError.set(email ? null : 'Enter your email address.');
     this.passwordError.set(this.password().length >= PASSWORD_MIN_LENGTH ? null : `Use at least ${PASSWORD_MIN_LENGTH} characters.`);
+    this.confirmError.set(this.password() === this.confirmation() ? null : "The passwords don't match.");
     this.formError.set(null);
 
-    if (this.emailError() || this.passwordError()) return;
+    if (this.emailError() || this.passwordError() || this.confirmError()) return;
 
     this.busy.set(true);
 

@@ -1,30 +1,30 @@
 # Graph Report - url-shortener  (2026-11-04)
 
 ## Corpus Check
-- 243 files · ~129,166 words
+- 243 files · ~129,572 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 26 file(s) not represented in the graph (top: .css 19, (none) 5, .example 1)
 
 ## Summary
-- 1817 nodes · 4191 edges · 116 communities (92 shown, 24 thin omitted)
+- 1817 nodes · 4197 edges · 109 communities (91 shown, 18 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 179 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5e65e8ec`
+- Built from commit: `b17b7a03`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - Operator CLI and Mailer
-- LinksPage
+- layouts.spec.ts
 - CI Workflow
 - Angular Workspace Config
 - Web Analytics and Links API
 - auth.spec.ts
 - Server Dependencies
 - Web App Config and Session
-- AccountPage
+- analytics.js
 - database.js
 - click-capture.service.js
 - shorten-form.spec.ts
@@ -35,7 +35,7 @@
 - src/api.js
 - Account HTTP Tests
 - Web Dev Dependencies
-- Accounts
+- click-event.js
 - load.mjs
 - Web Admin Types
 - @angular/router
@@ -46,7 +46,7 @@
 - account-linking.test.js
 - Contracts Package
 - Session Service
-- Web Session Store
+- Session
 - toApiError
 - notFoundError
 - ref_node_assert
@@ -54,7 +54,7 @@
 - Angular Runtime Dependencies
 - icon.ts
 - run.sh
-- Admin Page Component
+- AdminPage
 - Compose Services
 - Abuse Protection Decisions
 - Root Package Config
@@ -65,9 +65,7 @@
 - Compose Environment
 - protections.test.js
 - ref_node_crypto
-- Admin moderation template
 - Error Handler and Failure Pages
-- Report Page
 - Decision and Evidence Docs
 - Contracts TS Config
 - T34 Drill Script
@@ -78,7 +76,6 @@
 - constants.js
 - Compose Dependencies
 - Redirect and Product Principles
-- Links page template
 - server-latency.mjs
 - google.js
 - click-pipeline.test.js
@@ -87,12 +84,11 @@
 - AppError
 - moderation.repository.js
 - Redirect resolver (one statement on primary, 302/404/410/503)
-- ShortenForm
 - Retention Jobs
 - Postgres Service
 - Architecture Stack
 - Provider comparison (T36 draft)
-- ref_zod
+- config.js
 - redirects.service.js
 - Web Admin API
 - Web Google Sign-In
@@ -118,9 +114,7 @@
 - CI and Integration Tests
 - link-analytics.test.js
 - scripts
-- logger.js
 - createGoogleAttemptsService
-- GoogleIdentity
 
 ## God Nodes (most connected - your core abstractions)
 1. `toApiError()` - 58 edges
@@ -139,12 +133,12 @@
   apps/web/src/app/app.ts → apps/web/src/app/app.html
 - `AccountPage` --references--> `Account page template`  [INFERRED]
   apps/web/src/app/pages/account/account.ts → apps/web/src/app/pages/account/account.html
-- `AdminPage` --references--> `Admin moderation template`  [INFERRED]
-  apps/web/src/app/pages/admin/admin.ts → apps/web/src/app/pages/admin/admin.html
 - `AnalyticsPage` --references--> `Link analytics template`  [INFERRED]
   apps/web/src/app/pages/analytics/analytics.ts → apps/web/src/app/pages/analytics/analytics.html
-- `LinksPage` --references--> `Links page template`  [INFERRED]
-  apps/web/src/app/pages/links/links.ts → apps/web/src/app/pages/links/links.html
+- `ReportPage` --references--> `Report link template`  [INFERRED]
+  apps/web/src/app/pages/report/report.ts → apps/web/src/app/pages/report/report.html
+- `Guest users (7-day generated links)` --conceptually_related_to--> `Guest link creation chain (POST /api/v1/links)`  [INFERRED]
+  PRODUCT.md → docs/DECISIONS.md
 
 ## Import Cycles
 - None detected.
@@ -155,11 +149,15 @@
 - **Abuse reporting and moderation flow** — docs_decisions_public_abuse_reporting, docs_decisions_admin_moderation_apis, docs_decisions_admin_workspace, docs_decisions_admin_audit_append_only, docs_decisions_redirect_failure_pages [INFERRED 0.85]
 - **Report-to-moderation workflow** — apps_web_src_app_pages_report_report_abuse_report_form, apps_web_src_app_pages_admin_admin_report_queue, apps_web_src_app_pages_admin_admin_report_status_change, apps_web_src_app_pages_admin_admin_link_block_unblock, apps_web_src_app_pages_admin_admin_owner_suspension, apps_web_src_app_pages_admin_admin_moderation_audit_history [INFERRED 0.85]
 
-## Communities (116 total, 24 thin omitted)
+## Communities (109 total, 18 thin omitted)
 
 ### Community 0 - "Operator CLI and Mailer"
 Cohesion: 0.12
 Nodes (31): client, [rawEmail, role], ISOLATION_LEVELS, rollbackAndRelease(), UNAVAILABLE_NETWORK_CODES, withTransaction(), createAccountService(), authenticate() (+23 more)
+
+### Community 1 - "layouts.spec.ts"
+Cohesion: 0.22
+Nodes (4): sections(), setUp(), USER, PublicLayout
 
 ### Community 2 - "CI Workflow"
 Cohesion: 0.04
@@ -170,32 +168,32 @@ Cohesion: 0.04
 Nodes (46): build, lint, serve, test, builder, configurations, defaultConfiguration, options (+38 more)
 
 ### Community 4 - "Web Analytics and Links API"
-Cohesion: 0.07
-Nodes (26): Analytics, Links, AnalyticsPage, Breakdown, errorMessage(), LINK, render(), settle() (+18 more)
+Cohesion: 0.06
+Nodes (28): Analytics, Links, ApiError, AnalyticsPage, Breakdown, errorMessage(), LINK, render() (+20 more)
 
 ### Community 5 - "auth.spec.ts"
-Cohesion: 0.08
-Nodes (15): safeNext(), takeFragmentToken(), ready(), render(), settle(), USER, GoogleButton, Login (+7 more)
+Cohesion: 0.07
+Nodes (15): Accounts, takeFragmentToken(), ready(), render(), settle(), USER, GoogleButton, Login (+7 more)
 
 ### Community 6 - "Server Dependencies"
 Cohesion: 0.12
 Nodes (22): dependencies, argon2@^0.45.1, express@^5.3.0, google-auth-library@^11.3.1, node-pg-migrate@^9.0.0, nodemailer@^10.2.1, pino@^10.4.0, redis@^5.12.1 (+14 more)
 
 ### Community 7 - "Web App Config and Session"
-Cohesion: 0.12
-Nodes (17): DevChallenge, GuestLinks, GooglePurpose, GoogleWindow, sessionExpiryInterceptor(), describeWait(), csrfInterceptor(), SAFE_METHODS (+9 more)
+Cohesion: 0.11
+Nodes (17): DevChallenge, GuestLinks, GoogleIdentity, GooglePurpose, GoogleWindow, sessionExpiryInterceptor(), describeWait(), csrfInterceptor() (+9 more)
+
+### Community 8 - "analytics.js"
+Cohesion: 0.33
+Nodes (5): AnalyticsQuerySchema, count, isoDate, LinkAnalyticsSchema, PipelineStatusSchema
 
 ### Community 9 - "database.js"
 Cohesion: 0.21
 Nodes (8): EXPECTED_TABLES, adminDatabaseUrl(), createMigratedDatabase(), createTestDatabase(), migrate(), MIGRATIONS_DIR, runAdminQuery(), withDatabaseName()
 
 ### Community 10 - "click-capture.service.js"
-Cohesion: 0.27
-Nodes (8): toFields(), DEVICES, countryCode(), NOT_A_COUNTRY, classifyDevice(), DEVICE_TYPES, DIRECT_OR_UNKNOWN, referrerHost()
-
-### Community 11 - "shorten-form.spec.ts"
-Cohesion: 0.21
-Nodes (5): CsrfToken, answer(), RESULT, showResult(), submit()
+Cohesion: 0.36
+Nodes (6): toFields(), countryCode(), NOT_A_COUNTRY, classifyDevice(), DIRECT_OR_UNKNOWN, referrerHost()
 
 ### Community 12 - "Auth Controller"
 Cohesion: 0.12
@@ -203,7 +201,7 @@ Nodes (20): ACCEPTED, createAuthController(), csrf(), login(), logout(), me(), r
 
 ### Community 13 - "Session Cookie and Admin Tests"
 Cohesion: 0.08
-Nodes (14): SESSION_COOKIE, newAdmin(), POLICIES, report(), newOwner(), POLICIES, newOwner(), POLICIES (+6 more)
+Nodes (17): SESSION_COOKIE, passwordOwner(), newAdmin(), POLICIES, report(), newOwner(), POLICIES, newOwner() (+9 more)
 
 ### Community 14 - "links.service.js"
 Cohesion: 0.20
@@ -211,19 +209,23 @@ Nodes (24): validationError(), hashRequest(), runOnce(), isoOrNull(), shortUrlFo
 
 ### Community 15 - "sessions.test.js"
 Cohesion: 0.13
-Nodes (20): createApp(), JSON_BODY_LIMIT, createRedirectsController(), noStore(), requestId(), requestLogger(), createRedirectRouter(), startHealthServer() (+12 more)
+Nodes (21): createApp(), JSON_BODY_LIMIT, createRedirectsController(), noStore(), requestId(), requestLogger(), createHealthRouter(), createRedirectRouter() (+13 more)
 
 ### Community 16 - "src/api.js"
-Cohesion: 0.09
-Nodes (27): close(), listen(), logger, main(), commaSeparatedOrigins, describeIssues(), EnvSchema, loadConfig() (+19 more)
+Cohesion: 0.11
+Nodes (24): close(), listen(), logger, main(), loadConfig(), createHealthController(), ACCEPTED, createReportsController() (+16 more)
 
 ### Community 17 - "Account HTTP Tests"
 Cohesion: 0.12
-Nodes (21): classify(), createSmtpMailer(), send(), MailDeliveryError, login(), POLICIES, timedLogin(), verificationTokenFor() (+13 more)
+Nodes (20): classify(), createSmtpMailer(), send(), MailDeliveryError, login(), POLICIES, timedLogin(), verificationTokenFor() (+12 more)
 
 ### Community 18 - "Web Dev Dependencies"
 Cohesion: 0.11
 Nodes (24): devDependencies, @angular/build@^22.2.4, @angular/cli@^22.2.4, @angular/compiler-cli@^22.2.0, @angular-eslint/builder@22.6.0, eslint@^10.12.0, @eslint/js@^10.0.1, jsdom@^30.0.0 (+16 more)
+
+### Community 19 - "click-event.js"
+Cohesion: 0.50
+Nodes (3): DEVICES, parseClickEvent(), DEVICE_TYPES
 
 ### Community 20 - "load.mjs"
 Cohesion: 0.08
@@ -234,8 +236,8 @@ Cohesion: 0.09
 Nodes (17): AuditTarget, ReportStatus, Action, ACTION_LABELS, CATEGORY_LABELS, ADMIN, answerAudits(), isAudit() (+9 more)
 
 ### Community 22 - "@angular/router"
-Cohesion: 0.14
-Nodes (12): App, appConfig, routes, App root template (router-outlet), requireAdmin(), requireUser(), AuthLayout, Home (+4 more)
+Cohesion: 0.09
+Nodes (18): App, appConfig, routes, App root template (router-outlet), requireAdmin(), requireUser(), safeNext(), AuthLayout (+10 more)
 
 ### Community 23 - "Admin Controller"
 Cohesion: 0.17
@@ -246,16 +248,16 @@ Cohesion: 0.22
 Nodes (7): ANALYTICS_WORKER_NAME, createPipelineReporter(), reportOnce(), run(), createPipelineStatusReader(), getPipelineStatus(), sharedLossAt()
 
 ### Community 25 - "Admin Routes and Schemas"
-Cohesion: 0.13
-Nodes (17): byUser(), AdminLinkQuerySchema, AdminLinkSchema, AdminReportSchema, AdminUserSchema, AUDIT_TARGET_TYPES, AuditEntrySchema, AuditListResponseSchema (+9 more)
+Cohesion: 0.14
+Nodes (16): byUser(), AdminLinkQuerySchema, AdminLinkSchema, AdminReportSchema, AdminUserSchema, AUDIT_TARGET_TYPES, AuditEntrySchema, AuditQuerySchema (+8 more)
 
 ### Community 26 - "Auth Routes and Schemas"
 Cohesion: 0.13
 Nodes (18): byAccountAndNetwork(), bySignedInAccount(), AcknowledgementSchema, anyPassword, CsrfResponseSchema, email, ForgotPasswordRequestSchema, GoogleSignInRequestSchema (+10 more)
 
 ### Community 27 - "account-linking.test.js"
-Cohesion: 0.28
-Nodes (5): googleProof(), link(), passwordOwner(), POLICIES, signInWithGoogle()
+Cohesion: 0.32
+Nodes (4): googleProof(), link(), POLICIES, signInWithGoogle()
 
 ### Community 28 - "Contracts Package"
 Cohesion: 0.11
@@ -265,13 +267,13 @@ Nodes (19): default, types, dependencies, zod@^4.6.7, devDependencies, typescrip
 Cohesion: 0.35
 Nodes (12): createSessionService(), create(), destroy(), get(), lifetimeFor(), markRecentAuth(), redisCall(), remainingMs() (+4 more)
 
-### Community 30 - "Web Session Store"
-Cohesion: 0.14
-Nodes (5): Session, sections(), setUp(), USER, PublicLayout
+### Community 30 - "Session"
+Cohesion: 0.19
+Nodes (5): Session, answer(), RESULT, showResult(), submit()
 
 ### Community 31 - "toApiError"
-Cohesion: 0.10
-Nodes (7): commonMessage(), toApiError(), WorkspaceLayout, ModerationAction, CheckEmail, ConfirmIdentity, ForgotPassword
+Cohesion: 0.08
+Nodes (8): commonMessage(), toApiError(), WorkspaceLayout, AccountPage, ModerationAction, CheckEmail, ConfirmIdentity, ForgotPassword
 
 ### Community 32 - "notFoundError"
 Cohesion: 0.21
@@ -283,19 +285,23 @@ Nodes (5): VALID_ENV, insertOwnedLink(), insertUser(), query(), NOW
 
 ### Community 34 - "sessions.test.js"
 Cohesion: 0.10
-Nodes (15): CAPTURE_LOSS_KEY, extraServers, guardTestRouter(), limiter(), POLICIES, consumerFor(), reader(), administrator (+7 more)
+Nodes (12): extraServers, guardTestRouter(), limiter(), POLICIES, administrator, LIFETIMES, member, store() (+4 more)
 
 ### Community 35 - "Angular Runtime Dependencies"
 Cohesion: 0.12
 Nodes (17): dependencies, @angular/common@^22.2.0, @angular/compiler@^22.2.0, @angular/core@^22.2.0, @angular/forms@^22.2.0, @angular/platform-browser@^22.2.0, @angular/router@^22.2.0, @fontsource-variable/manrope@^5.3.0 (+9 more)
 
 ### Community 36 - "icon.ts"
-Cohesion: 0.15
-Nodes (9): PREFERENCES, Theme, ThemePreference, NavItem, Icon, IconName, ICONS, Logo (+1 more)
+Cohesion: 0.14
+Nodes (10): PREFERENCES, Theme, ThemePreference, NavItem, Report link template, Icon, IconName, ICONS (+2 more)
 
 ### Community 37 - "run.sh"
 Cohesion: 0.20
 Nodes (9): CHALLENGE_PROVIDER, DATABASE_POOL_MAX, DATABASE_URL, LOG_LEVEL, NODE_ENV, PUBLIC_BASE_URL, REDIS_URL, run.sh script (+1 more)
+
+### Community 38 - "AdminPage"
+Cohesion: 0.05
+Nodes (16): Log out session, Password change via reset email, Account page template, AdminPage, Admin link lookup by code, Report queue by status, Admin moderation template, Daily clicks chart (UTC) with accessible table (+8 more)
 
 ### Community 39 - "Compose Services"
 Cohesion: 0.12
@@ -310,12 +316,12 @@ Cohesion: 0.16
 Nodes (15): devDependencies, eslint@^10.13.0, @eslint/js@^10.0.1, eslint-plugin-promise@^7.3.0, globals@^17.13.0, engines, node, eslint (+7 more)
 
 ### Community 42 - "protections.test.js"
-Cohesion: 0.16
-Nodes (22): rateLimit(), toFieldErrors(), validateBody(), validateQuery(), createAdminRouter(), createDevChallengeRouter(), IssueRequestSchema, byNetwork() (+14 more)
+Cohesion: 0.15
+Nodes (22): createDevChallengeController(), rateLimit(), toFieldErrors(), validateBody(), validateQuery(), createAdminRouter(), createAuthRouter(), createDevChallengeRouter() (+14 more)
 
 ### Community 43 - "Click Consumer Internals"
-Cohesion: 0.32
-Nodes (11): createClickConsumer(), deadLetter(), ensureGroup(), finish(), handle(), persistIndividually(), processOnce(), readNew() (+3 more)
+Cohesion: 0.24
+Nodes (13): compareIds(), createClickConsumer(), deadLetter(), ensureGroup(), finish(), handle(), persistIndividually(), processOnce() (+5 more)
 
 ### Community 44 - "analytics-query.service.js"
 Cohesion: 0.16
@@ -330,24 +336,16 @@ Cohesion: 0.34
 Nodes (15): environment, CHALLENGE_PROVIDER, DATABASE_URL, EMAIL_OUTBOX_KEY, GOOGLE_CLIENT_ID, LOG_LEVEL, MAIL_FROM, NODE_ENV (+7 more)
 
 ### Community 47 - "protections.test.js"
-Cohesion: 0.13
-Nodes (20): createDevChallengeController(), ChallengeUnavailableError, createChallengeGuard(), check(), createDevChallengeVerifier(), issue(), verify(), sign() (+12 more)
+Cohesion: 0.15
+Nodes (19): ChallengeUnavailableError, createChallengeGuard(), check(), createDevChallengeVerifier(), issue(), verify(), sign(), signaturesMatch() (+11 more)
 
 ### Community 48 - "ref_node_crypto"
 Cohesion: 0.19
 Nodes (18): createOutboxSender(), deliver(), processBatch(), run(), formatExpiry(), renderEmail(), TEMPLATES, claimDueMessages() (+10 more)
 
-### Community 49 - "Admin moderation template"
-Cohesion: 0.28
-Nodes (5): Admin link lookup by code, Report queue by status, Admin moderation template, Effective link status (active/disabled/expired/blocked/ownerSuspended), Abuse report form (link, category, details)
-
 ### Community 50 - "Error Handler and Failure Pages"
 Cohesion: 0.24
 Nodes (13): BODY_PARSER_ERRORS, errorHandler(), notFoundHandler(), sendError(), toAppError(), wantsFailurePage(), codeFromPath(), hasFailurePage() (+5 more)
-
-### Community 52 - "Report Page"
-Cohesion: 0.18
-Nodes (5): CATEGORIES, Category, extractCode(), ReportPage, Report link template
 
 ### Community 53 - "Decision and Evidence Docs"
 Cohesion: 0.33
@@ -366,7 +364,7 @@ Cohesion: 0.22
 Nodes (8): 1. Setup, 2. Results at the 1,000 rps target, 3. Where it breaks (30-second steps, broad), 4. The T34 finding, revisited, 5. Findings, 6. Reproducing, Resources (average over the measured window), T35 — Capacity benchmark (evidence)
 
 ### Community 57 - "click-aggregation.service.js"
-Cohesion: 0.67
+Cohesion: 0.24
 Nodes (5): createClickAggregator(), persist(), referrerBuckets(), keyOf(), tally()
 
 ### Community 59 - "guest-links.test.js"
@@ -389,10 +387,6 @@ Nodes (12): depends_on, mailpit, migrate, postgres, redis, condition, condition,
 Cohesion: 0.22
 Nodes (9): Public abuse reporting (POST /api/v1/reports, always 202), Redirect failure pages (byte-identical inactive page, strict CSP), UI foundation (light-dark tokens, layouts, self-hosted fonts/icons), Visual and accessibility matrix (120/120 states), Accessibility & inclusion requirements (UI_HANDOFF.md), PRODUCT.md (Shortlist product definition), Registered users (aliases, expiry, edits, analytics), Reporters (anonymous abuse reports) (+1 more)
 
-### Community 64 - "Links page template"
-Cohesion: 0.15
-Nodes (9): Log out session, Password change via reset email, Account page template, Daily clicks chart (UTC) with accessible table, Country/device/referrer breakdowns, Link analytics template, Cursor-paginated link list, Enable/disable link toggle (+1 more)
-
 ### Community 65 - "server-latency.mjs"
 Cohesion: 0.33
 Nodes (3): durations, [from, to, ...files], statuses
@@ -402,8 +396,8 @@ Cohesion: 0.20
 Nodes (11): createGoogleIdentityService(), loadCertificates(), verify(), GOOGLE_ISSUERS, GoogleCredentialRejectedError, GoogleUnavailableError, base64url(), createTestGoogle() (+3 more)
 
 ### Community 68 - "click-pipeline.test.js"
-Cohesion: 0.16
-Nodes (5): compareIds(), CONSUMER_GROUP, trimProcessed(), DEAD_LETTER_STREAM, pipeline()
+Cohesion: 0.17
+Nodes (5): CLICK_STREAM, CONSUMER_GROUP, DEAD_LETTER_STREAM, CAPTURE_LOSS_KEY, reader()
 
 ### Community 69 - "link-editor.ts"
 Cohesion: 0.12
@@ -437,12 +431,12 @@ Nodes (9): Link immutability triggers (migration 0005), Angular 22 SPA (apps/web
 Cohesion: 0.14
 Nodes (13): 10. Decisions needed from the owner, 1. What Shortlist needs from a host, 2. Hosting the API and worker, 3. PostgreSQL, 4. Redis-compatible store, 5. Email sender, 6. Human-verification challenge, 7. Country data (analytics) (+5 more)
 
-### Community 79 - "ref_zod"
-Cohesion: 0.14
-Nodes (10): AnalyticsQuerySchema, count, isoDate, LinkAnalyticsSchema, PipelineStatusSchema, ErrorCodeSchema, ErrorEnvelopeSchema, FieldErrorSchema (+2 more)
+### Community 79 - "config.js"
+Cohesion: 0.12
+Nodes (13): commaSeparatedOrigins, describeIssues(), EnvSchema, resolveChallengeProvider(), BucketSchema, DEFAULT_POLICIES, OverridesSchema, resolvePolicies() (+5 more)
 
 ### Community 80 - "redirects.service.js"
-Cohesion: 0.26
+Cohesion: 0.19
 Nodes (7): createRedirectService(), resolve(), RedirectUnavailableError, generateCode(), effectiveStatus(), ALIAS_PATTERN, GENERATED_CODE_LENGTH
 
 ### Community 83 - "Compose Healthchecks"
@@ -490,16 +484,16 @@ Cohesion: 0.33
 Nodes (6): scripts, build, check, lint, test, verify
 
 ### Community 96 - "createClickCaptureService"
-Cohesion: 0.36
-Nodes (9): createClickCaptureService(), capture(), captureInBackground(), drop(), recordFailure(), recordSharedLoss(), snapshot(), startStatsLog() (+1 more)
+Cohesion: 0.31
+Nodes (10): createClickCaptureService(), capture(), captureInBackground(), drop(), recordFailure(), recordSharedLoss(), snapshot(), startStatsLog() (+2 more)
 
 ### Community 97 - "seed.mjs"
 Cohesion: 0.29
 Nodes (5): pg@^8.23.1, LINKS, main(), withClient(), pg
 
 ### Community 98 - "click-capture.service.test.js"
-Cohesion: 0.25
-Nodes (4): CLICK_STREAM, fakeRedis(), fake, service()
+Cohesion: 0.29
+Nodes (3): fakeRedis(), fake, service()
 
 ### Community 100 - "Compose Defaults"
 Cohesion: 0.50
@@ -517,10 +511,6 @@ Nodes (5): POLICIES, signInWithGoogle(), startAttempt(), GoogleStartResponseSche
 Cohesion: 0.29
 Nodes (7): scripts, dev:api, dev:worker, migrate, start:api, start:worker, test
 
-### Community 112 - "logger.js"
-Cohesion: 0.47
-Nodes (5): createLogger(), REDACT_PATHS, scrubUrlCredentials(), SECRET_KEYS, serializeError()
-
 ### Community 114 - "createGoogleAttemptsService"
 Cohesion: 0.83
 Nodes (4): createGoogleAttemptsService(), consume(), create(), redisCall()
@@ -528,22 +518,22 @@ Nodes (4): createGoogleAttemptsService(), consume(), create(), redisCall()
 ## Knowledge Gaps
 - **31 isolated node(s):** `NODE_ENV`, `LOG_LEVEL`, `CHALLENGE_PROVIDER`, `DATABASE_URL`, `REDIS_URL` (+26 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 649 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **18 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `@angular/core` connect `Web App Config and Session` to `Angular Runtime Dependencies`, `icon.ts`, `link-editor.ts`, `auth.spec.ts`, `Web Analytics and Links API`, `shorten-form.spec.ts`, `Web Dev Dependencies`, `Report Page`, `Web Admin Types`, `@angular/router`, `Web Session Store`, `toApiError`?**
+- **Why does `@angular/core` connect `@angular/router` to `layouts.spec.ts`, `Angular Runtime Dependencies`, `icon.ts`, `link-editor.ts`, `auth.spec.ts`, `Web App Config and Session`, `Web Analytics and Links API`, `Web Dev Dependencies`, `Web Admin Types`, `Session`, `toApiError`?**
   _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **What connects `NODE_ENV`, `LOG_LEVEL`, `CHALLENGE_PROVIDER` to the rest of the system?**
   _31 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Operator CLI and Mailer` be split into smaller, more focused modules?**
   _Cohesion score 0.11707317073170732 - nodes in this community are weakly interconnected._
-- **Why does `toApiError()` connect `toApiError` to `LinksPage`, `icon.ts`, `Web Analytics and Links API`, `Admin Page Component`, `Web App Config and Session`, `AccountPage`, `auth.spec.ts`, `ShortenForm`, `link-editor.ts`, `Web Google Sign-In`, `Report Page`, `Web Admin Types`, `Web Session Store`?**
+- **Why does `toApiError()` connect `toApiError` to `Web Analytics and Links API`, `icon.ts`, `AdminPage`, `Web App Config and Session`, `auth.spec.ts`, `link-editor.ts`, `Web Google Sign-In`, `Web Admin Types`, `@angular/router`, `Session`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Should `CI Workflow` be split into smaller, more focused modules?**
   _Cohesion score 0.04336734693877551 - nodes in this community are weakly interconnected._
-- **Why does `AdminPage` connect `Admin Page Component` to `Admin moderation template`, `Web Admin Types`?**
+- **Why does `AdminPage` connect `AdminPage` to `Web Admin Types`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Should `Angular Workspace Config` be split into smaller, more focused modules?**
   _Cohesion score 0.04440333024976873 - nodes in this community are weakly interconnected._

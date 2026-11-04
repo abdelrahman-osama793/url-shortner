@@ -433,6 +433,12 @@ One server package with two entry points (modular monolith), not separate servic
 - **One folder per component**: `name.ts`, `name.html`, `name.css` (only when the component has its own styles) and `name.spec.ts` when it has its own tests. No inline templates or styles. File names follow the current Angular style guide (no `.component` suffix). Area-wide specs (`auth.spec.ts`, `layouts.spec.ts`, `ui.spec.ts`) stay in the area's folder because they test flows across several components.
 - **Why**: earlier tasks mixed inline templates (small components) and separate files (large pages), which made the code harder to navigate.
 
+### Navigation and layout (T41)
+
+- **The logo is "home"**: the workspace for a signed-in person, the landing page for visitors.
+- **Signed-in shortening from the landing page creates an account link** (the API already routed it so); the form now says so and links to the workspace instead of offering sign-up.
+- **Centred content, full-bleed bars**: `--page-max` (1200 px) bounds public content; header and footer backgrounds span the window while their contents align to that width. The workspace keeps its sidebar shell and bounds the content column to 1100 px.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

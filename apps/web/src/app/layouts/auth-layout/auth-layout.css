@@ -9,7 +9,10 @@
   flex: 1;
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
+  width: 100%;
+  max-width: var(--page-max);
   min-height: 640px;
+  margin-inline: auto;
   background: var(--paper);
 }
 

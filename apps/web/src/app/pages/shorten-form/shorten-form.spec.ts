@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { Session } from '../../core/auth/session';
 import { CsrfToken } from '../../core/http/csrf';
 import { ShortenForm } from './shorten-form';
 
@@ -62,6 +63,25 @@ describe('ShortenForm', () => {
     expect(element.querySelector<HTMLInputElement>('#short-url')!.value).toBe(RESULT.shortUrl);
     expect(text()).toContain('expires');
     expect(text()).toContain('2026');
+  });
+
+  it('tells signed-in users the link is saved to their account instead of offering sign-up', async () => {
+    TestBed.inject(Session).start({
+      user: { id: '00000000-0000-4000-8000-000000000001', email: 'ada@example.com', emailVerified: true, role: 'user', status: 'active' },
+      csrfToken: 'token',
+    });
+    fixture.detectChanges();
+
+    expect(text()).toContain('Links you shorten here are saved to your account.');
+    expect(text()).not.toContain('Sign up');
+
+    await submit('https://example.com/page');
+    answer({ ...RESULT, expiresAt: null });
+    await settle();
+
+    expect(text()).toContain('Saved to your links');
+    expect(text()).not.toContain('Guest link');
+    expect([...element.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toContain('/app/links');
   });
 
   it('asks for a link instead of sending an empty form', async () => {

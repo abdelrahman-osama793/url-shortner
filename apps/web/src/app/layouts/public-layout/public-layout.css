@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 16px 30px;
+  padding: 16px max(30px, calc((100% - var(--page-max)) / 2));
   background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
@@ -33,7 +33,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 30px;
+  padding: 14px max(30px, calc((100% - var(--page-max)) / 2));
   border-top: 1px solid var(--line);
   background: var(--paper);
   color: var(--muted);

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import type { GuestCreateLinkResponse } from '@shortlist/contracts';
 
 import { DevChallenge, GuestLinks } from '../../core/api/guest-links';
+import { Session } from '../../core/auth/session';
 import { ApiError, describeWait, toApiError } from '../../core/http/api-error';
 import { Icon } from '../../shared/ui/icon/icon';
 
@@ -24,6 +25,9 @@ export class ShortenForm {
   private readonly devChallenge = inject(DevChallenge);
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
+
+  // Signed in, the same request creates a link in the account (the API skips the guest route).
+  protected readonly signedIn = inject(Session).signedIn;
 
   // A real challenge provider is integrated in T37; until then only development builds can pass one.
   protected readonly devChallengeAvailable = isDevMode();

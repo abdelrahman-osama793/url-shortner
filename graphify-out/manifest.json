@@ -978,9 +978,9 @@
     "semantic_hash": "4d360155d7f939e91f654b1162c37c09"
   },
   "apps/web/src/app/layouts/layouts.spec.ts": {
-    "mtime": 1793814635.902267,
-    "seen": 1793814722.58631,
-    "ast_hash": "19d741944090b98c2cdcf42b6f3282f1",
+    "mtime": 1793814804.7666252,
+    "seen": 1793814946.9487255,
+    "ast_hash": "fe035c9df259e24f9f8dd6c1e998a242",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/account/account.spec.ts": {
@@ -1026,9 +1026,9 @@
     "semantic_hash": "e2881a6817ca0ecbce82b6d29508753a"
   },
   "apps/web/src/app/pages/auth/auth.spec.ts": {
-    "mtime": 1793814635.8972669,
-    "seen": 1793814722.5865283,
-    "ast_hash": "a5228a1afb60e14b10b87fab0d13b49c",
+    "mtime": 1793814804.7666252,
+    "seen": 1793814946.9492383,
+    "ast_hash": "36d4b49d606b701d2ffc2a6619898261",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/links/expiry.ts": {
@@ -1314,9 +1314,9 @@
     "semantic_hash": "513ab778d5ef8613b982017f3dd8eed6"
   },
   "docs/DECISIONS.md": {
-    "mtime": 1793814697.7559772,
-    "seen": 1793814722.588201,
-    "ast_hash": "d9f8162533facbdb75f122debffa7361",
+    "mtime": 1793814920.937227,
+    "seen": 1793814946.9525113,
+    "ast_hash": "010db17bae4afc6b6a092cbe30fa7942",
     "semantic_hash": ""
   },
   "docs/verification/T33.md": {
@@ -1434,9 +1434,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/auth/signup/signup.ts": {
-    "mtime": 1793814635.899267,
-    "seen": 1793814722.5865417,
-    "ast_hash": "c6af22a77ea28ca733e1f4bae8b34366",
+    "mtime": 1793814781.867944,
+    "seen": 1793814946.9496036,
+    "ast_hash": "7ec248a530276c779c153b17f52e492a",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/auth/verify-email/verify-email.ts": {
@@ -1464,15 +1464,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/shorten-form/shorten-form.spec.ts": {
-    "mtime": 1793814635.896267,
-    "seen": 1793814722.5867095,
-    "ast_hash": "4bf5c36ba48251eacd32a99d54635fb1",
+    "mtime": 1793814804.7666252,
+    "seen": 1793814946.9501646,
+    "ast_hash": "a00d36444ac7cd0dd7460532e1b2b89f",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/shorten-form/shorten-form.ts": {
-    "mtime": 1793814635.896267,
-    "seen": 1793814722.5867114,
-    "ast_hash": "86feca5f984224af5fdae8c8275c4049",
+    "mtime": 1793814769.8358057,
+    "seen": 1793814946.9501677,
+    "ast_hash": "6c4b7e2f7796b2943e7a880a5610c3f3",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/icon/icon.ts": {
@@ -1482,9 +1482,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/logo/logo.ts": {
-    "mtime": 1793814635.901267,
-    "seen": 1793814722.5867686,
-    "ast_hash": "c26bf0bf4a261c996afa4eadb4cdf544",
+    "mtime": 1793814769.8358057,
+    "seen": 1793814946.9502866,
+    "ast_hash": "936a7c0caf4e35c991efea3eb03d532c",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/status-badge/status-badge.ts": {
@@ -1548,9 +1548,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/auth/signup/signup.html": {
-    "mtime": 1793814635.8892667,
-    "seen": 1793814722.5880318,
-    "ast_hash": "ad8cf0da6a28e2720b93c702d8e94d3f",
+    "mtime": 1793814781.867944,
+    "seen": 1793814946.9520452,
+    "ast_hash": "3ae10c2ca0657d02897d852b83fe649c",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/auth/verify-email/verify-email.html": {
@@ -1578,15 +1578,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/shorten-form/shorten-form.html": {
-    "mtime": 1793290090.2513983,
-    "seen": 1793814722.5881517,
-    "ast_hash": "c2b898ca26c44c8dc1ad915ecb5d01ad",
+    "mtime": 1793814769.8348057,
+    "seen": 1793814946.952362,
+    "ast_hash": "02b0680cafb6b557c690092528ba3346",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/logo/logo.html": {
-    "mtime": 1793814635.8912668,
-    "seen": 1793814722.5881536,
-    "ast_hash": "aa212daa5c496bc45ed3d0e5c9ee74ce",
+    "mtime": 1793814769.8398056,
+    "seen": 1793814946.9523637,
+    "ast_hash": "c3ea6b03dce138b960ed076950fcf995",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/status-badge/status-badge.html": {

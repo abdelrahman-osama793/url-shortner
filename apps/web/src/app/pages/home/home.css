@@ -1,4 +1,7 @@
 .public {
+  width: 100%;
+  max-width: calc(var(--page-max) + 40px);
+  margin-inline: auto;
   padding: 20px;
 }
 

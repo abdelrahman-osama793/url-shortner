@@ -12,6 +12,9 @@
 :root {
   color-scheme: light dark;
 
+  /* Width of page content. Header and footer bars stay full-bleed; their contents line up with it. */
+  --page-max: 1200px;
+
   --page: light-dark(#f6f7f6, #141b1d);
   --paper: light-dark(#fff, #1e282b);
   --ink: light-dark(#172e34, #e9eeec);
