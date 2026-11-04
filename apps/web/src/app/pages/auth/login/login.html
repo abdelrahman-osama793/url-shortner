@@ -1,7 +1,11 @@
 <h1>Welcome back.</h1>
 <p class="auth-intro">Log in to pick up where you left off.</p>
 
-@if (suspended()) {
+@if (closed() === 'deactivated') {
+  <p class="note" role="status">Your account is deactivated and you've been logged out. Log in any time to reactivate it.</p>
+} @else if (closed() === 'deleted') {
+  <p class="note" role="status">Your account and its data have been deleted.</p>
+} @else if (suspended()) {
   <p class="note" role="alert">This account is suspended, so you've been signed out. If you think this is a mistake, contact support.</p>
 } @else if (expired()) {
   <p class="note" role="status">Your session has ended. Please log in again to continue where you were.</p>

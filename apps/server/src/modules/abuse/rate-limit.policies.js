@@ -69,6 +69,11 @@ export const DEFAULT_POLICIES = Object.freeze({
     { subject: 'network', limit: 5, windowSeconds: HOUR },
   ],
 
+  // Deactivating or deleting an account (T45): a handful of tries per hour.
+  accountClose: [
+    { subject: 'user', limit: 10, windowSeconds: HOUR },
+  ],
+
   // Contact page (T44): a few messages an hour per network, like abuse reports.
   support: [
     { subject: 'network', limit: 5, windowSeconds: HOUR },

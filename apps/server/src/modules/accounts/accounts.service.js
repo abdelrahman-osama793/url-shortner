@@ -63,19 +63,20 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     await withTransaction(pool, async (client) => {
       const user = await repository.findUserWithPasswordByEmail(client, normalizeEmail(email));
 
-      const eligible = user && user.password_hash && !user.email_verified_at && user.status === 'active';
+      const eligible = user && user.password_hash && !user.email_verified_at && ['active', 'deactivated'].includes(user.status);
 
       if (eligible) await queueVerificationEmail(client, user);
     }, { logger });
   }
 
-  // Emails a reset link only to an existing, active account that has a password. Silent in
-  // every other case; issuing a link revokes earlier reset links.
+  // Emails a reset link only to an existing, active or deactivated account that has a password
+  // (a deactivated owner may have forgotten it). Silent in every other case; issuing a link
+  // revokes earlier reset links.
   async function requestPasswordReset({ email }) {
     await withTransaction(pool, async (client) => {
       const user = await repository.findUserWithPasswordByEmail(client, normalizeEmail(email));
 
-      if (!user || !user.password_hash || user.status !== 'active') return;
+      if (!user || !user.password_hash || !['active', 'deactivated'].includes(user.status)) return;
 
       await issueTokenWithEmail(client, {
         key: outboxKey,
@@ -104,9 +105,19 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     logger?.info('password reset completed');
   }
 
+  // Signing in to a deactivated account turns it back on; its links redirect again. Mutates
+  // `user.status` only when the database changed it.
+  async function reactivate(user) {
+    if (await repository.reactivateUser(pool, user.id)) {
+      user.status = 'active';
+      logger?.info({ userId: user.id }, 'account reactivated by sign-in');
+    }
+  }
+
   // Returns the user row for valid credentials, otherwise throws a generic 401. Wrong email,
   // wrong password and Google-only accounts are indistinguishable (same error, similar time).
   // A correct password for a suspended account gets 403: the caller already proved ownership.
+  // A deactivated account is reactivated by signing in (T45).
   async function authenticate({ email, password }) {
     const user = await repository.findUserWithPasswordByEmail(pool, normalizeEmail(email));
     const { valid, rehash } = await verifyPassword(user?.password_hash ?? null, password);
@@ -114,6 +125,8 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     if (!valid) {
       throw new AppError(401, ERROR_CODES.INVALID_CREDENTIALS, 'The email or password is incorrect.');
     }
+
+    if (user.status === 'deactivated') await reactivate(user);
 
     if (user.status !== 'active') {
       throw new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is suspended.');
@@ -144,5 +157,5 @@ export function createAccountService({ pool, outboxKey, tokenLifetimes, logger }
     return repository.findSignInMethods(pool, userId);
   }
 
-  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate, reauthenticate, signInMethods };
+  return { register, verifyEmail, resendVerification, requestPasswordReset, resetPassword, authenticate, reauthenticate, signInMethods, reactivate };
 }

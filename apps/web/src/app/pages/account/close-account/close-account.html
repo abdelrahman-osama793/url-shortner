@@ -1,0 +1,74 @@
+<section class="section" aria-labelledby="close-title">
+  <h2 id="close-title">Close your account</h2>
+
+  @if (open() === null) {
+    <div class="row">
+      <div class="text">
+        <strong>Deactivate</strong>
+        <p class="muted">Pause your account and links. Log in again any time to turn everything back on.</p>
+      </div>
+      <button class="btn btn-secondary" type="button" (click)="show('deactivate')">Deactivate account</button>
+    </div>
+    <div class="row">
+      <div class="text">
+        <strong>Delete</strong>
+        <p class="muted">Permanently delete your account and everything in it.</p>
+      </div>
+      <button class="btn btn-danger" type="button" (click)="show('delete')">Delete account</button>
+    </div>
+  } @else {
+    <form class="panel" (submit)="run($event)" novalidate [attr.aria-busy]="busy()" [attr.aria-labelledby]="open() + '-title'">
+      @if (open() === 'deactivate') {
+        <h3 id="deactivate-title">Deactivate your account?</h3>
+        <ul>
+          <li>You'll be logged out on every device.</li>
+          <li>Your short links stop working: visitors see a "no longer active" page.</li>
+          <li>Nothing is deleted. Log in again with your email or Google to reactivate your account and links.</li>
+        </ul>
+      } @else {
+        <h3 id="delete-title">Delete your account permanently?</h3>
+        <p>This can't be undone. We will delete:</p>
+        <ul>
+          <li>your account, email address, password and connected Google account;</li>
+          <li>all your short links, which then show "not found". Their codes are never given to anyone else;</li>
+          <li>all click data and analytics for those links;</li>
+          <li>reports and support messages you sent, and any reports about your links;</li>
+          <li>pending emails and sign-in links.</li>
+        </ul>
+        <p class="muted">
+          Kept: records of moderation actions administrators took (who did what and why), which are needed to handle abuse.
+          They no longer contain your email.
+        </p>
+        <div class="field">
+          <label for="delete-confirm-email">Type <strong>{{ email() }}</strong> to confirm</label>
+          <input
+            #confirmField
+            id="delete-confirm-email"
+            class="input"
+            type="email"
+            autocomplete="off"
+            [value]="typedEmail()"
+            (input)="typedEmail.set(confirmField.value); error.set(null)"
+          />
+        </div>
+      }
+
+      @if (needsConfirmation()) {
+        <app-confirm-identity (confirmed)="retryAfterConfirmation()" />
+      }
+
+      @if (error(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button class="btn" type="button" (click)="show(null)">Cancel</button>
+        @if (open() === 'deactivate') {
+          <button class="btn btn-danger" type="submit" [disabled]="busy()">{{ busy() ? 'Deactivating…' : 'Deactivate account' }}</button>
+        } @else {
+          <button class="btn btn-danger" type="submit" [disabled]="busy()">{{ busy() ? 'Deleting…' : 'Delete my account permanently' }}</button>
+        }
+      </div>
+    </form>
+  }
+</section>

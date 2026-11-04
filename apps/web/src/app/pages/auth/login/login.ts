@@ -16,6 +16,7 @@ import { PasswordField } from '../password-field/password-field';
   selector: 'app-login',
   imports: [RouterLink, Icon, GoogleButton, PasswordField],
   templateUrl: './login.html',
+  styleUrl: './login.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Login {
@@ -28,6 +29,8 @@ export class Login {
   readonly expired = input<string>();
   // ?suspended=1 when the account was suspended while signed in.
   readonly suspended = input<string>();
+  // ?closed=deactivated|deleted right after the person closed their account.
+  readonly closed = input<string>();
 
   protected readonly email = signal('');
   protected readonly password = signal('');

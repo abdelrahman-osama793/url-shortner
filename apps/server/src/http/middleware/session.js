@@ -132,7 +132,8 @@ export function createAuthGuards({ sessionService, pool }) {
       return next(new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is suspended.'));
     }
 
-    if (!row || row.session_version !== req.session.sessionVersion) {
+    // Deactivated (and deleted) accounts are signed out everywhere; signing in again reactivates.
+    if (!row || row.status !== 'active' || row.session_version !== req.session.sessionVersion) {
       await discardRejectedSession(req, res);
       return next(authenticationRequired());
     }

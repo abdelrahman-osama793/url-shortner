@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 
 import { loadConfig } from './config.js';
 import { createApp } from './http/app.js';
+import { createAccountController } from './http/controllers/account.controller.js';
 import { createAdminController } from './http/controllers/admin.controller.js';
 import { createAuthController } from './http/controllers/auth.controller.js';
 import { createDevChallengeController } from './http/controllers/dev-challenge.controller.js';
@@ -16,6 +17,7 @@ import { createRedirectsController } from './http/controllers/redirects.controll
 import { createReportsController } from './http/controllers/reports.controller.js';
 import { createSupportController } from './http/controllers/support.controller.js';
 import { createAuthGuards } from './http/middleware/session.js';
+import { createAccountRouter } from './http/routes/account.routes.js';
 import { createAdminRouter } from './http/routes/admin.routes.js';
 import { createAuthRouter } from './http/routes/auth.routes.js';
 import { createDevChallengeRouter } from './http/routes/dev-challenge.routes.js';
@@ -31,6 +33,7 @@ import { connectInBackground, createRedisClient } from './infra/redis.js';
 import { onShutdown, runMain } from './lifecycle.js';
 import { createChallengeGuard, createDevChallengeVerifier } from './modules/abuse/challenge.service.js';
 import { createRateLimiter } from './modules/abuse/rate-limit.service.js';
+import { createAccountClosureService } from './modules/accounts/account-closure.service.js';
 import { createAccountService } from './modules/accounts/accounts.service.js';
 import { createAnalyticsQueryService } from './modules/analytics/analytics-query.service.js';
 import { createClickCaptureService } from './modules/analytics/click-capture.service.js';
@@ -119,6 +122,12 @@ async function main() {
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
+    createAccountRouter({
+      controller: createAccountController({ accountClosure: createAccountClosureService({ pool, logger }), sessionService, logger }),
+      guards,
+      limiter,
+      recentAuthMs: config.recentAuthMs,
+    }),
     createSupportRouter({
       controller: createSupportController({ supportService: createSupportService({ pool, cursorSecret: config.rateLimit.secret, logger }) }),
       guards,

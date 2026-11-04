@@ -454,6 +454,14 @@ One server package with two entry points (modular monolith), not separate servic
 - **Limited like reports, no challenge**: 5/hour and 20/day per network. Closing a message changes no one's access, so it needs an admin but not recent authentication, a reason or an audit entry.
 - **Retention**: closed messages are deleted 12 months after closing; open ones stay until handled.
 
+### Deactivating and deleting accounts (T45, owner-approved 4 Nov 2026)
+
+- **Deactivate is reversible, delete is not.** Deactivation pauses the account (sessions revoked, links 410) and any sign-in reactivates it. An administrator lifting a suspension never reactivates a deactivated account: that stays the owner's choice.
+- **Links can now be deleted, but codes still can't be freed**: the link trigger allows a DELETE only after the code has a `tombstone` reservation, which the allocator already refuses. "No code reuse" is still enforced in the database; "rows are never deleted" became "rows are deleted only with their account".
+- **Deletion removes everything the account owns in one transaction**, including reports about its links (the links are gone) and reports it filed. **Moderation records stay** (append-only `admin_audit`); target ids in them are plain uuids, so ordinary accounts are hard-deleted. A users row still referenced by moderation records (a former admin's actions, closed reports or messages) is anonymised instead (`status = 'deleted'`, email removed, no credentials).
+- **Typed confirmation is checked on the server** (`email` must be the account's), plus recent authentication and CSRF. Administrators cannot delete their account (an operator removes the role first); the last active administrator cannot deactivate.
+- **Not deleted, and disclosed**: hashed rate-limit counters (expire within a day) and server logs (no personal data by design).
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

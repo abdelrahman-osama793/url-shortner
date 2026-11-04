@@ -88,3 +88,11 @@ export const AcknowledgementSchema = z.object({
 /** @typedef {z.infer<typeof GoogleStartResponseSchema>} GoogleStartResponse */
 /** @typedef {z.infer<typeof RegisterRequestSchema>} RegisterRequest */
 /** @typedef {z.infer<typeof LoginRequestSchema>} LoginRequest */
+
+// Closing an account (T45). Both need a recent sign-in. Deleting also needs the account email
+// typed as confirmation, so a stray click or a forged request cannot delete anything.
+export const DeleteAccountRequestSchema = z.strictObject({
+  email: z.string().trim().min(1, 'Type your account email to confirm.').max(EMAIL_MAX_LENGTH),
+});
+
+/** @typedef {z.infer<typeof DeleteAccountRequestSchema>} DeleteAccountRequest */

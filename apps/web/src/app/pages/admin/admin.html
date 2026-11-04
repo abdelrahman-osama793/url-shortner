@@ -123,7 +123,7 @@
           <dt>Owner</dt>
           <dd>
             @if (current.ownerId) {
-              <code>{{ current.ownerId }}</code> · {{ current.ownerStatus === 'suspended' ? 'suspended' : 'active' }}
+              <code>{{ current.ownerId }}</code> · {{ current.ownerStatus }}
             } @else {
               Guest link (no account)
             }

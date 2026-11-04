@@ -21,6 +21,7 @@ const COMPONENT_SCHEMAS = {
   AdminReport: contracts.AdminReportSchema,
   UpdateReportRequest: contracts.UpdateReportRequestSchema,
   SupportMessageRequest: contracts.SupportMessageRequestSchema,
+  DeleteAccountRequest: contracts.DeleteAccountRequestSchema,
   SupportQueueResponse: contracts.SupportQueueResponseSchema,
   AdminSupportMessage: contracts.AdminSupportMessageSchema,
   UpdateSupportMessageRequest: contracts.UpdateSupportMessageRequestSchema,
@@ -266,6 +267,27 @@ function buildDocument() {
             400: jsonResponse('VALIDATION_FAILED: category, code (1-64) or details (at most 2000 characters, no NUL).', 'ErrorEnvelope'),
             403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED (per network; invalid attempts count).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/account/deactivate': {
+        post: {
+          summary: `Deactivate the signed-in account: every session ends and its links answer 410; nothing is deleted. Signing in again reactivates it. Needs recent authentication.${CSRF_NOTE}`,
+          responses: {
+            204: { description: 'Deactivated; this session deleted and its cookie cleared.' },
+            403: jsonResponse('REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            409: jsonResponse('LAST_ACTIVE_ADMIN.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/account': {
+        delete: {
+          summary: `Delete the signed-in account and everything it owns (links, their clicks and analytics, reports and support messages it sent, credentials, Google link, tokens, emails). Codes are retired, never reused; moderation records are kept. \`email\` must be the account email (confirmation). Administrators are refused. Needs recent authentication.${CSRF_NOTE}`,
+          requestBody: jsonBody('DeleteAccountRequest'),
+          responses: {
+            204: { description: 'Deleted; this session deleted and its cookie cleared.' },
+            400: jsonResponse('VALIDATION_FAILED: email missing or not the account email.', 'ErrorEnvelope'),
+            403: jsonResponse('FORBIDDEN (administrator), REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
           },
         },
       },

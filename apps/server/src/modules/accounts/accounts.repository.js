@@ -149,3 +149,13 @@ export async function insertIdentity(db, { userId, provider, subject }) {
 export async function lockIdentity(db, { provider, subject }) {
   await db.query('SELECT pg_advisory_xact_lock(1002, hashtext($1))', [`${provider}:${subject}`]);
 }
+
+// Signing in to a deactivated account reactivates it (T45). True when the status changed.
+export async function reactivateUser(db, userId) {
+  const { rowCount } = await db.query(
+    "UPDATE users SET status = 'active', updated_at = now() WHERE id = $1 AND status = 'deactivated'",
+    [userId],
+  );
+
+  return rowCount === 1;
+}

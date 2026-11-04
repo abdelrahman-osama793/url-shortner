@@ -763,6 +763,76 @@
         }
       }
     },
+    "/api/v1/account/deactivate": {
+      "post": {
+        "summary": "Deactivate the signed-in account: every session ends and its links answer 410; nothing is deleted. Signing in again reactivates it. Needs recent authentication. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "responses": {
+          "204": {
+            "description": "Deactivated; this session deleted and its cookie cleared."
+          },
+          "403": {
+            "description": "REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "LAST_ACTIVE_ADMIN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account": {
+      "delete": {
+        "summary": "Delete the signed-in account and everything it owns (links, their clicks and analytics, reports and support messages it sent, credentials, Google link, tokens, emails). Codes are retired, never reused; moderation records are kept. `email` must be the account email (confirmation). Administrators are refused. Needs recent authentication. Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Deleted; this session deleted and its cookie cleared."
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: email missing or not the account email.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN (administrator), REAUTHENTICATION_REQUIRED, CSRF_INVALID or ORIGIN_NOT_ALLOWED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/support": {
       "post": {
         "summary": "Send a message to support. Guests must give `email`; signed-in senders are answered at their account email (any `email` sent is ignored). Requires X-CSRF-Token from GET /api/v1/auth/csrf and an allowed Origin.",
@@ -1946,6 +2016,20 @@
         ],
         "additionalProperties": false
       },
+      "DeleteAccountRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
       "SupportQueueResponse": {
         "type": "object",
         "properties": {
@@ -2186,7 +2270,9 @@
                 "type": "string",
                 "enum": [
                   "active",
-                  "suspended"
+                  "suspended",
+                  "deactivated",
+                  "deleted"
                 ]
               },
               {
@@ -2232,6 +2318,7 @@
             "enum": [
               "blocked",
               "ownerSuspended",
+              "ownerDeactivated",
               "disabled",
               "expired",
               "active"
@@ -2329,7 +2416,9 @@
             "type": "string",
             "enum": [
               "active",
-              "suspended"
+              "suspended",
+              "deactivated",
+              "deleted"
             ]
           }
         },
@@ -3007,6 +3096,7 @@
             "enum": [
               "blocked",
               "ownerSuspended",
+              "ownerDeactivated",
               "disabled",
               "expired",
               "active"
@@ -3268,6 +3358,7 @@
                   "enum": [
                     "blocked",
                     "ownerSuspended",
+                    "ownerDeactivated",
                     "disabled",
                     "expired",
                     "active"

@@ -39,6 +39,16 @@ export class Accounts {
     await this.post('/api/v1/auth/reauthenticate', { password });
   }
 
+  // Pauses the account and signs out everywhere; signing in again reactivates it (T45).
+  async deactivate(): Promise<void> {
+    await this.post('/api/v1/account/deactivate', {});
+  }
+
+  // Deletes the account and everything it owns. `email` is the typed confirmation.
+  async deleteAccount(email: string): Promise<void> {
+    await firstValueFrom(this.http.delete('/api/v1/account', { body: { email } }));
+  }
+
   private async post(url: string, body: object): Promise<void> {
     await firstValueFrom(this.http.post(url, body));
   }

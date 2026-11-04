@@ -28,6 +28,7 @@ export const RegisteredCreateLinkRequestSchema = z.strictObject({
 export const EffectiveStatusSchema = z.enum([
   'blocked',
   'ownerSuspended',
+  'ownerDeactivated',
   'disabled',
   'expired',
   'active',

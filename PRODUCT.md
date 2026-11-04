@@ -53,7 +53,9 @@ Confirmed product decisions (url-shortener-handoff/PROJECT_CONTEXT.md, D01–D17
 - Load-test target: one million stored links and 1,000 redirects per second, measured and reported honestly, separate from free-tier capacity (D15).
 - Visible Log in and Sign up at every width; a realistic, polished interface rather than a bare dashboard (D16).
 
-Out of scope for the first release: deleting links, claiming guest links, public API keys, unlinking Google, changing the account email, adding a password to a Google-only account, MFA.
+Owners can deactivate their account (reversible by signing in) or delete it with everything it owns; codes are retired, never reused, and moderation records are kept (T45, owner-approved 4 Nov 2026).
+
+Out of scope for the first release: deleting individual links, claiming guest links, public API keys, unlinking Google, changing the account email, adding a password to a Google-only account, MFA.
 
 Terminology: "short link" / "link", "code" (the part after `/r/`), "alias" (a code the owner chose), "clicks" (never "visitors" or "visits confirmed"), "blocked" (by an admin), "disabled" (by the owner), "owner suspended", "expired".
 

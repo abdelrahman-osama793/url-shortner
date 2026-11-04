@@ -10,17 +10,20 @@ import { Icon } from '../../shared/ui/icon/icon';
 import { GoogleButton } from '../auth/google-button/google-button';
 import { PasswordField } from '../auth/password-field/password-field';
 
+import { CloseAccount } from './close-account/close-account';
+
 // Connect Google: confirm the Shortlist account first (unless it was confirmed recently), then
 // prove the Google account. Both identities must be proven; matching emails link nothing.
 type ConnectStep = 'closed' | 'confirm' | 'google';
 
 // The account page (UI_HANDOFF "Account"): email and its verification, sign-in methods with
-// the actions the API supports (password reset by email, connect Google), and Log out.
+// the actions the API supports (password reset by email, connect Google), Log out, and closing
+// the account (deactivate or delete).
 // Unlinking Google, changing the email and adding a password to a Google-only account are
 // outside the initial scope, so they are not offered.
 @Component({
   selector: 'app-account',
-  imports: [Icon, GoogleButton, PasswordField],
+  imports: [Icon, GoogleButton, PasswordField, CloseAccount],
   templateUrl: './account.html',
   styleUrl: './account.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

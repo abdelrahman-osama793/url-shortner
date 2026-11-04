@@ -118,10 +118,12 @@ export function createModerationService({ pool, publicBaseUrl, cursorSecret, log
 
       const target = await repository.findUserForUpdate(client, id);
 
-      if (!target) throw notFoundError();
+      // A deleted account is only an anonymous record; there is nothing left to moderate.
+      if (!target || target.status === 'deleted') throw notFoundError();
 
-      // Already in that state: nothing changes, so nothing is recorded.
-      if (target.status === status) return target;
+      // Already in that state: nothing changes, so nothing is recorded. Lifting a suspension
+      // applies only to suspended accounts; a deactivated one stays the owner's choice.
+      if (target.status === status || (!suspended && target.status !== 'suspended')) return target;
 
       if (suspended && target.role === 'admin' && (await repository.countActiveAdminsExcept(client, id)) === 0) {
         throw new AppError(409, ERROR_CODES.LAST_ACTIVE_ADMIN, 'This is the last active administrator.');

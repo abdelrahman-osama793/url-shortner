@@ -126,6 +126,12 @@ export function createGoogleSignInService({ pool, attempts, identity, outboxKey,
     const { profile } = await verifyAttempt({ attemptId, credential, sessionToken, purpose: 'login' });
     const user = await findOrCreateAccount(profile);
 
+    // Signing in to a deactivated account reactivates it, as with a password (T45).
+    if (user.status === 'deactivated' && (await accountsRepository.reactivateUser(pool, user.id))) {
+      user.status = 'active';
+      logger?.info({ userId: user.id }, 'account reactivated by sign-in');
+    }
+
     if (user.status !== 'active') {
       throw new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is suspended.');
     }

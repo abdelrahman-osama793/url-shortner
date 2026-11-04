@@ -7,6 +7,9 @@ import { EffectiveStatusSchema } from './links.js';
 // session; every change also needs recent authentication and a reason, and commits together
 // with its audit entry.
 
+// Deactivated: paused by the owner. Deleted: an anonymous row kept only for moderation records.
+export const ACCOUNT_STATUSES = ['active', 'suspended', 'deactivated', 'deleted'];
+
 export const REPORT_STATUSES = ['open', 'reviewing', 'resolved', 'dismissed'];
 export const AUDIT_TARGET_TYPES = ['link', 'user', 'report'];
 
@@ -61,7 +64,7 @@ export const AdminLinkSchema = z.object({
   shortUrl: z.string(),
   destinationUrl: z.string(),
   ownerId: z.uuid().nullable(),
-  ownerStatus: z.enum(['active', 'suspended']).nullable(),
+  ownerStatus: z.enum(ACCOUNT_STATUSES).nullable(),
   enabled: z.boolean(),
   expiresAt: z.iso.datetime().nullable(),
   blockedAt: z.iso.datetime().nullable(),
@@ -86,7 +89,7 @@ export const AdminUserSchema = z.object({
   id: z.uuid(),
   email: z.string(),
   role: z.enum(['user', 'admin']),
-  status: z.enum(['active', 'suspended']),
+  status: z.enum(ACCOUNT_STATUSES),
 });
 
 export const AuditQuerySchema = z

@@ -9,6 +9,7 @@ const STATUS_LABELS: Record<EffectiveStatus, string> = {
   expired: 'Expired',
   blocked: 'Blocked',
   ownerSuspended: 'Owner suspended',
+  ownerDeactivated: 'Owner deactivated',
 };
 
 @Component({
