@@ -168,6 +168,143 @@
   line-height: 1.7;
 }
 
+/* Sections below the fold: what Shortlist does. */
+.section {
+  padding: 40px 17px 8px;
+  border-top: 1px solid var(--line);
+}
+
+.section h2,
+.closing h2 {
+  font-size: 28px;
+  letter-spacing: -0.6px;
+}
+
+.section-intro {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.steps h3,
+.trust h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.steps p,
+.trust p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.compare-wrap {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.compare {
+  width: 100%;
+  max-width: 760px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.compare th,
+.compare td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.compare thead th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.compare tbody th {
+  font-weight: 500;
+}
+
+.compare td {
+  width: 28%;
+  color: var(--ink);
+}
+
+.compare app-icon {
+  color: var(--accent);
+}
+
+.compare .no {
+  color: var(--muted);
+}
+
+.trust {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 26px 40px;
+  margin-top: 24px;
+}
+
+.trust app-icon {
+  margin-bottom: 10px;
+  color: var(--accent);
+}
+
+.closing {
+  margin-top: 40px;
+  padding: 36px;
+  border-radius: var(--radius-panel);
+  background: var(--night);
+  color: var(--on-night);
+  text-align: center;
+}
+
+.closing h2 {
+  color: inherit;
+}
+
+.closing p {
+  margin: 10px 0 22px;
+  color: var(--night-muted);
+}
+
+.closing .btn-link {
+  color: var(--lime);
+}
+
+.closing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
 @media (max-width: 800px) {
   .hero {
     padding: 32px 26px;
@@ -188,6 +325,30 @@
 }
 
 @media (max-width: 600px) {
+  .section h2,
+  .closing h2 {
+    font-size: 24px;
+  }
+
+  .steps,
+  .trust {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .section {
+    padding-inline: 4px;
+  }
+
+  .closing {
+    padding: 28px 20px;
+  }
+
+  .compare th,
+  .compare td {
+    padding: 10px 8px;
+  }
+
   .public {
     padding: 12px;
   }

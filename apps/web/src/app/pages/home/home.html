@@ -60,4 +60,105 @@
       </div>
     </section>
   </div>
+
+  <section class="section" aria-labelledby="how-title">
+    <h2 id="how-title">How it works</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-number" aria-hidden="true">1</span>
+        <h3>Paste a long link</h3>
+        <p>Any web address that starts with http or https. Addresses on private networks, or with a password inside them, are refused.</p>
+      </li>
+      <li>
+        <span class="step-number" aria-hidden="true">2</span>
+        <h3>Copy your short link</h3>
+        <p>You get it at once, ready to share anywhere. Anyone who opens it goes straight to your destination.</p>
+      </li>
+      <li>
+        <span class="step-number" aria-hidden="true">3</span>
+        <h3>Keep control with an account</h3>
+        <p>Choose an alias, change where it points, pause it, set an expiry date and see how often it's clicked.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="compare-title">
+    <h2 id="compare-title">Guest or account</h2>
+    <p class="section-intro">Shortening is free either way. An account adds control over every link you make.</p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">Feature</span></th>
+            <th scope="col">Guest</th>
+            <th scope="col">Account</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of comparison; track row.feature) {
+            <tr>
+              <th scope="row">{{ row.feature }}</th>
+              <td>
+                @if (row.guest === true) {
+                  <app-icon name="check" /><span class="visually-hidden">Yes</span>
+                } @else if (row.guest === false) {
+                  <span class="no">No</span>
+                } @else {
+                  {{ row.guest }}
+                }
+              </td>
+              <td>
+                @if (row.account === true) {
+                  <app-icon name="check" /><span class="visually-hidden">Yes</span>
+                } @else {
+                  {{ row.account }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="trust-title">
+    <h2 id="trust-title">What you can count on</h2>
+    <div class="trust">
+      <div>
+        <app-icon name="clock" [size]="18" />
+        <h3>Changes apply straight away</h3>
+        <p>Short links aren't cached. Once an edit or a pause is saved, the very next click follows it.</p>
+      </div>
+      <div>
+        <app-icon name="chart" [size]="18" />
+        <h3>Honest numbers</h3>
+        <p>We count clicks, not "unique visitors". Repeat visits and bots can be included, and we say so.</p>
+      </div>
+      <div>
+        <app-icon name="eye-off" [size]="18" />
+        <h3>Light on visitor data</h3>
+        <p>A click keeps only its time, approximate country, device type and referring site. IP addresses aren't stored with it, and individual clicks are deleted after 30 days.</p>
+      </div>
+      <div>
+        <app-icon name="shield-check" [size]="18" />
+        <h3>Harmful links get taken down</h3>
+        <p>Anyone can <a routerLink="/report">report a link</a>, no account needed. Administrators review reports, and every action they take is recorded with a reason.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing on-dark" aria-labelledby="closing-title">
+    @if (signedIn()) {
+      <h2 id="closing-title">Your links are waiting</h2>
+      <p>Edit them, check their clicks, or make a new one.</p>
+      <a class="btn btn-lime" routerLink="/app/links">Go to your links <app-icon name="arrow-right" /></a>
+    } @else {
+      <h2 id="closing-title">Ready for more control?</h2>
+      <p>Create a free account with your email or Google.</p>
+      <div class="closing-actions">
+        <a class="btn btn-lime" routerLink="/signup">Sign up <app-icon name="arrow-right" /></a>
+        <a class="btn btn-link" routerLink="/login">I already have an account</a>
+      </div>
+    }
+  </section>
 </div>

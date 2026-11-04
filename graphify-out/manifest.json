@@ -1446,9 +1446,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/home/home.ts": {
-    "mtime": 1793814635.896267,
-    "seen": 1793814722.5865448,
-    "ast_hash": "c9a94c3ad51d4ef7efdbbd359b1edcc5",
+    "mtime": 1793814993.43291,
+    "seen": 1793815114.3565829,
+    "ast_hash": "e3987e6856fe5bffe7b0a88af4fe96cb",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/links/link-editor/link-editor.ts": {
@@ -1560,9 +1560,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/home/home.html": {
-    "mtime": 1793371859.7625303,
-    "seen": 1793814722.588039,
-    "ast_hash": "8e8d8e22af41a47c18a60a778e108a9e",
+    "mtime": 1793815029.8414128,
+    "seen": 1793815114.3590713,
+    "ast_hash": "8af81fccf471df8df49dd809e778adc4",
     "semantic_hash": ""
   },
   "apps/web/src/app/pages/links/link-editor/link-editor.html": {
@@ -1605,6 +1605,12 @@
     "mtime": 1793538109.1223495,
     "seen": 1793814722.5882027,
     "ast_hash": "0ca9b383d8af44f9b0bf8fdeb3921a31",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/pages/home/home.spec.ts": {
+    "mtime": 1793815029.8414128,
+    "seen": 1793815114.3565803,
+    "ast_hash": "e27da9cb4148c08f22844a06048e8005",
     "semantic_hash": ""
   },
   "package-lock.json": {
