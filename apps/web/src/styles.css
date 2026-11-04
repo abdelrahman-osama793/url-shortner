@@ -254,6 +254,17 @@ svg {
   font-size: 13px;
 }
 
+.btn-link.inline {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .btn-link:hover {
   background: none;
   text-decoration: underline;

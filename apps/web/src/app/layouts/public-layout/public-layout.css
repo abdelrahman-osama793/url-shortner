@@ -40,6 +40,18 @@ main {
   font-size: 13px;
 }
 
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.legal-links a,
+.legal-links button {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .bottom-actions {
   display: flex;
   align-items: center;

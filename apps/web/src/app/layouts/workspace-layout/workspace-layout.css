@@ -119,6 +119,19 @@
   border-top: 1px solid var(--line);
 }
 
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+
+.legal-links a,
+.legal-links button {
+  color: var(--muted);
+}
+
 .main {
   width: 100%;
   min-width: 0;

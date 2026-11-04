@@ -1,0 +1,63 @@
+<article class="legal">
+  <p class="note draft">This policy is a draft. Details in [brackets] will be filled in before Shortlist launches.</p>
+
+  <h1>Cookie Policy</h1>
+  <p class="updated">Last updated {{ updated }}</p>
+
+  <p>
+    Shortlist uses very little browser storage. Necessary storage is always on, because the site can't work without it.
+    Everything else is optional and used only if you allow it.
+    <button class="btn btn-link inline" type="button" (click)="consent.settingsOpen.set(true)">Change your cookie settings</button>
+  </p>
+
+  <h2>What we use</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Type</th>
+          <th scope="col">Purpose</th>
+          <th scope="col">Kept for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>__Host-session</code></td>
+          <td>Necessary cookie</td>
+          <td>Keeps you signed in and ties each form to your browser so it can't be forged from another site. Unreadable by page scripts and sent only over a secure connection to this site.</td>
+          <td>Until the session ends: 24 hours without use or 7 days at most (administrators 1 and 12 hours; before signing in, 2 hours)</td>
+        </tr>
+        <tr>
+          <td><code>shortlist.consent</code></td>
+          <td>Necessary, browser storage</td>
+          <td>Remembers the choice you made here, so we don't ask on every page.</td>
+          <td>Until you change it or clear this site's data</td>
+        </tr>
+        <tr>
+          <td><code>shortlist.theme</code></td>
+          <td>Preferences, browser storage</td>
+          <td>Remembers whether you chose light, dark or system appearance. Removed if you withdraw consent.</td>
+          <td>Until you change it, withdraw consent or clear this site's data</td>
+        </tr>
+        <tr>
+          <td>Google sign-in</td>
+          <td>Optional, set by Google</td>
+          <td>Loads Google's sign-in button from <code>accounts.google.com</code>. Google sets its own cookies under Google's privacy policy. Without it you can still sign in with email and password.</td>
+          <td>Set by Google</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What we don't use</h2>
+  <p>No analytics, advertising or tracking cookies, and no third-party scripts other than Google sign-in when you allow it.</p>
+
+  <h2>Withdrawing consent</h2>
+  <p>
+    You can withdraw consent at any time in Cookie settings. We then stop using that storage and delete what we stored
+    ourselves. Cookies Google has already set can only be removed from your browser or your Google account settings.
+  </p>
+
+  <p>Questions: {{ operator.email }}. See also the <a routerLink="/privacy">Privacy Policy</a>.</p>
+</article>

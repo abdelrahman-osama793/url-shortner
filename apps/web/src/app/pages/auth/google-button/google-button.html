@@ -1,6 +1,11 @@
 @if (state() !== 'unavailable') {
   @if (state() === 'failed') {
     <p class="note">Google sign-in couldn't load here. You can use your email instead.</p>
+  } @else if (state() === 'consent') {
+    <div class="form-stack">
+      <p class="note">Google sign-in loads a script from Google, which sets Google's own cookies. <a routerLink="/cookies">Cookie Policy</a></p>
+      <button class="btn btn-secondary btn-block" type="button" (click)="allowGoogle()">Allow Google sign-in</button>
+    </div>
   } @else {
     <div #host class="google-slot" [attr.aria-busy]="state() === 'loading'"></div>
   }

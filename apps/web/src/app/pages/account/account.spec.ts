@@ -24,6 +24,8 @@ function fakeGoogle() {
   const google = { initialize: vi.fn(), renderButton: vi.fn() };
 
   (window as { google?: unknown }).google = { accounts: { id: google } };
+  // Google's script loads only with "google" consent (Cookie Policy).
+  localStorage.setItem('shortlist.consent', JSON.stringify({ version: 1, preferences: false, google: true }));
 
   return google;
 }

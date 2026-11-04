@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { User } from '@shortlist/contracts';
 
 import { type GooglePurpose, GoogleSignIn } from '../../../core/auth/google';
+import { Consent } from '../../../core/consent';
 import { Session } from '../../../core/auth/session';
 import { commonMessage, toApiError } from '../../../core/http/api-error';
 
@@ -9,6 +11,8 @@ import { commonMessage, toApiError } from '../../../core/http/api-error';
 // followed by the "or continue with email" divider; for linking (account page) it connects the
 // chosen Google account to the signed-in account. Hidden entirely when the server has no Google
 // client. Each attempt's nonce is prepared before the click, and renewed before it expires.
+// Google's script sets Google's cookies, so it loads only with "google" consent; until then the
+// visitor gets a button that grants it.
 const GOOGLE_MESSAGES: Record<string, string> = {
   // Sign-in with Google whose email belongs to a password account: linking needs both proven.
   ACCOUNT_LINK_REQUIRED:
@@ -19,12 +23,15 @@ const GOOGLE_MESSAGES: Record<string, string> = {
 
 @Component({
   selector: 'app-google-button',
+  imports: [RouterLink],
   templateUrl: './google-button.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GoogleButton {
   private readonly google = inject(GoogleSignIn);
   private readonly session = inject(Session);
+  private readonly consent = inject(Consent);
+  private readonly injector = inject(Injector);
 
   readonly text = input<'continue_with' | 'signup_with'>('continue_with');
   readonly purpose = input<GooglePurpose>('login');
@@ -34,7 +41,7 @@ export class GoogleButton {
   // Linking was refused because the session is no longer recently authenticated.
   readonly confirmationNeeded = output<void>();
 
-  protected readonly state = signal<'loading' | 'ready' | 'unavailable' | 'failed'>('loading');
+  protected readonly state = signal<'loading' | 'consent' | 'ready' | 'unavailable' | 'failed'>('loading');
   protected readonly error = signal<string | null>(null);
 
   private readonly host = viewChild<ElementRef<HTMLElement>>('host');
@@ -45,6 +52,13 @@ export class GoogleButton {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.renewal));
   }
 
+  protected allowGoogle(): void {
+    this.consent.grant('google');
+    this.state.set('loading');
+    // The button's container appears only once 'loading' has rendered.
+    afterNextRender(() => void this.setUp(), { injector: this.injector });
+  }
+
   private async setUp(): Promise<void> {
     clearTimeout(this.renewal);
 
@@ -53,6 +67,11 @@ export class GoogleButton {
 
       if (!attempt) {
         this.state.set('unavailable');
+        return;
+      }
+
+      if (!this.consent.allows('google')) {
+        this.state.set('consent');
         return;
       }
 

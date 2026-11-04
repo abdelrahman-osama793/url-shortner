@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { Accounts } from '../../core/auth/accounts';
 import { Session } from '../../core/auth/session';
+import { Consent } from '../../core/consent';
 import { commonMessage, toApiError } from '../../core/http/api-error';
 import { Icon } from '../../shared/ui/icon/icon';
 import type { IconName } from '../../shared/ui/icons';
@@ -28,6 +29,7 @@ interface NavItem {
 })
 export class WorkspaceLayout {
   protected readonly session = inject(Session);
+  protected readonly consent = inject(Consent);
   private readonly accounts = inject(Accounts);
   private readonly router = inject(Router);
 

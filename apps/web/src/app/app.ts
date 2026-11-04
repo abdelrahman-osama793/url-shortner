@@ -2,9 +2,10 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { Theme } from './core/theme';
+import { CookieConsent } from './shared/ui/cookie-consent/cookie-consent';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, CookieConsent],
   selector: 'app-root',
   templateUrl: './app.html',
 })

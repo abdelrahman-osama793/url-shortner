@@ -1,0 +1,55 @@
+@if (!consent.decided()) {
+  <section class="banner" aria-labelledby="cookie-banner-title">
+    <div class="banner-text">
+      <h2 id="cookie-banner-title">Cookies on Shortlist</h2>
+      <p>
+        We use necessary cookies to keep you signed in and to protect forms. With your permission we also remember your
+        light or dark choice and load Google sign-in, which sets Google's cookies. <a routerLink="/cookies">Cookie Policy</a>
+      </p>
+    </div>
+    <div class="banner-actions">
+      <button class="btn" type="button" (click)="consent.settingsOpen.set(true)">Settings</button>
+      <button class="btn" type="button" (click)="consent.necessaryOnly()">Necessary only</button>
+      <button class="btn btn-primary" type="button" (click)="consent.acceptAll()">Accept all</button>
+    </div>
+  </section>
+}
+
+<dialog #dialog class="settings" aria-labelledby="cookie-settings-title" (close)="consent.settingsOpen.set(false)">
+  <form method="dialog" (submit)="$event.preventDefault(); saveSettings()">
+    <h2 id="cookie-settings-title">Cookie settings</h2>
+    <p class="intro">Choose what Shortlist may store in your browser. You can change this at any time from "Cookie settings" at the bottom of every page.</p>
+
+    <div class="category">
+      <input id="cookie-necessary" type="checkbox" checked disabled />
+      <label for="cookie-necessary">
+        <span><strong>Necessary</strong> <span class="always">Always on</span></span>
+        <span class="desc">The session cookie that keeps you signed in and protects forms from forgery, and the record of this choice. The site can't work without them.</span>
+      </label>
+    </div>
+
+    <div class="category">
+      <input id="cookie-preferences" type="checkbox" [checked]="preferences()" (change)="preferences.set($any($event.target).checked)" />
+      <label for="cookie-preferences">
+        <strong>Preferences</strong>
+        <span class="desc">Remembers whether you chose light, dark or system appearance.</span>
+      </label>
+    </div>
+
+    <div class="category">
+      <input id="cookie-google" type="checkbox" [checked]="google()" (change)="google.set($any($event.target).checked)" />
+      <label for="cookie-google">
+        <strong>Google sign-in</strong>
+        <span class="desc">Loads Google's sign-in button. Google sets its own cookies under its privacy policy. Without it you can still use email and password.</span>
+      </label>
+    </div>
+
+    <p class="intro">Shortlist has no analytics or advertising cookies. <a routerLink="/cookies" (click)="consent.settingsOpen.set(false)">Read the Cookie Policy</a></p>
+
+    <div class="actions">
+      <button class="btn" type="button" (click)="consent.settingsOpen.set(false)">Cancel</button>
+      <button class="btn" type="button" (click)="consent.acceptAll()">Accept all</button>
+      <button class="btn btn-primary" type="submit">Save choices</button>
+    </div>
+  </form>
+</dialog>

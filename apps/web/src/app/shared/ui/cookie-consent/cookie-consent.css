@@ -1,0 +1,108 @@
+.banner {
+  position: fixed;
+  inset: auto 16px 16px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--paper);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
+}
+
+.banner-text {
+  flex: 1 1 420px;
+}
+
+h2 {
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.banner p,
+.intro,
+.desc {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.banner-actions,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings {
+  width: min(560px, calc(100% - 32px));
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.settings::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.category {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.category input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.category label {
+  display: grid;
+}
+
+.desc {
+  margin-top: 4px;
+}
+
+.always {
+  display: inline;
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.actions {
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .banner {
+    inset: auto 8px 8px;
+    padding: 16px;
+  }
+
+  .banner-actions,
+  .actions {
+    width: 100%;
+  }
+
+  .banner-actions .btn,
+  .actions .btn {
+    flex: 1 1 auto;
+  }
+}

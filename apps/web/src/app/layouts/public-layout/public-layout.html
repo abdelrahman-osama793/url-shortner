@@ -19,6 +19,13 @@
 
 <footer class="bottom">
   <span>shortlist · A considered home for your links.</span>
+  <nav class="legal-links" aria-label="Legal">
+    <a routerLink="/privacy">Privacy</a>
+    <a routerLink="/cookies">Cookies</a>
+    <a routerLink="/terms">Terms</a>
+    <a routerLink="/acceptable-use">Acceptable use</a>
+    <button class="btn-link inline" type="button" (click)="consent.settingsOpen.set(true)">Cookie settings</button>
+  </nav>
   <div class="bottom-actions">
     <a class="btn btn-link" routerLink="/report">Report abuse <app-icon name="flag" [size]="14" /></a>
     <app-theme-switcher />

@@ -36,6 +36,11 @@
     <div class="sidebar-bottom">
       <a class="btn btn-link" routerLink="/">View public page <app-icon name="arrow-up-right" [size]="14" /></a>
       <a class="btn btn-link" routerLink="/report">Report a link</a>
+      <nav class="legal-links" aria-label="Legal">
+        <a routerLink="/privacy">Privacy</a>
+        <a routerLink="/terms">Terms</a>
+        <button class="btn-link inline" type="button" (click)="consent.settingsOpen.set(true)">Cookie settings</button>
+      </nav>
       <app-theme-switcher />
     </div>
   </aside>

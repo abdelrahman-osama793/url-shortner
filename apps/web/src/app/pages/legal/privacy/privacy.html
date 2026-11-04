@@ -1,0 +1,112 @@
+<article class="legal">
+  <p class="note draft">This policy is a draft. Details in [brackets] will be filled in before Shortlist launches.</p>
+
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated {{ updated }}</p>
+
+  <p>
+    This policy explains what Shortlist stores, why, for how long, and what you can do about it. Shortlist is run by
+    {{ operator.name }} ("we"), based in {{ operator.jurisdiction }}. Questions go to {{ operator.email }}.
+  </p>
+
+  <h2>What we store and why</h2>
+
+  <h3>Your account</h3>
+  <ul>
+    <li>Your email address, whether you've confirmed it, and when the account was created.</li>
+    <li>
+      If you use a password: a one-way Argon2id hash of it. We never store or see the password itself.
+    </li>
+    <li>If you sign in with Google: the identifier Google gives your Google account, and the email address Google confirms.</li>
+    <li>Your account's role (user or administrator) and status (active or suspended).</li>
+  </ul>
+  <p>We need these to run your account and keep it secure.</p>
+
+  <h3>Your links</h3>
+  <p>
+    For each link: the destination address, its short code or alias, any expiry date you set, whether it's paused, and
+    when it was created and last changed. Links made without an account are kept the same way but have no owner and stop
+    working after 7 days.
+  </p>
+
+  <h3>Clicks on links</h3>
+  <p>When someone opens a short link we record:</p>
+  <ul>
+    <li>the time and which link;</li>
+    <li>an approximate country (currently not determined, so it shows as "Unknown");</li>
+    <li>a device type (desktop, mobile, tablet, bot or unknown) worked out from the browser's description of itself;</li>
+    <li>the referring website's domain name only, not the full address;</li>
+    <li>whether the click looks automated.</li>
+  </ul>
+  <p>
+    We don't store the visitor's IP address, full browser description or full referring address with a click. Individual
+    clicks are deleted after 30 days. Daily totals are kept for 12 months, and a lifetime total for as long as the link
+    exists. Only the link's owner can see its numbers.
+  </p>
+
+  <h3>Sign-in sessions</h3>
+  <p>
+    When you use the site we set one cookie holding a random session identifier. On our side the session records who is
+    signed in and when it started. Sessions end after 24 hours without use, or 7 days at most (administrators: 1 hour and
+    12 hours). See the <a routerLink="/cookies">Cookie Policy</a>.
+  </p>
+
+  <h3>Preventing abuse</h3>
+  <p>
+    To limit how fast links can be created and accounts used, we count requests per network address and per email address.
+    The counters store a keyed hash of the address, never the address itself, and disappear when their time window ends
+    (at most one day).
+  </p>
+
+  <h3>Reports</h3>
+  <p>
+    If you report a link we store the link, the category and any details you write. If you were signed in, the report is
+    linked to your account. We don't ask guests for contact details.
+  </p>
+
+  <h3>Emails</h3>
+  <p>
+    We email you to confirm your address and to reset your password. Messages waiting to be sent are stored encrypted, and their
+    contents are erased once sent or expired; a record that an email was sent remains. Emails are delivered through [email provider].
+  </p>
+
+  <h3>Server logs</h3>
+  <p>
+    Our servers log each request's path, result and duration to keep the service running. They don't log IP addresses,
+    query strings or the contents of forms. Logs are kept for [log retention period].
+  </p>
+
+  <h2>Moderation records</h2>
+  <p>
+    When an administrator blocks a link or suspends an account, we keep a permanent record of who did it, to what, when
+    and why. These records are needed to handle abuse and can't be changed or deleted, including after an account is
+    deleted.
+  </p>
+
+  <h2>Who else handles data</h2>
+  <ul>
+    <li>Hosting and databases: [hosting provider], which stores the data above on our behalf.</li>
+    <li>Email delivery: [email provider].</li>
+    <li>Google, only if you choose to sign in with Google or allow its sign-in button.</li>
+  </ul>
+  <p>We don't sell personal data or use it for advertising.</p>
+
+  <h2>Your choices and rights</h2>
+  <ul>
+    <li>You can see and change your links, and see your account details, on your account page.</li>
+    <li>
+      You can choose which optional cookies to allow at any time:
+      <button class="btn btn-link inline" type="button" (click)="consent.settingsOpen.set(true)">Cookie settings</button>.
+    </li>
+    <li>
+      Depending on where you live, you may have the right to access, correct or delete your data, to object to how it's
+      used, and to complain to a data protection authority. Contact {{ operator.email }}.
+    </li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>Shortlist isn't meant for children under {{ operator.minimumAge }}, and we don't knowingly hold their data.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, we'll update the date at the top. Significant changes will be shown in the app.</p>
+</article>

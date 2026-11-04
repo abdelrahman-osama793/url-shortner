@@ -439,6 +439,13 @@ One server package with two entry points (modular monolith), not separate servic
 - **Signed-in shortening from the landing page creates an account link** (the API already routed it so); the form now says so and links to the workspace instead of offering sign-up.
 - **Centred content, full-bleed bars**: `--page-max` (1200 px) bounds public content; header and footer backgrounds span the window while their contents align to that width. The workspace keeps its sidebar shell and bounds the content column to 1100 px.
 
+### Legal pages and cookie consent (T43)
+
+- **Only optional storage asks for consent**: the session cookie and the record of the consent choice are strictly necessary and always on; blocking them would break guest shortening. Optional: the remembered theme (localStorage) and Google's sign-in script, which sets Google's cookies. No analytics or advertising storage exists, so none is offered.
+- **Reject is as easy as accept**: "Necessary only" and "Accept all" are equal one-click buttons; Settings opens a dialog with per-category switches; "Cookie settings" in every footer reopens it. The choice is versioned, so changing categories asks everyone again.
+- **Withdrawal deletes what we stored** (the theme key) and stops loading Google's script. Cookies Google already set can only be removed by the visitor, and the policy says so.
+- **Legal text is a draft from actual behaviour**, with operator name, contact, jurisdiction, minimum age, providers and log retention as visible [placeholders] (owner decision). Not legal advice; review before launch.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

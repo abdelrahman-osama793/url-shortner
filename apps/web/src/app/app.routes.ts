@@ -42,6 +42,14 @@ export const routes: Routes = [
         ],
       },
       { path: 'report', loadComponent: () => import('./pages/report/report').then((m) => m.ReportPage), title: 'Report a link · Shortlist' },
+      { path: 'privacy', loadComponent: () => import('./pages/legal/privacy/privacy').then((m) => m.PrivacyPolicy), title: 'Privacy Policy · Shortlist' },
+      { path: 'cookies', loadComponent: () => import('./pages/legal/cookies/cookies').then((m) => m.CookiePolicy), title: 'Cookie Policy · Shortlist' },
+      { path: 'terms', loadComponent: () => import('./pages/legal/terms/terms').then((m) => m.TermsOfService), title: 'Terms of Service · Shortlist' },
+      {
+        path: 'acceptable-use',
+        loadComponent: () => import('./pages/legal/acceptable-use/acceptable-use').then((m) => m.AcceptableUsePolicy),
+        title: 'Acceptable Use Policy · Shortlist',
+      },
     ],
   },
   {

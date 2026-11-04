@@ -318,6 +318,8 @@ describe('GoogleButton', () => {
     const google = { initialize: vi.fn(), renderButton: vi.fn() };
 
     (window as { google?: unknown }).google = { accounts: { id: google } };
+  // Google's script loads only with "google" consent (Cookie Policy).
+  localStorage.setItem('shortlist.consent', JSON.stringify({ version: 1, preferences: false, google: true }));
 
     return google;
   }
@@ -335,6 +337,29 @@ describe('GoogleButton', () => {
 
     return { page, signedIn, callback };
   }
+
+  it('asks for consent before loading Google, then loads it once allowed', async () => {
+    const google = { initialize: vi.fn(), renderButton: vi.fn() };
+
+    (window as { google?: unknown }).google = { accounts: { id: google } };
+    localStorage.removeItem('shortlist.consent');
+
+    const page = render(GoogleButton);
+
+    await settle();
+    backend.expectOne('/api/v1/auth/google/start').flush({ attemptId: 'a1', nonce: 'n1', clientId: 'client.apps.googleusercontent.com' });
+    await page.refresh();
+
+    expect(google.initialize).not.toHaveBeenCalled();
+    expect(page.text()).toContain("sets Google's own cookies");
+
+    page.element.querySelector<HTMLButtonElement>('button')!.click();
+    await page.refresh();
+    await settle();
+
+    expect(google.initialize).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem('shortlist.consent')!).google).toBe(true);
+  });
 
   it("initialises Google with the server's client ID and nonce and renders Google's button", async () => {
     const google = fakeGoogle();

@@ -374,6 +374,8 @@ Planning follows a 39-task backlog across eight milestones:
 
 ## Known limitations and open decisions
 
+- **Legal pages are drafts:** Privacy, Cookie, Terms and Acceptable Use pages describe the app's real behaviour, but the operator's name, contact, jurisdiction and providers are placeholders (`apps/web/src/app/core/operator.ts`) and the text has not had legal review.
+
 - **Hosting:** free tiers only. Sleeping services and quotas will limit the public demo. The capacity benchmark ([T35](docs/verification/T35.md)) is a laptop experiment, not a claim about the free deployment.
 - **Analytics above 1,000 clicks/s:** one worker counts about 1,200–1,400 clicks/s; beyond that, clicks are dropped (counted, redirects unaffected) until bulk inserts or more consumers are added.
 - **Not configured yet:** Google OAuth client, email provider, human-verification challenge provider, GeoIP source. Until they exist, those features are not claimed to work.

@@ -1,0 +1,93 @@
+/* Shared by the legal pages: a readable single column. */
+.legal {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 40px 20px 56px;
+}
+
+.draft {
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-size: 36px;
+  letter-spacing: -1px;
+}
+
+.updated {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+h2 {
+  margin-top: 36px;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+
+h3 {
+  margin-top: 20px;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+p,
+li,
+td,
+th {
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+p,
+ul {
+  margin-top: 10px;
+}
+
+ul {
+  padding-left: 22px;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+.table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .legal {
+    padding: 28px 16px 40px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+}

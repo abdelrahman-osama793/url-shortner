@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 
 import { Session } from '../../core/auth/session';
+import { Consent } from '../../core/consent';
 import { Icon } from '../../shared/ui/icon/icon';
 import { Logo } from '../../shared/ui/logo/logo';
 import { ThemeSwitcher } from '../../shared/ui/theme-switcher/theme-switcher';
@@ -17,6 +18,7 @@ import { ThemeSwitcher } from '../../shared/ui/theme-switcher/theme-switcher';
 })
 export class PublicLayout {
   protected readonly session = inject(Session);
+  protected readonly consent = inject(Consent);
 
   constructor() {
     // Visitors see Log in / Sign up until the check finishes, and if it fails.
