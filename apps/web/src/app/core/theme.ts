@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 
 import { Consent } from './consent';
 
@@ -19,7 +19,19 @@ export class Theme {
 
   readonly preference = signal<ThemePreference>(this.load());
 
+  // Whether the page is dark right now: chosen, or following a dark system appearance. Used by
+  // things drawn outside our CSS, such as Google's sign-in button.
+  private readonly systemDark = signal(false);
+  readonly dark = computed(() => this.preference() === 'dark' || (this.preference() === 'system' && this.systemDark()));
+
   constructor() {
+    const media = this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)');
+
+    if (media) {
+      this.systemDark.set(media.matches);
+      media.addEventListener?.('change', (event) => this.systemDark.set(event.matches));
+    }
+
     effect(() => {
       const preference = this.preference();
       const root = this.document.documentElement;

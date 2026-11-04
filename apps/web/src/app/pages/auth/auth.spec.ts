@@ -8,6 +8,7 @@ import type { User } from '@shortlist/contracts';
 
 import { requireUser, safeNext } from '../../core/auth/guards';
 import { Session } from '../../core/auth/session';
+import { Theme } from '../../core/theme';
 
 import { GoogleButton } from './google-button/google-button';
 import { Login } from './login/login';
@@ -359,6 +360,18 @@ describe('GoogleButton', () => {
 
     expect(google.initialize).toHaveBeenCalledTimes(1);
     expect(JSON.parse(localStorage.getItem('shortlist.consent')!).google).toBe(true);
+  });
+
+  it("draws Google's button in its dark style when the page is dark, and redraws when that changes", async () => {
+    const google = fakeGoogle();
+    const { page } = await ready(google);
+
+    expect(google.renderButton).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ theme: 'outline' }));
+
+    TestBed.inject(Theme).set('dark');
+    await page.refresh();
+
+    expect(google.renderButton).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ theme: 'filled_black' }));
   });
 
   it("initialises Google with the server's client ID and nonce and renders Google's button", async () => {

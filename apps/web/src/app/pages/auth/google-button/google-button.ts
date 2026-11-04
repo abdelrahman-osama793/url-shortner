@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { User } from '@shortlist/contracts';
 
-import { type GooglePurpose, GoogleSignIn } from '../../../core/auth/google';
+import { type GoogleIdentity, type GooglePurpose, GoogleSignIn } from '../../../core/auth/google';
 import { Consent } from '../../../core/consent';
+import { Theme } from '../../../core/theme';
 import { Session } from '../../../core/auth/session';
 import { commonMessage, toApiError } from '../../../core/http/api-error';
 
@@ -32,6 +33,7 @@ export class GoogleButton {
   private readonly session = inject(Session);
   private readonly consent = inject(Consent);
   private readonly injector = inject(Injector);
+  private readonly theme = inject(Theme);
 
   readonly text = input<'continue_with' | 'signup_with'>('continue_with');
   readonly purpose = input<GooglePurpose>('login');
@@ -46,10 +48,17 @@ export class GoogleButton {
 
   private readonly host = viewChild<ElementRef<HTMLElement>>('host');
   private renewal: ReturnType<typeof setTimeout> | undefined;
+  private drawn: { identity: GoogleIdentity; host: HTMLElement } | null = null;
 
   constructor() {
     afterNextRender(() => void this.setUp());
     inject(DestroyRef).onDestroy(() => clearTimeout(this.renewal));
+
+    // Google draws its own button, so it is redrawn in its dark style when the page turns dark.
+    effect(() => {
+      this.theme.dark();
+      untracked(() => this.draw());
+    });
   }
 
   protected allowGoogle(): void {
@@ -86,14 +95,8 @@ export class GoogleButton {
         ux_mode: 'popup',
         callback: ({ credential }) => void this.complete(attempt.attemptId, credential),
       });
-      // The button's language follows the page (<html lang>), not the browser's own setting.
-      identity.renderButton(host, {
-        theme: 'outline',
-        size: 'large',
-        text: this.text(),
-        width: Math.min(400, host.clientWidth || 360),
-        locale: host.ownerDocument.documentElement.lang || 'en',
-      });
+      this.drawn = { identity, host };
+      this.draw();
 
       this.state.set('ready');
       // Attempts last five minutes on the server; prepare a new one before this one expires.
@@ -101,6 +104,23 @@ export class GoogleButton {
     } catch {
       this.state.set('failed');
     }
+  }
+
+  // The button's language follows the page (<html lang>), not the browser's own setting; its
+  // style follows the page's appearance (outline on light, filled black on dark).
+  private draw(): void {
+    if (!this.drawn) return;
+
+    const { identity, host } = this.drawn;
+
+    host.replaceChildren();
+    identity.renderButton(host, {
+      theme: this.theme.dark() ? 'filled_black' : 'outline',
+      size: 'large',
+      text: this.text(),
+      width: Math.min(400, host.clientWidth || 360),
+      locale: host.ownerDocument.documentElement.lang || 'en',
+    });
   }
 
   private async complete(attemptId: string, credential: string): Promise<void> {

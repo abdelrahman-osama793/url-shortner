@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { toApiError } from '../http/api-error';
 
 // The parts of Google Identity Services (https://accounts.google.com/gsi/client) we use.
-interface GoogleIdentity {
+export interface GoogleIdentity {
   initialize(options: { client_id: string; nonce: string; callback: (response: { credential: string }) => void; ux_mode?: 'popup' }): void;
   renderButton(parent: HTMLElement, options: Record<string, string | number>): void;
 }
