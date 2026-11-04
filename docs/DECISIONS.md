@@ -446,6 +446,14 @@ One server package with two entry points (modular monolith), not separate servic
 - **Withdrawal deletes what we stored** (the theme key) and stops loading Google's script. Cookies Google already set can only be removed by the visitor, and the policy says so.
 - **Legal text is a draft from actual behaviour**, with operator name, contact, jurisdiction, minimum age, providers and log retention as visible [placeholders] (owner decision). Not legal advice; review before launch.
 
+### Contact, About and the support inbox (T44)
+
+- **Abuse and support are separate**: the Contact page sends abuse to the existing report form (moderation queue, audit trail) and everything else to a support inbox that only admins read.
+- **Stored, not emailed**: messages go to PostgreSQL and the admin inbox, because no production email provider exists yet (T36/T37). Replies happen by email outside the app (`mailto:`).
+- **Signed-in senders are answered at their account email**, read from the users row in the insert, so a session cannot attach someone else's address. Guests must give one.
+- **Limited like reports, no challenge**: 5/hour and 20/day per network. Closing a message changes no one's access, so it needs an admin but not recent authentication, a reason or an audit entry.
+- **Retention**: closed messages are deleted 12 months after closing; open ones stay until handled.
+
 ## 5. Provider-dependent work (external accounts needed — not configured)
 
 | Dependency | Needed for | Local substitute | Status |

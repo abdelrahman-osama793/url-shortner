@@ -14,6 +14,7 @@ import { createHealthController } from './http/controllers/health.controller.js'
 import { createLinksController } from './http/controllers/links.controller.js';
 import { createRedirectsController } from './http/controllers/redirects.controller.js';
 import { createReportsController } from './http/controllers/reports.controller.js';
+import { createSupportController } from './http/controllers/support.controller.js';
 import { createAuthGuards } from './http/middleware/session.js';
 import { createAdminRouter } from './http/routes/admin.routes.js';
 import { createAuthRouter } from './http/routes/auth.routes.js';
@@ -23,6 +24,7 @@ import { createHealthRouter } from './http/routes/health.routes.js';
 import { createLinksRouter } from './http/routes/links.routes.js';
 import { createRedirectRouter } from './http/routes/redirects.routes.js';
 import { createReportsRouter } from './http/routes/reports.routes.js';
+import { createSupportRouter } from './http/routes/support.routes.js';
 import { createLogger } from './infra/logger.js';
 import { createPool, isDatabaseReachable } from './infra/postgres.js';
 import { connectInBackground, createRedisClient } from './infra/redis.js';
@@ -41,6 +43,7 @@ import { createRedirectService } from './modules/links/redirects.service.js';
 import { createModerationService } from './modules/moderation/moderation.service.js';
 import { createReportService } from './modules/reports/reports.service.js';
 import { createSessionService } from './modules/sessions/sessions.service.js';
+import { createSupportService } from './modules/support/support.service.js';
 
 // Created before configuration so that configuration errors are logged too.
 const logger = createLogger();
@@ -116,6 +119,11 @@ async function main() {
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
+    createSupportRouter({
+      controller: createSupportController({ supportService: createSupportService({ pool, cursorSecret: config.rateLimit.secret, logger }) }),
+      guards,
+      limiter,
+    }),
     createAdminRouter({
       controller: createAdminController({
         moderationService: createModerationService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: config.rateLimit.secret, logger }),

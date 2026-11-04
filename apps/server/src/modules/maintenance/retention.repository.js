@@ -31,3 +31,13 @@ export async function deleteExpiredIdempotencyRecords(db, { limit }) {
 
   return rowCount;
 }
+
+export async function deleteClosedSupportMessagesBefore(db, { before, limit }) {
+  const { rowCount } = await db.query(
+    `DELETE FROM support_messages
+     WHERE ctid = ANY (ARRAY(SELECT ctid FROM support_messages WHERE status = 'closed' AND closed_at < $1 LIMIT $2))`,
+    [before, limit],
+  );
+
+  return rowCount;
+}

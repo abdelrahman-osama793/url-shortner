@@ -1,10 +1,13 @@
+import { SUPPORT_RETENTION_DAYS } from '@shortlist/contracts';
+
 import * as repository from './retention.repository.js';
 
 // Retention (decision D11; technical-design §5):
 //   * raw click events: 30 days (confirmed requirement);
 //   * daily aggregates: `aggregateRetentionDays` (provisional 12 months);
 //   * lifetime totals (link_totals): kept, never deleted here;
-//   * idempotency records: removed once expired (24 h).
+//   * idempotency records: removed once expired (24 h);
+//   * closed support messages: SUPPORT_RETENTION_DAYS after closing (open ones are kept).
 // Deletes run in batches of `batchSize`, at most `maxBatches` per table per run, so one run has
 // a bounded cost; anything left is picked up by the next run.
 
@@ -37,6 +40,10 @@ export function createRetentionService({ pool, aggregateRetentionDays, batchSize
       rawEvents: await drain(() => repository.deleteRawEventsBefore(pool, { before: rawCutoff, limit: batchSize })),
       dailyMetrics: await drain(() => repository.deleteDailyMetricsBefore(pool, { beforeDay: aggregateCutoffDay, limit: batchSize })),
       idempotencyRecords: await drain(() => repository.deleteExpiredIdempotencyRecords(pool, { limit: batchSize })),
+      supportMessages: await drain(() => repository.deleteClosedSupportMessagesBefore(pool, {
+        before: new Date(now - SUPPORT_RETENTION_DAYS * DAY_MS),
+        limit: batchSize,
+      })),
     };
 
     logger?.info({ removed: result }, 'retention cleanup finished');

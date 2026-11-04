@@ -68,6 +68,12 @@ export const DEFAULT_POLICIES = Object.freeze({
   report: [
     { subject: 'network', limit: 5, windowSeconds: HOUR },
   ],
+
+  // Contact page (T44): a few messages an hour per network, like abuse reports.
+  support: [
+    { subject: 'network', limit: 5, windowSeconds: HOUR },
+    { subject: 'network', limit: 20, windowSeconds: DAY },
+  ],
 });
 
 const BucketSchema = z.strictObject({

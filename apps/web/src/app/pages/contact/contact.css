@@ -1,0 +1,72 @@
+:host {
+  display: block;
+  padding: 32px 16px 48px;
+}
+
+.contact {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.intro {
+  margin: 10px 0 24px;
+  font-size: 14px;
+}
+
+.route {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.route > span {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.route app-icon {
+  color: var(--accent);
+}
+
+.route:hover {
+  border-color: var(--accent);
+}
+
+.form-card {
+  margin-top: 16px;
+  padding: 28px;
+}
+
+.form-card h2 {
+  margin-bottom: 18px;
+  font-size: 20px;
+}
+
+textarea.input {
+  min-height: 140px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.done {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.other {
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .form-card {
+    padding: 20px 16px;
+  }
+}

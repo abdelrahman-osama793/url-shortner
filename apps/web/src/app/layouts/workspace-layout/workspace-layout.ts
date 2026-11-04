@@ -78,6 +78,8 @@ export class WorkspaceLayout {
       { path: '/app/account', label: 'Account', icon: 'user' },
     ];
 
-    return this.isAdmin() ? [...items, { path: '/app/admin', label: 'Administration', icon: 'shield-check' }] : items;
+    return this.isAdmin()
+      ? [...items, { path: '/app/admin', label: 'Administration', icon: 'shield-check' }, { path: '/app/support', label: 'Support inbox', icon: 'mail' }]
+      : items;
   }
 }

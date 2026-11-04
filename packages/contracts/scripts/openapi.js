@@ -20,6 +20,10 @@ const COMPONENT_SCHEMAS = {
   ReportQueueResponse: contracts.ReportQueueResponseSchema,
   AdminReport: contracts.AdminReportSchema,
   UpdateReportRequest: contracts.UpdateReportRequestSchema,
+  SupportMessageRequest: contracts.SupportMessageRequestSchema,
+  SupportQueueResponse: contracts.SupportQueueResponseSchema,
+  AdminSupportMessage: contracts.AdminSupportMessageSchema,
+  UpdateSupportMessageRequest: contracts.UpdateSupportMessageRequestSchema,
   AdminLink: contracts.AdminLinkSchema,
   LinkModerationRequest: contracts.LinkModerationRequestSchema,
   UserModerationRequest: contracts.UserModerationRequestSchema,
@@ -262,6 +266,40 @@ function buildDocument() {
             400: jsonResponse('VALIDATION_FAILED: category, code (1-64) or details (at most 2000 characters, no NUL).', 'ErrorEnvelope'),
             403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
             429: jsonResponse('RATE_LIMITED (per network; invalid attempts count).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/support': {
+        post: {
+          summary: `Send a message to support. Guests must give \`email\`; signed-in senders are answered at their account email (any \`email\` sent is ignored).${CSRF_NOTE}`,
+          requestBody: jsonBody('SupportMessageRequest'),
+          responses: {
+            202: jsonResponse('Accepted.', 'Acknowledgement'),
+            400: jsonResponse('VALIDATION_FAILED: topic, message (1-4000, no NUL) or email (required for guests).', 'ErrorEnvelope'),
+            403: jsonResponse('CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            429: jsonResponse('RATE_LIMITED (per network; invalid attempts count).', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/support': {
+        get: {
+          summary: 'Admin: support inbox for one status (default open), oldest first. Query: status, cursor, limit (1-100, default 20).',
+          responses: {
+            200: jsonResponse('A page of messages.', 'SupportQueueResponse'),
+            400: jsonResponse('VALIDATION_FAILED, including a cursor from another status.', 'ErrorEnvelope'),
+            401: jsonResponse('AUTHENTICATION_REQUIRED.', 'ErrorEnvelope'),
+            403: jsonResponse('FORBIDDEN (not an admin) or ACCOUNT_SUSPENDED.', 'ErrorEnvelope'),
+          },
+        },
+      },
+      '/api/v1/admin/support/{id}': {
+        patch: {
+          summary: `Admin: close or reopen a support message (records who closed it).${CSRF_NOTE}`,
+          requestBody: jsonBody('UpdateSupportMessageRequest'),
+          responses: {
+            200: jsonResponse('Updated message.', 'AdminSupportMessage'),
+            403: jsonResponse('FORBIDDEN, CSRF_INVALID or ORIGIN_NOT_ALLOWED.', 'ErrorEnvelope'),
+            404: jsonResponse('No such message.', 'ErrorEnvelope'),
           },
         },
       },

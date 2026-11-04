@@ -1,0 +1,65 @@
+.intro {
+  margin: 8px 0 20px;
+  font-size: 14px;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.tabs .active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.messages {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  padding: 16px 18px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+
+.meta .muted {
+  font-size: 13px;
+}
+
+.body {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.foot .btn-link {
+  overflow-wrap: anywhere;
+}
+
+@media (pointer: coarse) {
+  .tabs .btn {
+    min-height: 44px;
+  }
+}

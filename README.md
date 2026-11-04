@@ -370,6 +370,7 @@ Planning follows a 39-task backlog across eight milestones:
 | E. Angular product UI | Public, auth, workspace and analytics screens | **Done**: T23–T28 (design system, guest shortening, auth screens with email and Google, link management, analytics, account page with a verified real Google link) |
 | F. Reporting and moderation | Abuse reports, admin APIs and workspace | **Done**: T29 public reporting, T30 admin APIs, T31 admin workspace, T32 redirect failure pages |
 | G. Verification and capacity | End-to-end journeys, failure tests, 1M-link / 1,000 rps benchmark | **Done**: T33 browser journeys ([evidence](docs/verification/T33.md)), T34 concurrency and failure drills ([evidence](docs/verification/T34.md)), T35 capacity benchmark: 1,000 redirects/s over 1M links met on the development laptop, server p95 1.2 ms, no errors or lost clicks ([report](docs/verification/T35.md)) |
+| I. Product completeness (added 4 Nov 2026) | Component structure, sign-up and navigation fixes, landing page, legal pages and cookie consent, contact and about, account deactivation and deletion | **In progress**: T40–T44 done; next T45 deactivate and delete account |
 | H. Deployment | Free-tier hosting, external integrations, release | Not started |
 
 ## Known limitations and open decisions

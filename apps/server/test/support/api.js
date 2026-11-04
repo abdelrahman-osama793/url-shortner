@@ -4,6 +4,7 @@ import { createAuthController } from '../../src/http/controllers/auth.controller
 import { createDevChallengeController } from '../../src/http/controllers/dev-challenge.controller.js';
 import { createGoogleController } from '../../src/http/controllers/google.controller.js';
 import { createReportsController } from '../../src/http/controllers/reports.controller.js';
+import { createSupportController } from '../../src/http/controllers/support.controller.js';
 import { createLinksController } from '../../src/http/controllers/links.controller.js';
 import { createRedirectsController } from '../../src/http/controllers/redirects.controller.js';
 import { createAuthGuards } from '../../src/http/middleware/session.js';
@@ -12,6 +13,7 @@ import { createDevChallengeRouter } from '../../src/http/routes/dev-challenge.ro
 import { createAdminRouter } from '../../src/http/routes/admin.routes.js';
 import { createGoogleRouter } from '../../src/http/routes/google.routes.js';
 import { createReportsRouter } from '../../src/http/routes/reports.routes.js';
+import { createSupportRouter } from '../../src/http/routes/support.routes.js';
 import { createLinksRouter } from '../../src/http/routes/links.routes.js';
 import { createRedirectRouter } from '../../src/http/routes/redirects.routes.js';
 import { createChallengeGuard, createDevChallengeVerifier } from '../../src/modules/abuse/challenge.service.js';
@@ -29,6 +31,7 @@ import { createRedirectService } from '../../src/modules/links/redirects.service
 import { createModerationService } from '../../src/modules/moderation/moderation.service.js';
 import { createReportService } from '../../src/modules/reports/reports.service.js';
 import { createSessionService } from '../../src/modules/sessions/sessions.service.js';
+import { createSupportService } from '../../src/modules/support/support.service.js';
 
 import { TEST_GOOGLE_CLIENT_ID } from './google.js';
 import { createCapturingLogger, startServer, testConfig } from './http.js';
@@ -61,6 +64,7 @@ export async function startTestApi({ database, redis, pool = database.pool, redi
     createAuthRouter({ controller: createAuthController({ sessionService, accountService, recentAuthMs: config.recentAuthMs }), guards, limiter }),
     createLinksRouter({ controller: createLinksController({ linkService, analyticsQuery }), guards, limiter, challengeGuard }),
     createReportsRouter({ controller: createReportsController({ reportService: createReportService({ pool, logger }) }), guards, limiter }),
+    createSupportRouter({ controller: createSupportController({ supportService: createSupportService({ pool, cursorSecret: SECRET, logger }) }), guards, limiter }),
     createAdminRouter({
       controller: createAdminController({
         moderationService: createModerationService({ pool, publicBaseUrl: config.publicBaseUrl, cursorSecret: SECRET, logger }),

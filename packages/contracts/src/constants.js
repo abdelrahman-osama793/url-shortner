@@ -38,6 +38,12 @@ export const ANALYTICS_TOP_REFERRERS = 20;
 export const REPORT_CATEGORIES = Object.freeze(['phishing', 'malware', 'spam', 'other']);
 export const REPORT_DETAILS_MAX_LENGTH = 2000;
 
+// Support messages from the Contact page (T44). Lengths match the database limits.
+export const SUPPORT_TOPICS = Object.freeze(['account', 'links', 'privacy', 'other']);
+export const SUPPORT_MESSAGE_MAX_LENGTH = 4000;
+// Closed messages are deleted this long after closing (retention job).
+export const SUPPORT_RETENTION_DAYS = 365;
+
 // Error codes the API can return. Each task adds the codes it introduces here,
 // so the UI and the OpenAPI document stay in sync with the server.
 export const ERROR_CODES = Object.freeze({

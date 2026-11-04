@@ -1,0 +1,96 @@
+<div class="contact">
+  <h1>Contact us</h1>
+  <p class="muted intro">Tell us what you need. A person reads every message.</p>
+
+  <div class="routes">
+    <a class="route surface" routerLink="/report">
+      <app-icon name="flag" [size]="18" />
+      <span>
+        <strong>Report a harmful link</strong>
+        <span class="muted">Phishing, malware, spam or anything illegal. No account needed.</span>
+      </span>
+      <app-icon name="arrow-right" />
+    </a>
+  </div>
+
+  <section class="surface form-card" aria-labelledby="support-title">
+    @if (sent()) {
+      <div class="done">
+        <div class="status-mark"><app-icon name="check" /></div>
+        <h2 id="support-title" #doneHeading tabindex="-1">Message sent</h2>
+        <p class="muted">
+          Thanks. We'll reply by email
+          @if (session.user(); as user) {
+            to <strong>{{ user.email }}</strong>
+          }
+          as soon as we can.
+        </p>
+        <button class="btn" type="button" (click)="writeAnother()">Write another message</button>
+      </div>
+    } @else {
+      <h2 id="support-title">Contact support</h2>
+
+      <form class="form-stack" (submit)="submit($event)" novalidate [attr.aria-busy]="busy()">
+        <div class="field">
+          <label for="support-topic">What is it about?</label>
+          <select #topicField id="support-topic" class="input" [value]="topic()" (change)="topic.set($any(topicField.value))">
+            @for (option of topics; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="support-message">Message</label>
+          <textarea
+            #messageField
+            id="support-message"
+            class="input"
+            rows="6"
+            [attr.maxlength]="maxMessage"
+            [value]="message()"
+            (input)="message.set(messageField.value)"
+            [attr.aria-invalid]="errors().message ? 'true' : null"
+            [attr.aria-describedby]="errors().message ? 'support-message-error' : 'support-message-hint'"
+          ></textarea>
+          <span id="support-message-hint" class="field-hint">Don't include passwords. Up to {{ maxMessage }} characters.</span>
+          @if (errors().message; as text) {
+            <p id="support-message-error" class="field-error" role="alert">{{ text }}</p>
+          }
+        </div>
+
+        @if (session.user(); as user) {
+          <p class="note">We'll reply to your account email, <strong>{{ user.email }}</strong>.</p>
+        } @else {
+          <div class="field">
+            <label for="support-email">Your email address</label>
+            <input
+              #emailField
+              id="support-email"
+              class="input"
+              type="email"
+              autocomplete="email"
+              maxlength="254"
+              [value]="email()"
+              (input)="email.set(emailField.value)"
+              [attr.aria-invalid]="errors().email ? 'true' : null"
+              [attr.aria-describedby]="errors().email ? 'support-email-error' : 'support-email-hint'"
+            />
+            <span id="support-email-hint" class="field-hint">Only used to reply to you.</span>
+            @if (errors().email; as text) {
+              <p id="support-email-error" class="field-error" role="alert">{{ text }}</p>
+            }
+          </div>
+        }
+
+        @if (formError(); as text) {
+          <p class="form-error" role="alert">{{ text }}</p>
+        }
+
+        <button class="btn btn-primary" type="submit" [disabled]="busy()">{{ busy() ? 'Sending…' : 'Send message' }}</button>
+      </form>
+    }
+  </section>
+
+  <p class="muted other">You can also email {{ operator.email }}. See how we handle messages in the <a routerLink="/privacy">Privacy Policy</a>.</p>
+</div>

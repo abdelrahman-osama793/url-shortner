@@ -20,6 +20,7 @@ const EXPECTED_TABLES = [
   'links',
   'password_credentials',
   'pgmigrations',
+  'support_messages',
   'users',
   'worker_state',
 ];

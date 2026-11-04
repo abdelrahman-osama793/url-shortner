@@ -1,0 +1,37 @@
+<h1>Support inbox</h1>
+<p class="muted intro">Messages from the Contact page. Reply by email, then close the message.</p>
+
+<div class="tabs" role="group" aria-label="Show messages">
+  <button class="btn" type="button" [class.active]="status() === 'open'" [attr.aria-pressed]="status() === 'open'" (click)="show('open')">Open</button>
+  <button class="btn" type="button" [class.active]="status() === 'closed'" [attr.aria-pressed]="status() === 'closed'" (click)="show('closed')">Closed</button>
+</div>
+
+@if (error(); as text) {
+  <p class="form-error" role="alert">{{ text }}</p>
+}
+
+@if (!loading() && messages().length === 0 && !error()) {
+  <p class="note">{{ status() === 'open' ? 'No open messages.' : 'No closed messages.' }}</p>
+}
+
+<ul class="messages" [attr.aria-busy]="loading()">
+  @for (message of messages(); track message.id) {
+    <li class="message surface">
+      <div class="meta">
+        <strong>{{ topicLabels[message.topic] }}</strong>
+        <span class="muted">{{ date(message.createdAt) }} · {{ message.userId ? 'Account holder' : 'Guest' }}</span>
+      </div>
+      <p class="body">{{ message.message }}</p>
+      <div class="foot">
+        <a class="btn btn-link" [href]="'mailto:' + message.replyEmail">Reply to {{ message.replyEmail }}</a>
+        <button class="btn" type="button" [disabled]="busyId() === message.id" (click)="toggle(message)">
+          {{ message.status === 'open' ? 'Close' : 'Reopen' }}
+        </button>
+      </div>
+    </li>
+  }
+</ul>
+
+@if (nextCursor()) {
+  <button class="btn" type="button" [disabled]="loading()" (click)="load(true)">Show more</button>
+}

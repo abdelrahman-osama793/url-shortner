@@ -43,6 +43,26 @@ async function count(sql, params) {
 }
 
 describe('retention cleanup', () => {
+  test('removes support messages closed more than a year ago, never open ones', async () => {
+    const { rows: [admin] } = await database.pool.query(
+      "INSERT INTO users (email, email_normalized, role) VALUES ('ret-admin@example.test', 'ret-admin@example.test', 'admin') RETURNING id",
+    );
+    const insert = (message, status, closedAtMs) => database.pool.query(
+      `INSERT INTO support_messages (reply_email, topic, message, status, created_at, closed_at, closed_by)
+       VALUES ('g@example.com', 'other', $1, $2, $3, $4, $5)`,
+      [message, status, new Date(NOW - 800 * DAY_MS), closedAtMs === null ? null : new Date(closedAtMs), closedAtMs === null ? null : admin.id],
+    );
+
+    await insert('old closed', 'closed', NOW - 366 * DAY_MS);
+    await insert('recently closed', 'closed', NOW - 364 * DAY_MS);
+    await insert('old open', 'open', null);
+
+    const result = await createRetentionService({ pool: database.pool, aggregateRetentionDays: 365, clock: () => NOW }).runOnce();
+
+    assert.equal(result.supportMessages, 1);
+    assert.deepEqual((await database.pool.query('SELECT message FROM support_messages ORDER BY message')).rows.map((r) => r.message), ['old open', 'recently closed']);
+  });
+
   test('removes raw events older than 30 days and keeps everything else', async () => {
     const linkId = await newLink();
 
